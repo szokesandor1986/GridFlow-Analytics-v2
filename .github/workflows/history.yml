@@ -1,0 +1,138 @@
+name: Hosszú távú adatok
+
+# Évekre visszamenő, havi összesítésű adatok az "Európa és trendek" oldalhoz (history.json).
+# Hetente egyszer fut, és kézzel is indítható: Actions -> Hosszú távú adatok -> Run workflow.
+#
+# Felépítés (a lassú ENTSO-E lekérdezések miatt párhuzamosan):
+#   1. prepare: tesztek + annak eldöntése, mely évek hiányoznak (2 évenként egy csoport; a folyó év mindig),
+#   2. collect: csoportonként külön gépen fut a letöltés (matrix), a részeredmény artifactként mentődik,
+#   3. merge:   a részeredményeket összefésüli a meglévő history.json-ra, és egyetlen commitban menti.
+# Ami egy futásban nem sikerült, az az év nem számít lezártnak, és a következő futás újra próbálja.
+# Az első futás tölti le az összes évet (kb. 30-50 perc, párhuzamosan); a későbbiek csak a folyó évet frissítik.
+# Az eredmény a repó "data" ágára kerül (history.json), nem a main-re, így nem ütközik a feltöltésekkel;
+# mentés után a workflow elindítja az Adatfrissítést, ami közzéteszi.
+on:
+  schedule:
+    - cron: "23 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: history
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      groups: ${{ steps.plan.outputs.groups }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Függőségek
+        run: pip install -r requirements.txt
+
+      - name: Teszt (kitalált klienssel, hálózat nélkül)
+        run: python -I tests/test_history.py
+
+      - name: Korábbi adatok betöltése (data ág)
+        run: bash scripts/load_data.sh history.json
+
+      - name: Mely évek hiányoznak?
+        id: plan
+        run: |
+          groups=$(python history.py --plan 2 --base history.json)
+          echo "Csoportok: $groups"
+          echo "groups=$groups" >> "$GITHUB_OUTPUT"
+
+  collect:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        years: ${{ fromJSON(needs.prepare.outputs.groups) }}
+    name: Évek ${{ matrix.years }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Függőségek
+        run: pip install -r requirements.txt
+
+      - name: Korábbi adatok betöltése (data ág)
+        run: bash scripts/load_data.sh history.json
+
+      # A lépés hibája vagy időtúllépése nem állítja le a részeredmény mentését:
+      # a gyűjtő évenként köztes mentést ír a part.json-ba.
+      - name: Adatgyűjtés az ENTSO-E-ről
+        continue-on-error: true
+        timeout-minutes: 50
+        env:
+          ENTSOE_TOKEN: ${{ secrets.ENTSOE_TOKEN }}
+        run: python history.py --years "${{ matrix.years }}" --base history.json --out part-${{ strategy.job-index }}.json --workers 8 --budget 2600
+
+      - name: Részeredmény mentése
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: part-${{ strategy.job-index }}
+          path: part-${{ strategy.job-index }}.json
+          if-no-files-found: warn
+          retention-days: 7
+
+  merge:
+    needs: [prepare, collect]
+    if: always() && needs.prepare.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Függőségek
+        run: pip install -r requirements.txt
+
+      - name: Részeredmények letöltése
+        uses: actions/download-artifact@v4
+        with:
+          pattern: part-*
+          path: parts
+          merge-multiple: true
+
+      - name: Korábbi adatok betöltése (data ág)
+        run: bash scripts/load_data.sh history.json
+
+      - name: Összefésülés
+        run: |
+          ls -la parts || true
+          python history.py --merge parts/*.json --base history.json --out history.json
+
+      - name: Mentés a data ágra
+        env:
+          DATA_MSG: history.json frissítése
+        run: bash scripts/save_data.sh history.json
+
+      - name: Közzététel indítása
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run update.yml --ref main

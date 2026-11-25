@@ -1,0 +1,57 @@
+name: Gáz adatok
+
+# Földgáz-tározók (GIE AGSI+), LNG-terminálok (GIE ALSI) és magyar határpontok (ENTSOG) a Földgáz oldalhoz (gas.json).
+# Naponta kétszer fut (az AGSI+ adatai este ~19:30 CET körül jelennek meg, a második kör a korrekciókat hozza),
+# és kézzel is indítható: Actions -> Gáz adatok -> Run workflow.
+# Az eredmény a repó "data" ágára kerül (gas.json), nem a main-re, így nem ütközik a feltöltésekkel;
+# mentés után a workflow elindítja az Adatfrissítést, ami közzéteszi.
+on:
+  schedule:
+    - cron: "50 18 * * *"
+    - cron: "35 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: gas
+  cancel-in-progress: false
+
+jobs:
+  gas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Függőségek
+        run: pip install -r requirements.txt
+
+      - name: Teszt (kitalált klienssel, hálózat nélkül)
+        run: python -I tests/test_gas.py
+
+      - name: Korábbi adatok betöltése (data ág)
+        run: bash scripts/load_data.sh gas.json
+
+      - name: Adatgyűjtés (AGSI+ és ENTSOG)
+        env:
+          GIE_API_KEY: ${{ secrets.GIE_API_KEY }}
+        run: python gas.py --out gas.json
+
+      - name: Mentés a data ágra
+        env:
+          DATA_MSG: gas.json frissítése
+        run: bash scripts/save_data.sh gas.json
+
+      - name: Közzététel indítása
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run update.yml --ref main
