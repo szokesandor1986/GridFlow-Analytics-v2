@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Földgáz – tározók, határpontok és LNG-terminálok</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="Földgáztározók töltöttsége (GIE AGSI+), a magyar határpontok fizikai áramlása (ENTSOG) és az európai LNG-terminálok (GIE ALSI).">
+<link rel="stylesheet" href="assets/gf.css">
+<script src="assets/gf.js"></script>
+<style>
+:root{--huwhite:#ffffff;}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--huwhite:#5b5a55;}}
+:root[data-theme="dark"]{--huwhite:#5b5a55;}
+.meta{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;color:var(--muted);font-size:13px}
+.card h3{font-size:14px;margin:18px 0 6px;color:var(--ink2);font-weight:650}
+.card .note{margin:10px 0 0;color:var(--muted);font-size:12.5px;max-width:90ch}
+.nodata{padding:14px;border:1px dashed var(--grid);border-radius:10px;color:var(--ink2);font-size:14px}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 18px}
+@media (max-width:640px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{border-left:3px solid var(--grid);padding:2px 0 2px 10px}
+.tile .k{color:var(--ink2);font-size:12.5px}
+.tile .n{font-size:24px;font-weight:650;line-height:1.2;white-space:nowrap}
+.tile .n small{font-size:13px;color:var(--ink2);font-weight:600}
+.tile .s{color:var(--muted);font-size:12px}
+.legend svg{display:block}
+.chart{position:relative;width:100%}
+.tip .sub{color:var(--muted);margin-top:3px}
+.tbl{overflow-x:auto}
+@media (max-width:640px){
+  .hide-sm{display:none}
+  th{white-space:normal;vertical-align:bottom;padding:0 4px 8px}
+  td{padding:8px 4px}
+  td.nm{white-space:normal}
+}
+footer details{margin:6px 0}
+footer summary{cursor:pointer;color:var(--ink2)}
+.err{padding:18px;color:var(--ink2)}
+h2.grp{font-size:22px;margin:38px 0 -4px;letter-spacing:-.01em}
+#gz_cWin{position:sticky;top:0;z-index:6;padding:10px 14px;margin-top:12px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+#gz_cWin .chips{margin:0 0 6px}
+#gz_cWin .winlabel{font-size:13px;color:var(--ink2)}
+.chip:disabled{opacity:.4;cursor:default}
+.mbar{display:inline-block;width:70px;height:8px;border-radius:4px;background:var(--grid);vertical-align:middle;margin-right:6px;overflow:hidden}
+.mbar i{display:block;height:100%;background:var(--c1);border-radius:4px}
+td small{color:var(--muted);display:block;font-size:11.5px;font-weight:400}
+.chart svg.zm{cursor:crosshair}
+</style>
+</head>
+<body>
+<main>
+  <nav class="tabs" aria-label="Nézetek"><a href="index.html">Határok</a><a href="muszaki.html">Rendszerállapot</a><a href="europa.html">Európai piac</a><a href="idojaras.html">Időjárás</a><a href="foldgaz.html" aria-current="page">Földgáz</a></nav>
+  <div id="banners"></div>
+  <header>
+    <h1>Földgáz</h1>
+    <p class="sub">Mennyi gáz van a tározókban, honnan érkezik a gáz Magyarországra, és mennyi LNG jut Európába? A tározói adat napi, az AGSI+ platformról; a határpontok fizikai áramlása az ENTSOG átláthatósági platformról érkezik.</p>
+    <div class="meta" id="meta"></div>
+  </header>
+  <h2 class="grp" id="gz_head" style="display:none"></h2>
+  <section class="card" id="gz_cHu" data-src="GIE AGSI+ (agsi.gie.eu), napi adat"></section>
+
+  <section class="card" id="gz_cWin"></section>
+  <section class="card" id="gz_cSeason" data-src="GIE AGSI+ (agsi.gie.eu), napi adat">
+    <h2>Töltöttség gázévenként</h2>
+    <p class="hint">A gázév október 1-jén kezdődik és szeptember 30-án ér véget. A görbék a tározók töltöttségét (a munkagáz-kapacitás százalékában) mutatják a gázév napjai szerint, így egy adott nap értéke közvetlenül összevethető a korábbi évekével.</p>
+    <div class="chips" id="gz_areaChips" role="group" aria-label="Terület"></div>
+    <div class="legend" id="gz_seasonLegend"></div>
+    <div class="chart" id="gz_seasonChart"></div>
+    <p class="note" id="gz_seasonNote"></p>
+  </section>
+
+  <section class="card" id="gz_cInj" data-src="GIE AGSI+ (agsi.gie.eu), napi betáplálás és kivétel">
+    <h2>Betáplálás és kivétel, magyar tározók</h2>
+    <p class="hint">A napi nettó mozgás GWh/nap egységben: felfelé a kivétel, lefelé a betáplálás. A szaggatott vonalak a technikai kapacitás, vagyis az a határ, amelyet a rendszer egy nap alatt legfeljebb teljesíteni tud.</p>
+    <div class="legend" id="gz_injLegend"></div>
+    <div class="chart" id="gz_injChart"></div>
+  </section>
+
+  <section class="card" id="gz_cNb" data-src="GIE AGSI+ (agsi.gie.eu), napi adat"></section>
+
+  <section class="card" id="gz_cFlow" data-src="ENTSOG Transparency Platform (transparency.entsog.eu), Physical Flow, napi adat">
+    <h2>Határpontok: honnan érkezik a gáz?</h2>
+    <p class="hint">A magyar határpontok fizikai gázáramlása (ENTSOG, a magyar szállítási rendszerirányító oldaláról). A pozitív érték a Magyarországra érkező, a negatív a Magyarországról kilépő gáz, országonként összesítve.</p>
+    <div class="tiles" id="gz_flowTiles"></div>
+    <h3>Térkép: áramlás a határokon egy kiválasztott napon</h3>
+    <div class="chips" style="align-items:center"><label for="gz_mapSlider" style="font-size:13.5px;color:var(--ink2)">Nap:</label><input type="range" id="gz_mapSlider" min="0" max="0" step="1" style="flex:1;min-width:160px;max-width:520px"><b id="gz_mapLabel" class="num" style="font-size:13.5px"></b></div>
+    <div class="mapwrap" id="gz_flowMap" style="position:relative;width:100%" role="img" aria-label="Magyarország és szomszédai: földgázáramlás a határpontokon"></div>
+    <div class="legend" id="gz_mapLegend" style="margin-top:10px"></div>
+    <h3>Nettó áramlás országonként, napi, GWh/nap</h3>
+    <div class="legend" id="gz_flowLegend"></div>
+    <div class="chart" id="gz_flowChart"></div>
+    <h3>Határpontok részletesen</h3>
+    <div class="tbl" id="gz_flowTable"></div>
+  </section>
+
+  <section class="card" id="gz_cProxy" data-src="ENTSOG Transparency Platform (fizikai áramlás) és GIE AGSI+ (tározók); az összegzés saját számítás">
+    <h2>Mennyi gáz áll a rendszer rendelkezésére?</h2>
+    <p class="hint">A határokon át érkező nettó mennyiség és a tározókból kivett nettó mennyiség összege. Ez a hazai termelés nélküli felhasználás közelítése: a ténylegesen elfogyasztott gáz ennél a hazai kitermelés (nagyságrendileg néhány százaléka a téli igénynek) és az adatok hiányosságai miatt eltérhet. 7 napos átlag, GWh/nap.</p>
+    <div class="legend" id="gz_proxyLegend"></div>
+    <div class="chart" id="gz_proxyChart"></div>
+  </section>
+
+  <section class="card" id="gz_cLng" data-src="GIE ALSI (alsi.gie.eu), napi adat az LNG-terminálokról">
+    <h2>LNG-terminálok</h2>
+    <p class="hint">A cseppfolyósított földgáz (LNG) a tengeren érkezik, a terminálokban tárolják, majd visszagázosítva a vezetékrendszerbe táplálják. A <b>kiadás</b> (send-out) a terminálból a rendszerbe jutó gáz GWh/nap egységben; a <b>készlet</b> a tankokban lévő LNG az előző gáznap végén; a <b>DTMI</b> a deklarált legnagyobb készlet, a <b>DTRS</b> a deklarált referencia-kiadás. A kihasználtság a kiadás és a DTRS hányadosa.</p>
+    <div class="tiles" id="gz_lngTiles"></div>
+    <div class="chips" id="gz_lngChips" role="group" aria-label="LNG terület" style="margin-top:16px"></div>
+    <h3 id="gz_lngH1">Kiadás a gázrendszerbe</h3>
+    <div class="legend" id="gz_lngLegend1"></div>
+    <div class="chart" id="gz_lngChart1"></div>
+    <h3 id="gz_lngH2">Készlet a tankokban</h3>
+    <div class="legend" id="gz_lngLegend2"></div>
+    <div class="chart" id="gz_lngChart2"></div>
+    <h3>Országok összevetése</h3>
+    <div class="tbl" id="gz_lngCountries"></div>
+    <h3>Terminálok</h3>
+    <div class="chips" id="gz_lngFilter" role="group" aria-label="Terminálok szűrése"></div>
+    <div class="tbl" id="gz_lngFac"></div>
+    <p class="note" id="gz_lngNote"></p>
+  </section>
+  <footer id="foot"></footer>
+  <p class="note" style="text-align:center;margin:6px 0 24px" id="ver">Oldalverzió: v2 · 2026-11-25 / 1</p>
+</main>
+
+<script>
+"use strict";
+const TZ = "Europe/Budapest";
+const GRP = [
+  {k:"nuclear", n:"Atomenergia", c:"--c1"}, {k:"gas", n:"Földgáz", c:"--c2"}, {k:"wind", n:"Szél", c:"--c3"},
+  {k:"solar", n:"Nap", c:"--c4"}, {k:"bio", n:"Biomassza, hulladék", c:"--c5"}, {k:"hydro", n:"Víz", c:"--c6"},
+  {k:"other", n:"Egyéb", c:"--c7"}, {k:"coal", n:"Szén, lignit", c:"--c8"}
+];
+const BORD = [{k:"AT", n:"Ausztria", c:"--c1"}, {k:"SK", n:"Szlovákia", c:"--c2"}, {k:"RO", n:"Románia", c:"--c3"},
+  {k:"RS", n:"Szerbia", c:"--c4"}, {k:"HR", n:"Horvátország", c:"--c5"}, {k:"SI", n:"Szlovénia", c:"--c6"}, {k:"UA", n:"Ukrajna", c:"--c7"}];
+const RAMP = ["#cde2fb","#b7d3f6","#9ec5f4","#86b6ef","#6da7ec","#5598e7","#3987e5","#2a78d6","#256abf","#1c5cab","#184f95","#104281","#0d366b"];
+const MONTHS = ["január","február","március","április","május","június","július","augusztus","szeptember","október","november","december"];
+
+const mkNum = (o) => { const f = new Intl.NumberFormat("hu-HU", o); return {format: v => f.format(v).replace(/^-/, "−")}; };
+const nf0 = mkNum({maximumFractionDigits:0});
+const nf1 = mkNum({minimumFractionDigits:1,maximumFractionDigits:1});
+const fTime = new Intl.DateTimeFormat("hu-HU",{timeZone:TZ,hour:"2-digit",minute:"2-digit",hour12:false});
+const fDate = new Intl.DateTimeFormat("hu-HU",{timeZone:TZ,month:"short",day:"numeric"});
+const fFull = new Intl.DateTimeFormat("hu-HU",{timeZone:TZ,year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false});
+const fWeek = new Intl.DateTimeFormat("hu-HU",{timeZone:TZ,weekday:"long"});
+const fParts = new Intl.DateTimeFormat("en-GB",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",hour12:false});
+const $ = (id) => document.getElementById(id);
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent){ const e = document.createElementNS(NS, tag); for (const k in (attrs||{})) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function signed(v, f){ f = f || nf0; const a = f.format(Math.abs(v)); return (v > 0 && a !== "0" ? "+" : v < 0 && a !== "0" ? "−" : "") + a; }
+function localParts(d){ const p = fParts.formatToParts(d), o = {}; p.forEach(x => o[x.type] = x.value); return {y:+o.year,m:+o.month,d:+o.day,h:(+o.hour)%24}; }
+function localDayKey(d){ const p = localParts(d); return p.y*10000 + p.m*100 + p.d; }
+function dayNum(k){ return Date.UTC(Math.floor(k / 10000), Math.floor(k / 100) % 100 - 1, k % 100) / 864e5; }
+function nice(min, max, n){
+  if (min === max){ max = min + 1; }
+  const span = max - min, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1,2,2.5,5,10].map(m => m*mag).find(s => s >= raw) || 10*mag;
+  const lo = Math.floor(min/step)*step, hi = Math.ceil(max/step)*step, t = [];
+  for (let v = lo; v <= hi + step/2; v += step) t.push(Math.round(v/step*1e6)/1e6*step);
+  return {lo, hi, ticks:t};
+}
+const has = (v) => v != null;
+
+const getJson = (url, opt) => GF.getJson(url, opt);   // assets/gf.js: feltételes kérés (ETag), betöltésjelző
+
+let NOW = new Date();
+
+// ================================================================ Földgáz (gas.json: GIE AGSI+ és ENTSOG)
+const GAS = (() => {
+  const nf2 = mkNum({minimumFractionDigits:2,maximumFractionDigits:2});
+  const fDayU = new Intl.DateTimeFormat("hu-HU",{timeZone:"UTC",month:"short",day:"numeric"});
+  const fDayY = new Intl.DateTimeFormat("hu-HU",{timeZone:"UTC",year:"numeric",month:"short",day:"numeric"});
+  const has = (v) => v != null && !Number.isNaN(v);
+  const lastIdx = (arr) => { for (let i = arr.length - 1; i >= 0; i--) if (has(arr[i])) return i; return -1; };
+  const NB = {AT:{n:"Ausztria",c:"--c1"}, SK:{n:"Szlovákia",c:"--c2"}, RO:{n:"Románia",c:"--c3"}, RS:{n:"Szerbia",c:"--c4"},
+  HR:{n:"Horvátország",c:"--c5"}, UA:{n:"Ukrajna",c:"--c7"}, SI:{n:"Szlovénia",c:"--c6"}};
+const AREAS = {HU:"Magyarország", EU:"EU összesen", AT:"Ausztria", SK:"Szlovákia", RO:"Románia", HR:"Horvátország", UA:"Ukrajna",
+  DE:"Németország", IT:"Olaszország", CZ:"Csehország", PL:"Lengyelország", BG:"Bulgária", NL:"Hollandia", FR:"Franciaország"};
+// a gázéves évek színe a kor szerint rögzített: a jelenlegi mindig az első szín
+const YCOL = ["--c1","--c2","--c3","--c4","--c5","--c6"];
+
+
+  // ---- dátumok: "ÉÉÉÉ-HH-NN" szövegek, UTC-ben számolva
+const ud = (s) => new Date(s + "T00:00:00Z");
+const ds = (d) => d.toISOString().slice(0, 10);
+const addDays = (s, k) => ds(new Date(ud(s).getTime() + k * 864e5));
+const prevYear = (s) => { const y = +s.slice(0, 4) - 1; let md = s.slice(5); if (md === "02-29") md = "02-28"; return y + "-" + md; };
+const gasYear = (s) => +s.slice(5, 7) >= 10 ? +s.slice(0, 4) : +s.slice(0, 4) - 1;
+const gyIndex = (s) => Math.round((ud(s) - ud(gasYear(s) + "-10-01")) / 864e5);
+const gyLabel = (y) => y + "/" + String(y + 1).slice(2);
+const dayLabel = (s) => fDayY.format(ud(s));
+
+
+  let G = null, A = null, F = null, L = null, area = "HU", lngArea = "EU", lngNear = false;
+  let gasN = null, gasBack = 0;       // az időablak hossza napokban (null: grafikononkénti alap) és a vége a legutóbbi naptól visszafelé
+  const PRE = [["30 nap", 30], ["90 nap", 90], ["180 nap", 180], ["1 év", 365], ["2 év", 730], ["Mind", 99999]];
+  const WD = () => (A && A.dates && A.dates.length >= 40) ? A.dates : (L && L.dates && L.dates.length >= 40 ? L.dates : null);
+  function winSection(){
+    const host = $("gz_cWin"), WDt = WD(); if (!WDt){ host.style.display = "none"; return; }
+    host.style.display = "";
+    const tot = WDt.length, N = Math.min(gasN || 150, tot), e = tot - gasBack, a = Math.max(0, e - N);
+    let html = '<div class="chips" role="group" aria-label="Időablak">' + PRE.map(([l, k]) => '<button class="chip" type="button" data-k="' + k + '" aria-pressed="' + ((gasN || 0) === k || (k === 99999 && gasN >= tot)) + '">' + l + '</button>').join("") +
+      '<button class="chip" type="button" data-s="-1" ' + (a === 0 ? "disabled" : "") + ' aria-label="Korábbra">◀</button><button class="chip" type="button" data-s="1" ' + (gasBack === 0 ? "disabled" : "") + ' aria-label="Későbbre">▶</button></div>' +
+      '<div class="winlabel">Időablak a napi grafikonokhoz (betáplálás és kivétel, határpontok, rendelkezésre álló gáz, LNG): <b>' + dayLabel(WDt[a]) + ' – ' + dayLabel(WDt[Math.max(a, e - 1)]) + '</b> (' + (e - a) + ' nap). A gázéves összevetés 1 évnél rövidebb ablaknál a mai naphoz tartozó szakaszt mutatja (az ablak hosszával előre és hátra), egy évtől a teljes gázévet.<span class="hide-sm"> · Egérrel húzd végig a kívánt szakaszt egy napi grafikonon a nagyításhoz, dupla kattintással vissza.</span></div>';
+    host.innerHTML = html;
+    host.querySelectorAll("[data-k]").forEach(b => b.addEventListener("click", () => { gasN = +b.dataset.k; gasBack = 0; render(); }));
+    host.querySelectorAll("[data-s]").forEach(b => b.addEventListener("click", () => { const w = e - a, st = Math.max(1, Math.round(w / 2)) * +b.dataset.s; gasBack = Math.max(0, Math.min(tot - w, gasBack - st)); render(); }));
+  }
+  const ALL = ["gz_cHu","gz_cWin","gz_cSeason","gz_cInj","gz_cNb","gz_cFlow","gz_cProxy","gz_cLng"];
+
+  // ---------------------------------------------------------------- általános rajzoló elemek
+function legend(id, items){
+  $(id).innerHTML = items.map(it => {
+    const c = it.color, k = it.kind || "box";
+    const sv = k === "box" ? '<svg width="12" height="12"><rect width="12" height="12" rx="3" fill="' + c + '"/></svg>'
+      : '<svg width="24" height="12"><line x1="1" y1="6" x2="23" y2="6" stroke="' + c + '" stroke-width="' + (it.w || 2.4) + '"' + (k === "dash" ? ' stroke-dasharray="6 4"' : '') + ' stroke-linecap="round"/></svg>';
+    return '<span>' + sv + esc(it.label) + '</span>';
+  }).join("");
+}
+function row(color, k, v){ return '<div class="row"><span>' + (color ? '<i style="background:' + color + '"></i>' : '') + k + '</span><b class="num">' + v + '</b></div>'; }
+function noData(host, msg){ host.innerHTML = '<div class="nodata">' + msg + '</div>'; }
+function tile(k, n, s){ return '<div class="tile"><div class="k">' + k + '</div><div class="n num">' + n + '</div><div class="s">' + s + '</div></div>'; }
+
+function hoverIdx(host, svg, W, H_, x0, x1, n, info){
+  const tip = document.createElement("div"); tip.className = "tip"; host.appendChild(tip);
+  const guide = el("line", {y1:12, y2:H_ - 36, stroke:css("--ink2"), "stroke-width":1, "stroke-dasharray":"3 3", visibility:"hidden"}, svg);
+  const move = (ev) => {
+    const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) / r.width * W;
+    const i = Math.max(0, Math.min(n - 1, Math.floor((px - x0) / (x1 - x0) * n)));
+    const d = info(i);
+    if (!d){ tip.style.display = "none"; guide.setAttribute("visibility","hidden"); return; }
+    guide.setAttribute("x1", d.x); guide.setAttribute("x2", d.x); guide.setAttribute("visibility","visible");
+    tip.innerHTML = d.html; tip.style.display = "block";
+    const s = r.width / W, tw = tip.offsetWidth, left = d.x * s + 14;
+    tip.style.left = (left + tw > r.width ? Math.max(0, d.x * s - tw - 14) : left) + "px"; tip.style.top = "6px";
+  };
+  const hide = () => { tip.style.display = "none"; guide.setAttribute("visibility","hidden"); };
+  svg.addEventListener("pointermove", move); svg.addEventListener("pointerleave", hide); svg.addEventListener("pointerdown", move);
+}
+
+// A tengelyfeliratok tizedesjegye a lépésközhöz igazodik (0,5-ös lépésnél nem kerekít egészre).
+function autoFmt(ny){ const st = ny.ticks.length > 1 ? Math.abs(ny.ticks[1] - ny.ticks[0]) : 1, d = st >= 1 ? 0 : st >= 0.1 ? 1 : 2; return mkNum({minimumFractionDigits:d, maximumFractionDigits:d}).format; }
+
+// Általános diagram n darab egyenközű ponton.
+// cfg: {n, series:[{label,color,values,kind:"line"|"bar",dash,w,short,fmt}], stack, unit, fmt, ticks:[{i,label,bold}], title(i), yMin,yMax, zero, height, empty}
+function dchart(host, cfg){
+  host.innerHTML = "";
+  const n = cfg.n, W = Math.max(320, host.clientWidth), narrow = W < 520, Ht = cfg.height || (narrow ? 240 : 290);
+  const S = cfg.series.filter(s => s.values && s.values.some(has));
+  if (!S.length){ noData(host, cfg.empty || "Ehhez nincs közölt adat."); return; }
+  const m = {l:58, r:14, t:22, b:34};
+  let lo = Infinity, hi = -Infinity;
+  const upd = v => { if (has(v)){ if (v < lo) lo = v; if (v > hi) hi = v; } };
+  if (cfg.stack){
+    for (let i = 0; i < n; i++){ let p = 0, q = 0, any = false; S.forEach(s => { const v = s.values[i]; if (has(v)){ any = true; if (v >= 0) p += v; else q += v; } }); if (any){ upd(p); upd(q); } }
+  } else S.forEach(s => s.values.forEach(upd));
+  if (cfg.zero !== false){ lo = Math.min(lo, 0); hi = Math.max(hi, 0); }
+  if (cfg.yMin != null) lo = Math.min(lo, cfg.yMin);
+  if (cfg.yMax != null) hi = Math.max(hi, cfg.yMax);
+  const ny = nice(lo, hi, 5);
+  GF.a11y(host, {xs:Array.from({length:n}, (_, i) => cfg.title ? cfg.title(i) : String(i + 1)), series:S.map(s => ({label:s.label || "", values:s.values.slice(0, n)})), unit:cfg.unit || "", fmt:cfg.fmt});
+  const axf = cfg.axfmt || autoFmt(ny);
+  const x0 = m.l, x1 = W - m.r, y0 = Ht - m.b, y1 = m.t, band = (x1 - x0) / n;
+  const X = i => x0 + (i + .5) * band, Y = v => y0 - (v - ny.lo) / (ny.hi - ny.lo) * (y0 - y1);
+  const svg = el("svg", {viewBox:"0 0 " + W + " " + Ht, width:W, height:Ht}, host);
+  const ink = css("--ink"), ink2 = css("--ink2"), grid = css("--grid"), muted = css("--muted"), surf = css("--surface");
+  ny.ticks.forEach(t => {
+    el("line", {x1:x0, x2:x1, y1:Y(t), y2:Y(t), stroke: t === 0 ? muted : grid, "stroke-width": t === 0 ? 1.2 : 1}, svg);
+    const tx = el("text", {x:x0 - 8, y:Y(t) + 4, "text-anchor":"end", "font-size":12, fill:ink2}, svg); tx.textContent = axf(t);
+  });
+  const un = el("text", {x:x0 - 8, y:y1 - 9, "text-anchor":"end", "font-size":11, fill:muted}, svg); un.textContent = cfg.unit || "";
+  (cfg.ticks || []).forEach(t => {
+    if (t.bold) el("line", {x1:X(t.i) - band/2, x2:X(t.i) - band/2, y1:y1, y2:y0, stroke:grid}, svg);
+    const lab = el("text", {x:X(t.i) - (t.bold ? band/2 - 3 : 0), y:y0 + 17, "text-anchor":t.bold ? "start" : "middle", "font-size":narrow ? 11 : 12, fill:t.bold ? ink2 : muted, "font-weight":t.bold ? 650 : 400}, svg);
+    lab.textContent = t.label;
+  });
+  const bw = Math.max(1.5, band * .78);
+  if (cfg.stack){
+    for (let i = 0; i < n; i++){
+      let p = 0, q = 0;
+      S.forEach(s => {
+        const v = s.values[i]; if (!has(v) || v === 0) return;
+        const a = v >= 0 ? p : q, b = a + v;
+        el("rect", {x:X(i) - bw/2, y:Math.min(Y(a), Y(b)), width:bw, height:Math.max(.6, Math.abs(Y(a) - Y(b))), fill:s.color, stroke:band > 4 ? surf : "none", "stroke-width":.8}, svg);
+        if (v >= 0) p = b; else q = b;
+      });
+    }
+  }
+  S.filter(s => !cfg.stack && s.kind === "bar").forEach(s => s.values.forEach((v, i) => {
+    if (!has(v)) return;
+    el("rect", {x:X(i) - bw/2, y:Math.min(Y(v), Y(0)), width:bw, height:Math.max(1, Math.abs(Y(v) - Y(0))), rx:Math.min(2, bw/3), fill:s.color}, svg);
+  }));
+  const ends = [];
+  S.filter(s => !cfg.stack && (s.kind || "line") === "line").forEach(s => {
+    let d = "", open = false;
+    s.values.forEach((v, i) => { if (!has(v)){ open = false; return; } d += (open ? "L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1); open = true; });
+    el("path", {d, fill:"none", stroke:s.color, "stroke-width":s.w || 2.2, "stroke-dasharray":s.dash || "none", "stroke-linejoin":"round", "stroke-linecap":"round"}, svg);
+    const li = lastIdx(s.values);
+    if (li >= 0 && s.short) ends.push({s, x:X(li), y:Y(s.values[li])});
+  });
+  if (!narrow && ends.length && ends.length <= 4){
+    ends.sort((a, b) => a.y - b.y);
+    for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i-1].y < 14) ends[i].y = ends[i-1].y + 14;
+    ends.forEach(e => {
+      const t = el("text", {x:Math.min(e.x + 6, x1 - 2), y:e.y + 4, "text-anchor":e.x + 60 < x1 ? "start" : "end", "font-size":12, "font-weight":650, fill:ink, stroke:surf, "stroke-width":3, "paint-order":"stroke"}, svg);
+      t.textContent = e.s.short;
+    });
+  }
+  const fmt = cfg.fmt || (v => nf0.format(v));
+  if (cfg.zoom) dragZoom(svg, W, x0, x1, y0, y1, n, cfg.zoom.off, cfg.zoom.tot);
+  hoverIdx(host, svg, W, Ht, x0, x1, n, i => {
+    let rows = "", any = false, tot = null;
+    (cfg.stack ? S.slice().reverse() : S).forEach(s => {
+      const v = s.values[i]; if (!has(v)) return; any = true; if (cfg.stack) tot = (tot || 0) + v;
+      rows += row(s.color, esc(s.label), (s.fmt || fmt)(v) + (cfg.unit ? " " + cfg.unit : ""));
+    });
+    if (!any) return null;
+    if (cfg.stack && tot != null && S.length > 1) rows += '<div class="row" style="border-top:1px solid var(--grid);margin-top:3px;padding-top:3px"><span>Összesen</span><b class="num">' + fmt(tot) + (cfg.unit ? " " + cfg.unit : "") + '</b></div>';
+    return {x:X(i), html:'<div class="t">' + esc(cfg.title(i)) + '</div>' + rows};
+  });
+}
+// Egérrel húzott kijelölés = nagyítás az időablakra; dupla kattintás = vissza az alapnézetre.
+// off: a megjelenített szakasz kezdete a teljes sorozatban, tot: a teljes sorozat hossza (a gasN / gasBack ebből számolódik).
+let DRAG = null, ZOOM_CB = null;
+addEventListener("pointerup", () => {
+  if (!DRAG) return; const d = DRAG; DRAG = null; d.rect.setAttribute("visibility", "hidden");
+  if (d.ex == null || Math.abs(d.ex - d.sx) < 12) return;
+  const f = (x) => Math.max(0, Math.min(d.n - 1, Math.floor((x - d.x0) / (d.x1 - d.x0) * d.n)));
+  let i0 = f(Math.min(d.sx, d.ex)), i1 = f(Math.max(d.sx, d.ex));
+  if (i1 - i0 < 5){ const c = Math.round((i0 + i1) / 2); i0 = Math.max(0, c - 3); i1 = Math.min(d.n - 1, i0 + 5); }   // legalább 6 nap
+  const a = d.off + i0, b = d.off + i1 + 1;
+  if (ZOOM_CB) ZOOM_CB(b - a, Math.max(0, d.tot - b));
+});
+function dragZoom(svg, W, x0, x1, y0, y1, n, off, tot){
+  svg.classList.add("zm");
+  const rect = el("rect", {y:y1, height:y0 - y1, fill:css("--c1"), opacity:.18, visibility:"hidden", "pointer-events":"none"}, svg);
+  const px = (ev) => { const r = svg.getBoundingClientRect(); return Math.max(x0, Math.min(x1, (ev.clientX - r.left) / r.width * W)); };
+  svg.addEventListener("pointerdown", ev => { if (ev.pointerType !== "mouse" || ev.button !== 0) return; ev.preventDefault(); DRAG = {rect, sx:px(ev), ex:null, n, off, tot, x0, x1}; });
+  svg.addEventListener("pointermove", ev => {
+    if (!DRAG || DRAG.rect !== rect) return; const x = px(ev); DRAG.ex = x;
+    rect.setAttribute("x", Math.min(DRAG.sx, x)); rect.setAttribute("width", Math.abs(x - DRAG.sx)); rect.setAttribute("visibility", Math.abs(x - DRAG.sx) > 6 ? "visible" : "hidden");
+  });
+  svg.addEventListener("dblclick", () => { if (ZOOM_CB) ZOOM_CB(null, 0); });
+}
+// havi jelek egy dátumsorhoz
+function dateTicks(dates, narrow){
+  const out = [], step = narrow ? 3 : (dates.length > 250 ? 2 : 1);
+  let k = 0;
+  dates.forEach((d, i) => {
+    if (d.slice(8) !== "01") return;
+    const mo = +d.slice(5, 7);
+    if (mo === 1) out.push({i, label:d.slice(0, 4), bold:true});
+    else if (k++ % step === 0) out.push({i, label:MONTHS[mo - 1].slice(0, 3) + "."});
+  });
+  return out;
+}
+
+
+
+  function chips(){
+  const host = $("gz_areaChips"); host.innerHTML = "";
+  if (!A) return;
+  Object.keys(AREAS).filter(c => A.series[c]).forEach(c => {
+    const b = document.createElement("button"); b.className = "chip"; b.type = "button";
+    b.setAttribute("aria-pressed", String(c === area)); b.textContent = AREAS[c];
+    b.addEventListener("click", () => { area = c; chips(); seasonSection(); });
+    host.appendChild(b);
+  });
+}
+
+// ---------------------------------------------------------------- tározói segédek
+const lastOf = (code, f) => { const s = A.series[code] && A.series[code][f]; if (!s) return -1; return lastIdx(s); };
+function valAt(code, f, date){ const i = A.dates.indexOf(date); if (i < 0) return null; const s = A.series[code][f]; return s ? s[i] : null; }
+function sameDayPast(code, date, f){
+  // ugyanez a nap egy évvel korábban (ha nincs, a legközelebbi nap ±3-on belül)
+  const t = prevYear(date);
+  for (const k of [0, -1, 1, -2, 2, -3, 3]){ const v = valAt(code, f || "full", addDays(t, k)); if (has(v)) return v; }
+  return null;
+}
+function priorAvg(code, date){
+  // a korábbi gázévek átlaga ugyanarra a napra
+  const gy = gasYear(date), idx = gyIndex(date), vals = [];
+  for (let y = gy - 1; y >= gy - 5; y--){
+    const d = addDays(y + "-10-01", idx);
+    for (const k of [0, -1, 1]){ const v = valAt(code, "full", addDays(d, k)); if (has(v)){ vals.push(v); break; } }
+  }
+  return vals.length ? {v:vals.reduce((a, b) => a + b, 0) / vals.length, n:vals.length} : null;
+}
+
+// ---------------------------------------------------------------- magyar tározók most
+function huSection(){
+  const host = $("gz_cHu");
+  if (!A || !A.series.HU){ host.innerHTML = '<h2>Magyar tározók</h2><div class="nodata">A magyar tározók adata (AGSI+) még nem érhető el.</div>'; return; }
+  const S = A.series.HU, li = lastOf("HU", "full");
+  if (li < 0){ host.innerHTML = '<h2>Magyar tározók</h2><div class="nodata">A magyar tározókra nincs közölt adat.</div>'; return; }
+  const d = A.dates[li], full = S.full[li], gis = S.gis[li], wgv = S.wgv[li], inj = S.inj[li], wdr = S.wdr[li];
+  const yago = sameDayPast("HU", d), avg = priorAvg("HU", d);
+  const wk = A.dates.indexOf(addDays(d, -7)), wkv = wk >= 0 ? S.full[wk] : null;
+  const pp = (a, b) => has(a) && has(b) ? signed(a - b, nf1) + " százalékpont" : "–";
+  let tiles = tile("Töltöttség", nf1.format(full) + ' <small>%</small>', dayLabel(d));
+  tiles += tile("Tárolt gáz", has(gis) ? nf1.format(gis) + ' <small>TWh</small>' : "–", has(wgv) ? "a munkagáz-kapacitás: " + nf1.format(wgv) + " TWh" : "");
+  tiles += tile("Egy hete óta", has(wkv) ? signed(full - wkv, nf1) + ' <small>százalékpont</small>' : "–", "a töltöttség változása 7 nap alatt");
+  tiles += tile("Egy évvel ezelőtt ilyenkor", has(yago) ? nf1.format(yago) + ' <small>%</small>' : "–", has(yago) ? "a különbség: " + pp(full, yago) : "nincs adat");
+  tiles += tile("Korábbi évek átlaga", avg ? nf1.format(avg.v) + ' <small>%</small>' : "–", avg ? "ugyanerre a napra, " + avg.n + " gázév; különbség: " + pp(full, avg.v) : "nincs elég korábbi év");
+  const eu = A.series.EU, ei = eu ? lastIdx(eu.full) : -1;
+  if (ei >= 0){ const ey = sameDayPast("EU", A.dates[ei]); tiles += tile("EU összesen", nf1.format(eu.full[ei]) + ' <small>%</small>', has(ey) ? "egy éve ilyenkor: " + nf1.format(ey) + " %" : dayLabel(A.dates[ei])); }
+  let cover = "";
+  if (has(gis) && has(wdr) && wdr > 0){
+    const c = gis * 1000 / wdr, wc = S.wdrCap[li], cm = has(wc) && wc > 0 ? gis * 1000 / wc : null;
+    cover = '<h3>Meddig tartana a készlet?</h3><div class="tiles">' +
+      tile("A mostani kivételi ütemmel", nf0.format(c) + ' <small>nap</small>', "kivétel: " + nf0.format(wdr) + " GWh/nap") +
+      (cm ? tile("A legnagyobb kivételi kapacitással", nf0.format(cm) + ' <small>nap</small>', "kapacitás: " + nf0.format(wc) + " GWh/nap") : "") + '</div>' +
+      '<p class="note">Egyszerű hányados: a tárolt mennyiség osztva a napi kivétellel. Nem előrejelzés: a kivétel a hőmérséklettől, az áraktól és az utánpótlástól függ, és a tározók kivételi képessége a töltöttség csökkenésével romlik.</p>';
+  } else if (has(inj) && inj > 0){
+    cover = '<p class="note">Most betáplálás folyik (' + nf0.format(inj) + ' GWh/nap), ezért a kivételi ütemből számolt fedezet nem értelmezhető.</p>';
+  }
+  let fac = "";
+  if (A.facilities && A.facilities.length){
+    fac = '<h3>Társaságok és tárolók</h3><div class="tbl"><table><thead><tr><th>Név</th><th class="r">Töltöttség, %</th><th class="r">Tárolt, TWh</th><th class="r hide-sm">Kapacitás, TWh</th><th class="r hide-sm">Betáplálás, GWh/nap</th><th class="r hide-sm">Kivétel, GWh/nap</th></tr></thead><tbody>' +
+      A.facilities.map(f => '<tr><td class="nm">' + (f.level ? "&nbsp;&nbsp;↳ " : "") + esc(f.name || f.code || "?") + '</td><td class="r num">' + (has(f.full) ? nf1.format(f.full) : "–") + '</td><td class="r num">' + (has(f.gis) ? nf2.format(f.gis) : "–") + '</td><td class="r num hide-sm">' + (has(f.wgv) ? nf2.format(f.wgv) : "–") + '</td><td class="r num hide-sm">' + (has(f.inj) ? nf0.format(f.inj) : "–") + '</td><td class="r num hide-sm">' + (has(f.wdr) ? nf0.format(f.wdr) : "–") + '</td></tr>').join("") + '</tbody></table></div>';
+  }
+  host.innerHTML = '<h2>Magyar tározók: a legutóbbi gáznap</h2><p class="hint">A magyar földgáztárolók együttes állapota az AGSI+ adatai szerint. A töltöttség a munkagáz-kapacitás százalékában értendő.</p><div class="tiles">' + tiles + '</div>' + cover + fac;
+}
+
+// ---------------------------------------------------------------- gázéves összehasonlítás
+function seasonSection(){
+  if (!A) { $("gz_cSeason").style.display = "none"; return; }
+  $("gz_cSeason").style.display = "";
+  const host = $("gz_seasonChart"), s = A.series[area];
+  if (!s){ noData(host, "Ehhez a területhez nincs adat."); return; }
+  const li = lastIdx(s.full);
+  if (li < 0){ noData(host, "Ehhez a területhez nincs adat."); return; }
+  const curGy = gasYear(A.dates[li]), byYear = {};
+  A.dates.forEach((d, i) => { const v = s.full[i]; if (!has(v)) return; const y = gasYear(d); (byYear[y] = byYear[y] || new Array(366).fill(null))[Math.min(365, gyIndex(d))] = v; });
+  const years = Object.keys(byYear).map(Number).filter(y => byYear[y].filter(has).length >= 20).sort((a, b) => b - a).slice(0, 6);
+  const prior = years.filter(y => y !== curGy);
+  const avgArr = new Array(366).fill(null);
+  if (prior.length >= 2) for (let i = 0; i < 366; i++){ const v = prior.map(y => byYear[y][i]).filter(has); if (v.length >= 2) avgArr[i] = v.reduce((a, b) => a + b, 0) / v.length; }
+  const series = years.map((y, k) => ({label:"Gázév " + gyLabel(y), color:css(YCOL[k]), values:byYear[y], w:y === curGy ? 3 : 1.8, short:y === curGy ? gyLabel(y) : null}));
+  if (avgArr.some(has)) series.push({label:"Korábbi évek átlaga", color:css("--muted"), values:avgArr, dash:"5 4", w:1.6});
+  legend("gz_seasonLegend", series.map(x => ({label:x.label, color:x.color, kind:x.dash ? "dash" : "line", w:x.w})));
+  const ref = new Date(Date.UTC(2023, 9, 1)), ticks = [];
+  for (let k = 0; k < 12; k++){ const d = new Date(Date.UTC(2023, 9 + k, 1)); ticks.push({i:Math.round((d - ref) / 864e5), label:MONTHS[d.getUTCMonth()].slice(0, 3) + "."}); }
+  // időablak: 1 évnél rövidebb ablaknál a mai naphoz tartozó szakaszt mutatjuk (± az ablak hossza), minden gázévre
+  let x0 = 0, x1 = 366;
+  const NW = gasN || 150;
+  if (NW < 365){
+    const c = Math.max(0, Math.min(365, gyIndex(A.dates[li]) - gasBack));
+    x0 = Math.max(0, c - NW); x1 = Math.min(366, c + NW + 1);
+    if (x1 - x0 < 30){ x0 = Math.max(0, x1 - 30); x1 = Math.min(366, x0 + 30); }
+  }
+  const cut = (a) => a.slice(x0, x1), mid = (x0 + x1) / 2;
+  const sTicks = [];
+  const stepD = (x1 - x0) <= 70 ? 7 : (x1 - x0) <= 200 ? 14 : 0;
+  if (stepD){ for (let i = x0; i < x1; i += stepD){ const d = new Date(ref.getTime() + i * 864e5); sTicks.push({i:i - x0, label:d.getUTCDate() + " " + MONTHS[d.getUTCMonth()].slice(0, 3) + "."}); } }
+  else ticks.forEach(t => { if (t.i >= x0 && t.i < x1) sTicks.push({i:t.i - x0, label:t.label}); });
+  dchart(host, {n:x1 - x0, series:series.map(q => Object.assign({}, q, {values:cut(q.values)})), unit:"%", fmt:nf1.format, yMin:0, yMax:100, ticks:sTicks, height:320,
+    title:i => "Gázév napja: " + fDayU.format(new Date(ref.getTime() + (i + x0) * 864e5))});
+  $("gz_seasonNote").textContent = AREAS[area] + ": a töltöttség a munkagáz-kapacitás százalékában. A legutóbbi érték: " + nf1.format(s.full[li]) + " % (" + dayLabel(A.dates[li]) + "). A szaggatott vonal a korábbi gázévek átlaga.";
+}
+
+// ---------------------------------------------------------------- betáplálás / kivétel
+function injSection(){
+  const card = $("gz_cInj");
+  if (!A || !A.series.HU || !A.series.HU.inj){ card.style.display = "none"; return; }
+  card.style.display = "";
+  const S = A.series.HU, n0 = A.dates.length, e0 = n0 - gasBack, n = Math.min(gasN || 150, e0), off = e0 - n;
+  const sl = (a) => a.slice(off, off + n);
+  const wdr = sl(S.wdr).map(v => has(v) && v > 0 ? v : null), inj = sl(S.inj).map(v => has(v) && v > 0 ? -v : null);
+  const dates = A.dates.slice(off, off + n), narrow = $("gz_injChart").clientWidth < 520;
+  legend("gz_injLegend", [{label:"Kivétel", color:css("--c2")}, {label:"Betáplálás", color:css("--c1")},
+    {label:"Technikai kapacitás (kivétel / betáplálás)", color:css("--muted"), kind:"dash", w:1.8}]);
+  dchart($("gz_injChart"), {n, zoom:{off, tot:n0}, unit:"GWh/nap", height:300, ticks:dateTicks(dates, narrow), title:i => dayLabel(dates[i]),
+    series:[
+      {label:"Kivétel", color:css("--c2"), values:wdr, kind:"bar"},
+      {label:"Betáplálás", color:css("--c1"), values:inj, kind:"bar"},
+      {label:"Kivételi kapacitás", color:css("--muted"), values:sl(S.wdrCap), dash:"5 4", w:1.6},
+      {label:"Betáplálási kapacitás", color:css("--muted"), values:sl(S.injCap).map(v => has(v) ? -v : null), dash:"5 4", w:1.6}
+    ]});
+}
+
+// ---------------------------------------------------------------- szomszédok és EU
+function nbSection(){
+  const host = $("gz_cNb");
+  if (!A){ host.style.display = "none"; return; }
+  host.style.display = "";
+  const codes = Object.keys(AREAS).filter(c => A.series[c] && lastIdx(A.series[c].full) >= 0);
+  const rows = codes.map(c => {
+    const s = A.series[c], i = lastIdx(s.full), d = A.dates[i], f = s.full[i], y = sameDayPast(c, d), a = priorAvg(c, d);
+    return {c, d, f, gis:s.gis[i], wgv:s.wgv[i], dy:has(y) ? f - y : null, da:a ? f - a.v : null};
+  }).sort((a, b) => (a.c === "HU" ? -2 : a.c === "EU" ? -1 : 0) - (b.c === "HU" ? -2 : b.c === "EU" ? -1 : 0) || b.f - a.f);
+  const bar = (f) => '<div style="display:flex;align-items:center;gap:8px;min-width:120px"><div style="flex:1;height:8px;background:var(--neutral);border-radius:4px;overflow:hidden"><div style="width:' + Math.max(0, Math.min(100, f)) + '%;height:100%;background:var(--c1);border-radius:4px"></div></div><b class="num" style="min-width:42px;text-align:right">' + nf1.format(f) + '</b></div>';
+  let html = '<h2>Szomszédok és az EU</h2><p class="hint">A tározók töltöttsége a legutóbbi közölt napon. A két különbség-oszlop azt mutatja, hány százalékponttal tér el az érték az egy évvel korábbi, illetve a korábbi gázévek átlagos ugyanazon napjától.</p><div class="tbl"><table><thead><tr><th>Terület</th><th>Töltöttség, %</th><th class="r hide-sm">Tárolt, TWh</th><th class="r hide-sm">Kapacitás, TWh</th><th class="r">Egy éve, pp</th><th class="r">Korábbi évek átlaga, pp</th></tr></thead><tbody>';
+  rows.forEach(r => {
+    html += '<tr><td class="nm">' + esc(AREAS[r.c]) + '</td><td>' + bar(r.f) + '</td><td class="r num hide-sm">' + (has(r.gis) ? nf1.format(r.gis) : "–") + '</td><td class="r num hide-sm">' + (has(r.wgv) ? nf1.format(r.wgv) : "–") + '</td><td class="r num">' + (has(r.dy) ? signed(r.dy, nf1) : "–") + '</td><td class="r num">' + (has(r.da) ? signed(r.da, nf1) : "–") + '</td></tr>';
+  });
+  host.innerHTML = html + '</tbody></table></div><p class="note">pp = százalékpont. Ukrajna tározói a magyar–ukrán határponton át közvetlenül kapcsolódnak a magyar rendszerhez, ezért szerepelnek a listán.</p>';
+}
+
+// ---------------------------------------------------------------- határpontok
+function flowModel(){
+  if (!F || !F.points || !F.points.length) return null;
+  const days = F.days, nD = days.length;
+  const pts = F.points;
+  // az utolsó nap, amelyre a pontok legalább 80 %-ára van érték
+  let last = nD - 1;
+  while (last >= 0 && pts.filter(p => has(p.gwh[last])).length < Math.ceil(pts.length * .8)) last--;
+  if (last < 0) return null;
+  const countries = [...new Set(pts.map(p => p.country))];
+  const net = {};
+  countries.forEach(c => { net[c] = days.map((_, i) => { let s = 0, a = false; pts.filter(p => p.country === c).forEach(p => { const v = p.gwh[i]; if (has(v)){ s += p.side === "entry" ? v : -v; a = true; } }); return a && i <= last ? s : null; }); });
+  const tot = days.map((_, i) => { let s = 0, a = false; countries.forEach(c => { if (has(net[c][i])){ s += net[c][i]; a = true; } }); return a ? s : null; });
+  return {days, pts, last, countries, net, tot};
+}
+const avgRange = (arr, end, k) => { const v = arr.slice(Math.max(0, end - k + 1), end + 1).filter(has); return v.length >= Math.ceil(k / 2) ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+
+// ---------- Magyarország és szomszédai: valódi határok, vékony nyilak, olvasható értékek (hu-geo.json)
+// rows: [{code, name, net (+ = Magyarország felé, − = kifelé, null = nincs adat), sub (második sor), tint (-1..1: a szomszéd színe), tip (html)}]
+// o: {unit, fmt, impVar, expVar, tintLo, tintHi, center:[cím, alcím], maxv}
+const lines0 = (r) => 1 + (r.sub ? 1 : 0) + (r.sub2 ? 1 : 0);
+function huFlowMap(host, G, rows, o){
+  host.innerHTML = "";
+  const W = Math.min(Math.max(300, host.clientWidth), 780), k = G.W / W, narrow = W < 520, fs = (narrow ? 12.5 : 12) * k;
+  const svg = el("svg", {viewBox:"0 0 " + G.W + " " + G.H, width:W, height:W * G.H / G.W, role:"img", "aria-label":o.aria || "Magyarország és szomszédai"}, host);
+  svg.style.maxWidth = "100%"; svg.style.display = "block"; svg.style.margin = "0 auto"; svg.style.overflow = "hidden";
+  const tip = document.createElement("div"); tip.className = "tip"; host.style.position = "relative"; host.appendChild(tip);
+  const ink = css("--ink"), ink2 = css("--ink2"), surf = css("--surface"), imp = css(o.impVar), exp = css(o.expVar);
+  const place = (ev, html) => { const r = svg.getBoundingClientRect(); tip.innerHTML = html; tip.style.display = "block"; const tw = tip.offsetWidth; let l = ev.clientX - r.left + 12; if (l + tw > host.clientWidth) l = Math.max(0, ev.clientX - r.left - tw - 12); tip.style.left = l + "px"; tip.style.top = Math.max(0, ev.clientY - r.top - 10) + "px"; };
+  el("path", {d:G.ctx, fill:css("--neutral"), stroke:surf, "stroke-width":.8 * k}, svg).setAttribute("opacity", ".7");
+  const byCode = {}; rows.forEach(r => byCode[r.code] = r);
+  Object.keys(G.zones).forEach(z => {
+    const r = byCode[z], p = el("path", {d:G.zones[z], stroke:z === "HU" ? ink : surf, "stroke-width":(z === "HU" ? 2 : 1) * k, "stroke-linejoin":"round"}, svg);
+    let fill = z === "HU" ? "var(--huwhite, #fff)" : css("--neutral");
+    if (r && r.tint != null && z !== "HU"){ const t = Math.max(-1, Math.min(1, r.tint)), a = Math.round(Math.abs(t) * 70); fill = "color-mix(in srgb, " + css(t < 0 ? o.tintLo : o.tintHi) + " " + a + "%, " + css("--neutral") + ")"; }
+    p.style.fill = fill;
+    if (r && r.tip){ p.addEventListener("pointermove", ev => place(ev, r.tip)); p.addEventListener("pointerleave", () => { tip.style.display = "none"; }); }
+  });
+  const maxv = o.maxv || Math.max(1, ...rows.map(r => r.net == null ? 0 : Math.abs(r.net)));
+  rows.forEach(r => {
+    const g = G.border[r.code]; if (!g) return;
+    let ux = g.inn[0] - g.out[0], uy = g.inn[1] - g.out[1]; const ul = Math.hypot(ux, uy); ux /= ul; uy /= ul;      // a Magyarország felé mutató egységvektor
+    const L = 66, cx = g.b[0], cy = g.b[1];
+    const a = [cx - ux * L / 2, cy - uy * L / 2], z = [cx + ux * L / 2, cy + uy * L / 2];        // a = külső vég, z = belső vég
+    const grp = el("g", {}, svg);
+    if (r.net == null){
+      el("line", {x1:a[0], y1:a[1], x2:z[0], y2:z[1], stroke:ink2, "stroke-width":1.2 * k, "stroke-dasharray":(3 * k) + " " + (4 * k), opacity:.6}, grp);
+    } else {
+      const f = Math.min(1, Math.abs(r.net) / maxv), w = (2.6 + 4.2 * f) * k, col = r.net >= 0 ? imp : exp;
+      const from = r.net >= 0 ? a : z, to = r.net >= 0 ? z : a, dx = to[0] - from[0], dy = to[1] - from[1], dl = Math.hypot(dx, dy), vx = dx / dl, vy = dy / dl;
+      const hl = (12 + 4 * f) * k, hw = (6.5 + 2.5 * f) * k, ex = to[0] - vx * hl, ey = to[1] - vy * hl;
+      el("line", {x1:from[0], y1:from[1], x2:ex, y2:ey, stroke:col, "stroke-width":w, "stroke-linecap":"round"}, grp);
+      el("polygon", {points:[to[0], to[1], ex - vy * hw, ey + vx * hw, ex + vy * hw, ey - vx * hw].join(","), fill:col}, grp);
+    }
+    el("line", {x1:a[0], y1:a[1], x2:z[0], y2:z[1], stroke:"transparent", "stroke-width":16 * k}, grp);
+    if (r.tip){ grp.addEventListener("pointermove", ev => place(ev, r.tip)); grp.addEventListener("pointerleave", () => { tip.style.display = "none"; }); }
+    // felirat: a külső vég mögött, az irányhoz igazítva, háttér-körvonallal (nem folyik egybe a térképpel)
+    const lx = a[0] - ux * 12 * k, ly = a[1] - uy * 12 * k, anc = ux > .4 ? "end" : ux < -.4 ? "start" : "middle";
+    const yy = uy > .4 ? ly - fs * (lines0(r) * 1.2 + .5) : uy < -.4 ? ly + fs * 1.05 : ly - fs * .55;
+    const lines = [[r.name, 700, ink], [r.net == null ? "nincs adat" : (r.net >= 0 ? "import " : "export ") + o.fmt.format(Math.abs(r.net)) + " " + o.unit, 600, r.net == null ? ink2 : (r.net >= 0 ? imp : exp)]];
+    if (r.sub) lines.push([r.sub, 400, ink2]);
+    if (r.sub2) lines.push([r.sub2, 400, ink2]);
+    lines.forEach(([txt, wt, c], j) => { const t = el("text", {x:lx, y:yy + j * fs * 1.2, "text-anchor":anc, "font-size":fs * (j >= 2 ? .92 : 1), "font-weight":wt, fill:c, stroke:surf, "stroke-width":3.2 * k, "paint-order":"stroke", "stroke-linejoin":"round", "pointer-events":"none"}, svg); t.textContent = txt; });
+  });
+  const hc = G.labels.HU;
+  if (o.center){ const t1 = el("text", {x:hc[0], y:hc[1], "text-anchor":"middle", "font-size":fs * 1.15, "font-weight":700, fill:ink, stroke:surf, "stroke-width":3.2 * k, "paint-order":"stroke", "pointer-events":"none"}, svg); t1.textContent = o.center[0];
+    const t2 = el("text", {x:hc[0], y:hc[1] + fs * 1.3, "text-anchor":"middle", "font-size":fs, fill:ink2, stroke:surf, "stroke-width":3.2 * k, "paint-order":"stroke", "pointer-events":"none"}, svg); t2.textContent = o.center[1]; }
+  const bp = G.cities.Budapest; el("circle", {cx:bp[0], cy:bp[1], r:3 * k, fill:ink}, svg);
+  const bt = el("text", {x:bp[0] + 6 * k, y:bp[1] + 4 * k, "font-size":fs * .9, fill:ink2, stroke:surf, "stroke-width":3 * k, "paint-order":"stroke", "pointer-events":"none"}, svg); bt.textContent = "Budapest";
+}
+
+let HUG = null, gasMapIdx = null;
+function flowMap(M){
+  const host = $("gz_flowMap");
+  if (!HUG){ host.innerHTML = ""; $("gz_mapSlider").parentElement.style.display = "none"; return; }
+  $("gz_mapSlider").parentElement.style.display = "";
+  const {days, pts, last, countries, net} = M, span = Math.min(last + 1, 730), base = last + 1 - span;
+  if (gasMapIdx == null || gasMapIdx > last || gasMapIdx < base) gasMapIdx = last;
+  const sl = $("gz_mapSlider"); sl.min = base; sl.max = last; sl.value = gasMapIdx;
+  sl.oninput = () => { gasMapIdx = +sl.value; flowMap(M); };
+  const i = gasMapIdx; $("gz_mapLabel").textContent = dayLabel(days[i]);
+  const rows = countries.filter(c => HUG.border[c]).map(c => {
+    const v = net[c][i], P = pts.filter(p => p.country === c);
+    const ent = P.filter(p => p.side === "entry").reduce((a, p) => a + (has(p.gwh[i]) ? p.gwh[i] : 0), 0), ext = P.filter(p => p.side === "exit").reduce((a, p) => a + (has(p.gwh[i]) ? p.gwh[i] : 0), 0);
+    const nm = NB[c] ? NB[c].n : c;
+    return {code:c, name:nm, net:has(v) ? v : null, sub:has(v) ? "be " + nf0.format(ent) + " · ki " + nf0.format(ext) : "",
+      tip:'<div class="t">' + esc(nm) + '</div>' + (has(v) ? row("var(--c1)", "Belép", nf0.format(ent) + " GWh/nap") + row("var(--c2)", "Kilép", nf0.format(ext) + " GWh/nap") + row("var(--ink2)", "Nettó", signed(v) + " GWh/nap") : "<div>Nincs adat</div>") + P.map(p => row(null, esc(p.label) + (p.side === "entry" ? " (be)" : " (ki)"), has(p.gwh[i]) ? nf0.format(p.gwh[i]) : "–")).join("")};
+  });
+  const tot = M.tot[i];
+  huFlowMap(host, HUG, rows, {unit:"GWh/nap", fmt:nf0, impVar:"--c1", expVar:"--c2", huVar:"--ink", aria:"Magyarország és szomszédai: földgázáramlás a határpontokon",
+    center:["Magyarország", has(tot) ? "nettó " + (tot >= 0 ? "import " : "export ") + nf0.format(Math.abs(tot)) + " GWh/nap" : ""]});
+  legend("gz_mapLegend", [{label:"Magyarországra érkező gáz (kék nyíl)", color:css("--c1")}, {label:"Magyarországról kilépő gáz (narancs nyíl)", color:css("--c2")}]);
+}
+async function loadHuGeo(){ try{ HUG = await GF.getJson("hu-geo.json", {static:true}); render(); }catch(e){} }
+
+function flowSection(){
+  const card = $("gz_cFlow"), M = flowModel();
+  if (!M){ card.style.display = F ? "" : "none"; if (F) noData($("gz_flowChart"), "A határpontokra nincs közölt áramlási adat."); return; }
+  card.style.display = "";
+  const {days, pts, last, countries, net, tot} = M, d = days[last];
+  const t1 = tot[last], t7 = avgRange(tot, last, 7);
+  const yi = days.indexOf(prevYear(d)), t7y = yi >= 0 ? avgRange(tot, yi, 7) : null;
+  let tiles = tile("Nettó import a határokon", has(t1) ? nf0.format(t1) + ' <small>GWh/nap</small>' : "–", dayLabel(d));
+  tiles += tile("7 napos átlag", has(t7) ? nf0.format(t7) + ' <small>GWh/nap</small>' : "–", has(t7y) ? "egy éve ilyenkor: " + nf0.format(t7y) + " GWh/nap" : "");
+  const sorted = countries.slice().sort((a, b) => (avgRange(net[b], last, 7) || 0) - (avgRange(net[a], last, 7) || 0));
+  const main = sorted[0];
+  if (main){ const v = avgRange(net[main], last, 7); tiles += tile("Legnagyobb forrás (7 napos átlag)", (NB[main] ? NB[main].n : main), has(v) ? signed(v) + " GWh/nap" : ""); }
+  $("gz_flowTiles").innerHTML = tiles;
+  flowMap(M);
+  const e0 = last + 1 - gasBack, n = Math.min(gasN || 120, e0), off = e0 - n, dd = days.slice(off, off + n), narrow = $("gz_flowChart").clientWidth < 520;
+  const ser = countries.map(c => ({label:(NB[c] ? NB[c].n : c), color:css(NB[c] ? NB[c].c : "--c8"), values:net[c].slice(off, off + n)}));
+  legend("gz_flowLegend", ser.map(s => ({label:s.label, color:s.color})));
+  dchart($("gz_flowChart"), {n, zoom:{off, tot:last + 1}, series:ser, stack:true, unit:"GWh/nap", height:300, ticks:dateTicks(dd, narrow), title:i => dayLabel(dd[i]),
+    empty:"A határpontokra nincs közölt áramlási adat."});
+  // táblázat: pontonként, a 7 napos átlag
+  const keyed = {};
+  pts.forEach(p => { const k = p.country + "|" + p.label; (keyed[k] = keyed[k] || {country:p.country, label:p.label, entry:null, exit:null, entryY:null, exitY:null}); keyed[k][p.side] = avgRange(p.gwh, last, 7); keyed[k][p.side + "Y"] = yi >= 0 ? avgRange(p.gwh, yi, 7) : null; });
+  const rows = Object.values(keyed).sort((a, b) => a.country.localeCompare(b.country) || a.label.localeCompare(b.label));
+  const nv = (r) => (has(r.entry) ? r.entry : 0) - (has(r.exit) ? r.exit : 0), nvy = (r) => has(r.entryY) || has(r.exitY) ? (has(r.entryY) ? r.entryY : 0) - (has(r.exitY) ? r.exitY : 0) : null;
+  let html = '<table><thead><tr><th>Határpont</th><th class="hide-sm">Ország</th><th class="r">Be, GWh/nap</th><th class="r">Ki, GWh/nap</th><th class="r">Nettó</th><th class="r hide-sm">Nettó egy éve</th></tr></thead><tbody>';
+  rows.forEach(r => {
+    const cn = NB[r.country] ? NB[r.country].n : r.country, y = nvy(r);
+    html += '<tr><td class="nm">' + esc(r.label) + '</td><td class="hide-sm">' + esc(cn) + '</td><td class="r num">' + (has(r.entry) ? nf0.format(r.entry) : "–") + '</td><td class="r num">' + (has(r.exit) ? nf0.format(r.exit) : "–") + '</td><td class="r num"><b>' + signed(nv(r)) + '</b></td><td class="r num hide-sm">' + (y == null ? "–" : signed(y)) + '</td></tr>';
+  });
+  $("gz_flowTable").innerHTML = html + '</tbody></table><p class="note">7 napos átlag a ' + dayLabel(d) + ' napig. „Be” a Magyarországra érkező, „Ki” a Magyarországról kilépő fizikai áramlás; a nettó a kettő különbsége. Az utolsó gáznap adata gyakran csak a következő napon teljes.</p>';
+}
+
+// ---------------------------------------------------------------- rendelkezésre álló gáz
+function proxySection(){
+  const card = $("gz_cProxy"), M = flowModel();
+  if (!M || !A || !A.series.HU){ card.style.display = "none"; return; }
+  card.style.display = "";
+  const {days, last, tot} = M, S = A.series.HU, idx = {}; A.dates.forEach((d, i) => idx[d] = i);
+  const stor = days.map(d => { const i = idx[d]; if (i == null) return null; const w = S.wdr[i], j = S.inj[i]; return has(w) && has(j) ? w - j : null; });
+  const roll = (a) => a.map((_, i) => i > last ? null : avgRange(a, i, 7));
+  const total = days.map((_, i) => has(tot[i]) && has(stor[i]) ? tot[i] + stor[i] : null);
+  const e0 = last + 1 - gasBack, n = Math.min(gasN || 365, e0), off = e0 - n, dd = days.slice(off, off + n), narrow = $("gz_proxyChart").clientWidth < 520, sl = (a) => roll(a).slice(off, off + n);
+  const ser = [
+    {label:"Összesen (import + tározói kivétel)", color:css("--c1"), values:sl(total), w:3},
+    {label:"Nettó import a határokon", color:css("--c2"), values:sl(tot), w:1.8},
+    {label:"Tározói nettó kivétel", color:css("--c3"), values:sl(stor), w:1.8}
+  ];
+  legend("gz_proxyLegend", ser.map(s => ({label:s.label, color:s.color, kind:"line", w:s.w})));
+  dchart($("gz_proxyChart"), {n, zoom:{off, tot:last + 1}, series:ser, unit:"GWh/nap", height:310, ticks:dateTicks(dd, narrow), title:i => "7 napos átlag, " + dayLabel(dd[i])});
+}
+
+
+  // ---------------------------------------------------------------- LNG-terminálok (GIE ALSI)
+  const LNG_NEAR = ["HR","PL","GR","IT"];     // a Magyarországot ellátó vagy ahhoz közeli útvonalak országai (adriai, lengyel, görög belépés)
+  const LNG_NAMES = {EU:"EU összesen", ES:"Spanyolország", FR:"Franciaország", IT:"Olaszország", NL:"Hollandia", BE:"Belgium", PL:"Lengyelország", DE:"Németország",
+    GR:"Görögország", PT:"Portugália", LT:"Litvánia", HR:"Horvátország", FI:"Finnország", SE:"Svédország", MT:"Málta", GB:"Egyesült Királyság"};
+  const lngName = (c) => (L && L.names && L.names[c]) || LNG_NAMES[c] || c;
+  const rollAvg = (a, k) => a.map((_, i) => avgRange(a, i, k));
+  const pct = (a, b) => has(a) && has(b) && b > 0 ? a / b * 100 : null;
+  const unitOf = (gwh) => gwh >= 5000 ? {k:1000, u:"TWh", f:nf1.format} : {k:1, u:"GWh", f:nf0.format};
+
+  function lngChips(){
+    const host = $("gz_lngChips"); host.innerHTML = "";
+    if (!L) return;
+    const order = ["EU", ...Object.keys(L.series).filter(c => c !== "EU").sort((a, b) => (lastVal(L.series[b].send) || 0) - (lastVal(L.series[a].send) || 0))];
+    order.forEach(c => {
+      const b = document.createElement("button"); b.className = "chip"; b.type = "button";
+      b.setAttribute("aria-pressed", String(c === lngArea)); b.textContent = lngName(c);
+      b.addEventListener("click", () => { lngArea = c; lngSection(); });
+      host.appendChild(b);
+    });
+  }
+  const lastVal = (a) => { const i = lastIdx(a); return i >= 0 ? a[i] : null; };
+
+  function lngSection(){
+    const card = $("gz_cLng");
+    if (!G){ card.style.display = "none"; return; }
+    card.style.display = "";
+    if (!L || !L.series || !L.series.EU){
+      const why = ((G.errors || []).filter(e => /ALSI/.test(e)).slice(0, 2).join("; "));
+      ["gz_lngTiles","gz_lngChips","gz_lngLegend1","gz_lngChart1","gz_lngLegend2","gz_lngChart2","gz_lngCountries","gz_lngFilter","gz_lngFac","gz_lngNote"].forEach(id => $(id).innerHTML = "");
+      $("gz_lngH1").style.display = $("gz_lngH2").style.display = "none";
+      $("gz_lngTiles").innerHTML = '<div class="nodata" style="grid-column:1/-1">Az LNG-adat még nem érhető el. A <code>gas.json</code> <code>lng</code> része a következő sikeres <b>Gáz adatok</b> futás után jelenik meg; az ALSI ugyanazt a <code>GIE_API_KEY</code> kulcsot használja, mint az AGSI+.' + (why ? " Utolsó jelzés: " + esc(why) : "") + '</div>';
+      return;
+    }
+    $("gz_lngH1").style.display = $("gz_lngH2").style.display = "";
+    if (!L.series[lngArea]) lngArea = "EU";
+    lngChips();
+    const S = L.series[lngArea], D = L.dates, li = Math.max(lastIdx(S.send), lastIdx(S.inv)), d = D[li], yi = D.indexOf(prevYear(d));
+    const send7 = avgRange(S.send, li, 7), send7y = yi >= 0 ? avgRange(S.send, yi, 7) : null;
+    const dtrs = S.dtrs[li], dtmi = S.dtmi[li], inv = S.inv[li], invY = yi >= 0 ? S.inv[yi] : null, dtmiY = yi >= 0 ? S.dtmi[yi] : null;
+    const un = unitOf(Math.max(dtmi || 0, inv || 0));
+    let tiles = tile("Kiadás a gázrendszerbe (7 napos átlag)", has(send7) ? nf0.format(send7) + ' <small>GWh/nap</small>' : "–",
+      has(send7y) ? "egy éve ilyenkor: " + nf0.format(send7y) + " GWh/nap" : dayLabel(d));
+    tiles += tile("Kapacitás-kihasználtság", has(pct(send7, dtrs)) ? nf0.format(pct(send7, dtrs)) + ' <small>%</small>' : "–",
+      has(dtrs) ? "DTRS: " + nf0.format(dtrs) + " GWh/nap" : "");
+    tiles += tile("LNG-készlet a tankokban", has(inv) ? un.f(inv / un.k) + ' <small>' + un.u + '</small>' : "–",
+      (has(pct(inv, dtmi)) ? nf0.format(pct(inv, dtmi)) + " %-os töltöttség" : "") + (has(pct(invY, dtmiY)) ? ", egy éve " + nf0.format(pct(invY, dtmiY)) + " %" : ""));
+    $("gz_lngTiles").innerHTML = tiles;
+
+    // grafikonok: az időablak a közös gasN / gasBack
+    const tot = D.length, e0 = tot - gasBack, n = Math.min(gasN || 365, e0), off = e0 - n, dd = D.slice(off, off + n);
+    const narrow = $("gz_lngChart1").clientWidth < 520, nm = lngName(lngArea);
+    const sl = (a) => a.slice(off, off + n);
+    $("gz_lngH1").textContent = "Kiadás a gázrendszerbe: " + nm + ", GWh/nap";
+    legend("gz_lngLegend1", [{label:"Napi kiadás", color:css("--c2"), kind:"box"}, {label:"7 napos átlag", color:css("--ink"), kind:"line", w:2.4},
+      {label:"Referencia-kiadás (DTRS)", color:css("--muted"), kind:"dash", w:1.8}]);
+    dchart($("gz_lngChart1"), {n, zoom:{off, tot}, unit:"GWh/nap", height:290, ticks:dateTicks(dd, narrow), title:i => dayLabel(dd[i]),
+      series:[{label:"Napi kiadás", color:css("--c2"), values:sl(S.send), kind:"bar"},
+        {label:"7 napos átlag", color:css("--ink"), values:sl(rollAvg(S.send, 7)), w:2.4},
+        {label:"Referencia-kiadás (DTRS)", color:css("--muted"), values:sl(S.dtrs), dash:"5 4", w:1.6}]});
+    const cap = Math.max(...sl(S.dtmi).filter(has), ...sl(S.inv).filter(has), 0), u2 = unitOf(cap), c2 = (a) => sl(a).map(v => has(v) ? v / u2.k : null);
+    $("gz_lngH2").textContent = "Készlet a tankokban: " + nm + ", " + u2.u;
+    legend("gz_lngLegend2", [{label:"LNG-készlet", color:css("--c1"), kind:"line", w:2.4}, {label:"Legnagyobb készlet (DTMI)", color:css("--muted"), kind:"dash", w:1.8}]);
+    dchart($("gz_lngChart2"), {n, zoom:{off, tot}, unit:u2.u, height:260, ticks:dateTicks(dd, narrow), title:i => dayLabel(dd[i]), fmt:v => u2.k > 1 ? nf2.format(v) : nf0.format(v),
+      series:[{label:"LNG-készlet", color:css("--c1"), values:c2(S.inv), w:2.4},
+        {label:"Legnagyobb készlet (DTMI)", color:css("--muted"), values:c2(S.dtmi), dash:"5 4", w:1.6}]});
+
+    // országok összevetése
+    const codes = Object.keys(L.series).filter(c => c !== "EU").sort((a, b) => (avgRange(L.series[b].send, li, 7) || 0) - (avgRange(L.series[a].send, li, 7) || 0));
+    let html = '<table><thead><tr><th>Ország</th><th class="r">Kiadás, GWh/nap</th><th class="r hide-sm">Egy éve</th><th class="r">Kihasználtság</th><th class="r hide-sm">Készlet, GWh</th><th class="r">Töltöttség</th></tr></thead><tbody>';
+    ["EU", ...codes].forEach(c => {
+      const T = L.series[c], i = Math.max(lastIdx(T.send), lastIdx(T.inv)); if (i < 0) return;
+      const s7 = avgRange(T.send, i, 7), yj = D.indexOf(prevYear(D[i])), s7y = yj >= 0 ? avgRange(T.send, yj, 7) : null, p = pct(T.inv[i], T.dtmi[i]);
+      html += '<tr' + (c === "EU" ? ' style="font-weight:650"' : '') + '><td class="nm">' + esc(lngName(c)) + (D[i] !== d ? '<small>adat: ' + dayLabel(D[i]) + '</small>' : '') + '</td><td class="r num">' + (has(s7) ? nf0.format(s7) : "–") +
+        '</td><td class="r num hide-sm">' + (has(s7y) ? nf0.format(s7y) : "–") + '</td><td class="r num">' + (has(pct(s7, T.dtrs[i])) ? nf0.format(pct(s7, T.dtrs[i])) + " %" : "–") +
+        '</td><td class="r num hide-sm">' + (has(T.inv[i]) ? nf0.format(T.inv[i]) : "–") + '</td><td class="r num">' + (has(p) ? nf0.format(p) + " %" : "–") + '</td></tr>';
+    });
+    $("gz_lngCountries").innerHTML = html + '</tbody></table>';
+
+    // terminálok
+    const fh = $("gz_lngFilter"); fh.innerHTML = "";
+    [["Mind", false], ["Magyarország környéke (" + LNG_NEAR.map(lngName).join(", ") + ")", true]].forEach(([l, v]) => {
+      const b = document.createElement("button"); b.className = "chip"; b.type = "button"; b.setAttribute("aria-pressed", String(lngNear === v)); b.textContent = l;
+      b.addEventListener("click", () => { lngNear = v; lngSection(); }); fh.appendChild(b);
+    });
+    const facs = (L.fac || []).filter(f => !lngNear || LNG_NEAR.includes(f.country));
+    let th = '<table><thead><tr><th>Terminál</th><th class="hide-sm">Típus</th><th class="r">Készlet, GWh</th><th>Töltöttség</th><th class="r">Kiadás, GWh/nap</th><th class="r">Kihasználtság</th></tr></thead><tbody>';
+    facs.forEach(f => {
+      const x = f.latest || {}, p = pct(x.inv, x.dtmi), u = pct(x.send, x.dtrs);
+      th += '<tr><td class="nm">' + esc(f.name || f.code || "?") + '<small>' + esc(lngName(f.country)) + (f.company ? " · " + esc(f.company) : "") + '</small></td><td class="hide-sm">' +
+        (f.type === "FSRU" ? "úszó (FSRU)" : f.type === "LAND" ? "szárazföldi" : esc(f.type || "")) + '</td><td class="r num">' + (has(x.inv) ? nf0.format(x.inv) : "–") + '</td><td class="num">' +
+        (has(p) ? '<span class="mbar"><i style="width:' + Math.max(1, Math.min(100, p)).toFixed(0) + '%"></i></span>' + nf0.format(p) + " %" : "–") + '</td><td class="r num">' + (has(x.send) ? nf0.format(x.send) : "–") +
+        '</td><td class="r num">' + (has(u) ? nf0.format(u) + " %" : "–") + '</td></tr>';
+    });
+    $("gz_lngFac").innerHTML = facs.length ? th + '</tbody></table>' : '<div class="nodata">Erre a szűrésre nincs terminál az adatban.</div>';
+    $("gz_lngNote").textContent = "Utolsó gáznap: " + dayLabel(d) + " A terminálok táblája a legutóbbi közölt napot mutatja, a kiadás itt napi érték (az országos sorok 7 napos átlag). A kihasználtság a DTRS-hez (deklarált referencia-kiadás) viszonyít, nem műszaki határérték. Az ALSI adatait a terminálüzemeltetők közlik, az utolsó nap adata gyakran becsült, és utólag módosulhat.";
+  }
+
+  function render(){
+    if (!G){ ALL.forEach(id => $(id).style.display = "none"); return; }
+    ALL.forEach(id => $(id).style.display = "");
+    chips(); winSection(); huSection(); seasonSection(); injSection(); nbSection(); flowSection(); proxySection(); lngSection();
+  }
+  ZOOM_CB = (n, back) => { gasN = n; gasBack = back; render(); };
+  async function load(){
+    const demo = new URLSearchParams(location.search).get("demo");
+    try { G = await getJson(demo ? "demo-gas.json" : "gas.json"); } catch (e) { G = null; }
+    if (!G){
+      $("gz_head").style.display = "none";
+      $("gz_cHu").style.display = "";
+      $("gz_cHu").innerHTML = '<h2>Földgáz</h2><div class="nodata">A gázadat még nem érhető el. A <code>gas.json</code> a <b>Gáz adatok</b> workflow első sikeres futása után jelenik meg (a <code>GIE_API_KEY</code> titokkal együtt).</div>';
+      ALL.slice(1).forEach(id => $(id).style.display = "none");
+      return;
+    }
+    A = G.agsi; F = G.flows; L = G.lng;
+    if (A && !A.series[area]) area = Object.keys(A.series)[0];
+    render();
+    loadHuGeo();
+  }
+  return {load, render, data: () => G};
+})();
+
+
+function banners(){
+  const G = GAS.data();
+  if (!G){ $("banners").innerHTML = ""; return; }
+  GF.banners($("banners"), {demo:G.demo, generatedUtc:G.generated_utc, now:NOW, staleHours:36, what:"a gázadat-gyűjtés"});
+}
+function meta(){
+  const G = GAS.data();
+  if (!G){ $("meta").innerHTML = ""; return; }
+  const parts = [];
+  const st = GF.state({demo:G.demo, generatedUtc:G.generated_utc, now:NOW, staleHours:36, partial:((G.errors || []).length || (G.notes || []).length) ? ["Egy gázadat-forrás részben hiányzik; részletek az oldal alján."] : []});
+  if (G.generated_utc) parts.push("Összeállítva: " + fFull.format(new Date(G.generated_utc)));
+  if (G.agsi && G.agsi.dates && G.agsi.dates.length) parts.push("Tározói adat: " + G.agsi.dates[G.agsi.dates.length - 1] + "-ig");
+  if (G.lng && G.lng.last_day) parts.push("LNG-adat: " + G.lng.last_day + "-ig");
+  $("meta").className = "status";
+  $("meta").innerHTML = GF.stateTag(st) + parts.map(p => "<span>" + esc(p) + "</span>").join("");
+}
+function foot(){
+  const G = GAS.data(), errs = (G && G.errors) || [];
+  $("foot").innerHTML =
+    '<p>Források: tározói adatok a GIE AGSI+ platformról (agsi.gie.eu), a magyar határpontok fizikai áramlása az ENTSOG átláthatósági platformról (transparency.entsog.eu), az LNG-terminálok adatai a GIE ALSI platformról (alsi.gie.eu). Mindhárom tájékoztató adat; a közlők utólag javíthatnak rajta.</p>' +
+    (errs.length ? '<details><summary>Adatminőség: ' + errs.length + ' hiba vagy figyelmeztetés</summary><p>' + esc(errs.slice(0, 20).join("; ")) + '</p></details>' : "");
+}
+(async function(){
+  await GAS.load(); banners(); meta(); foot();
+  let t; addEventListener("resize", () => { clearTimeout(t); t = setTimeout(GAS.render, 120); });
+  document.addEventListener("gf-theme", GAS.render);   // assets/gf.js: kézi témaváltó és rendszerbeállítás
+})();
+</script>
+<script>
+// ---------- grafikonok és térképek mentése képként (PNG). Csak egérrel fölé víve (érintőképernyőn halványan) látszik.
+(function(){
+  const NS = "http://www.w3.org/2000/svg", rs = getComputedStyle(document.documentElement);
+  const vars = (s) => s.replace(/var\((--[\w-]+)\)/g, (m, n) => rs.getPropertyValue(n).trim() || m);
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  function legendItems(card){
+    const out = [];
+    card.querySelectorAll(".legend > *").forEach(it => {
+      const txt = it.textContent.trim().replace(/\s+/g, " "); if (!txt) return;
+      let col = null; const sw = it.querySelector("i,rect,line,path,polygon");
+      if (sw){ const cs = getComputedStyle(sw), tg = sw.tagName.toLowerCase(), ok = (c) => c && /^(rgb|#)/.test(c) && c !== "rgba(0, 0, 0, 0)"; col = tg === "i" ? cs.backgroundColor : tg === "line" ? cs.stroke : (ok(cs.fill) ? cs.fill : (ok(cs.stroke) ? cs.stroke : null)); }
+      out.push({txt, col});
+    });
+    return out;
+  }
+  async function save(host){
+    const svg = host.querySelector("svg:not(.xbi)"); if (!svg) return;
+    const card = host.closest(".card") || document.body, vb = svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width ? svg.viewBox.baseVal : null;
+    const W0 = vb ? vb.width : svg.getBoundingClientRect().width, H0 = vb ? vb.height : svg.getBoundingClientRect().height;
+    const bodyCs = getComputedStyle(document.body), ff = bodyCs.fontFamily, surf = rs.getPropertyValue("--surface").trim() || "#fff", ink = rs.getPropertyValue("--ink").trim() || "#000", ink2 = rs.getPropertyValue("--ink2").trim() || "#555";
+    const OUT_W = Math.max(640, Math.round(W0)), sc = OUT_W / W0, ch = H0 * sc;
+    const h2 = card.querySelector("h2"), h3 = (() => { let e = host.previousElementSibling; while (e){ if (/^H3$/.test(e.tagName)) return e; e = e.previousElementSibling; } return null; })();
+    const title = (h2 ? h2.textContent.replace(/\s+/g, " ").trim() : document.title) + (h3 ? " – " + h3.textContent.trim() : "");
+    const src = (card.getAttribute("data-src") || "").trim(), leg = legendItems(card);
+    // jelmagyarázat sorokba tördelve
+    let lx = 16, ly = 0, rows = 1; const items = [];
+    leg.forEach(l => { const w = 22 + l.txt.length * 6.6 + 14; if (lx + w > OUT_W - 16 && lx > 16){ lx = 16; rows++; } items.push({...l, x:lx, row:rows - 1}); lx += w; });
+    const headH = 44, legH = leg.length ? rows * 20 + 8 : 0, footH = src ? 40 : 14, H = headH + ch + legH + footH;
+    const clone = svg.cloneNode(true); clone.removeAttribute("style"); clone.setAttribute("width", OUT_W); clone.setAttribute("height", ch); clone.setAttribute("x", 0); clone.setAttribute("y", headH);
+    if (!clone.getAttribute("viewBox")) clone.setAttribute("viewBox", "0 0 " + W0 + " " + H0);
+    clone.querySelectorAll(".mz").forEach(e => e.remove());
+    let s = '<svg xmlns="' + NS + '" width="' + OUT_W + '" height="' + H + '" viewBox="0 0 ' + OUT_W + ' ' + H + '" font-family="' + esc(ff.replace(/"/g, "'")) + '"><rect width="100%" height="100%" fill="' + esc(surf) + '"/>' +
+      '<text x="16" y="28" font-size="17" font-weight="700" fill="' + esc(ink) + '">' + esc(title) + '</text>' + new XMLSerializer().serializeToString(clone);
+    items.forEach(l => { const y = headH + ch + 8 + l.row * 20; if (l.col) s += '<rect x="' + l.x + '" y="' + (y + 2) + '" width="12" height="12" rx="3" fill="' + esc(l.col) + '"/>'; s += '<text x="' + (l.x + (l.col ? 18 : 0)) + '" y="' + (y + 13) + '" font-size="12.5" fill="' + esc(ink2) + '">' + esc(l.txt) + '</text>'; });
+    if (src){ const t = "Forrás: " + src, fy = H - 22; const mid = t.length > 120 ? t.lastIndexOf(" ", 120) : -1; s += '<text x="16" y="' + fy + '" font-size="11.5" fill="' + esc(ink2) + '">' + esc(mid > 0 ? t.slice(0, mid) : t) + '</text>' + (mid > 0 ? '<text x="16" y="' + (fy + 14) + '" font-size="11.5" fill="' + esc(ink2) + '">' + esc(t.slice(mid + 1)) + '</text>' : ""); }
+    s += '<text x="' + (OUT_W - 16) + '" y="' + (H - 6) + '" text-anchor="end" font-size="10.5" fill="' + esc(ink2) + '" opacity=".7">GridFlow Analytics</text></svg>';
+    s = vars(s);
+    const img = new Image(); img.decoding = "sync";
+    await new Promise((ok, no) => { img.onload = ok; img.onerror = no; img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(s); }).catch(() => null);
+    const cv = document.createElement("canvas"), k = 2; cv.width = OUT_W * k; cv.height = H * k; const g = cv.getContext("2d"); g.scale(k, k); g.fillStyle = surf; g.fillRect(0, 0, OUT_W, H);
+    try{ g.drawImage(img, 0, 0, OUT_W, H); }catch(e){ return; }
+    const name = (title.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "grafikon") + ".png";
+    cv.toBlob(b => { if (!b) return; const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }, "image/png");
+  }
+  function attach(host){
+    if (host.querySelector(":scope > .xb")) return;
+    if (!host.querySelector("svg")) return;
+    if (getComputedStyle(host).position === "static") host.style.position = "relative";
+    const b = document.createElement("button"); b.type = "button"; b.className = "xb"; b.title = "Mentés képként (PNG)"; b.setAttribute("aria-label", "Mentés képként (PNG)");
+    b.innerHTML = '<svg class="xbi" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1.5v8M3.6 6.3 7 9.7l3.4-3.4M2 12h10"/></svg>';
+    b.addEventListener("click", ev => { ev.stopPropagation(); save(host); });
+    host.appendChild(b);
+  }
+  function scan(){ document.querySelectorAll(".chart, .mapwrap").forEach(attach); }
+  const st = document.createElement("style");
+  st.textContent = ".xb{position:absolute;top:4px;right:4px;z-index:4;width:28px;height:28px;border:1px solid var(--grid);background:var(--surface);color:var(--ink2);border-radius:8px;padding:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .15s}" +
+    ".chart:hover>.xb,.mapwrap:hover>.xb,.xb:focus-visible{opacity:.92}@media (hover:none){.xb{opacity:.5;width:26px;height:26px}}.xb:hover{color:var(--ink)}" +
+    ".mz{position:absolute;top:8px;left:8px;display:flex;gap:4px;z-index:3}.mz button{width:30px;height:30px;border:1px solid var(--grid);background:var(--surface);color:var(--ink);border-radius:8px;font-size:17px;line-height:1;cursor:pointer;opacity:.9;padding:0}.mz button:hover{opacity:1}";
+  document.head.appendChild(st);
+  let t = 0; new MutationObserver(() => { clearTimeout(t); t = setTimeout(scan, 120); }).observe(document.body, {childList:true, subtree:true});
+  scan();
+})();
+</script>
+
+</body>
+</html>

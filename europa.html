@@ -1,0 +1,1259 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Európai piac – árak, zónák és több éves trendek</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="Európai day-ahead árak zónánként, és a magyar villamosenergia-rendszer több éves trendjei havi bontásban: termelési mix, napenergia, negatív árak, esti rámpa, terhelési tartamgörbe, import. ENTSO-E adatok alapján.">
+<link rel="stylesheet" href="assets/gf.css">
+<script src="assets/gf.js"></script>
+<style>
+.meta{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;color:var(--muted);font-size:13px}
+.card h3{font-size:14px;margin:18px 0 6px;color:var(--ink2);font-weight:650}
+.card .note{margin:10px 0 0;color:var(--muted);font-size:12.5px;max-width:90ch}
+.nodata{padding:14px;border:1px dashed var(--grid);border-radius:10px;color:var(--ink2);font-size:14px}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 18px}
+@media (max-width:640px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{border-left:3px solid var(--grid);padding:2px 0 2px 10px}
+.tile .k{color:var(--ink2);font-size:12.5px}
+.tile .n{font-size:24px;font-weight:650;line-height:1.2;white-space:nowrap}
+.tile .n small{font-size:13px;color:var(--ink2);font-weight:600}
+.tile .s{color:var(--muted);font-size:12px}
+.legend svg{display:block}
+.chart{position:relative;width:100%;-webkit-user-select:none;user-select:none}
+.mtl{display:flex;align-items:center;gap:10px;flex:1 1 280px;min-width:240px}
+.mtl input{flex:1}
+.mtl span{font-size:13px;color:var(--ink2);white-space:nowrap}
+.ptiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.pt{border:1px solid var(--grid);border-radius:10px;padding:8px 10px}
+.pl{font-size:12.5px;color:var(--ink2)}
+.pv{font-size:19px;font-weight:700}
+.pv small{font-size:12px;font-weight:500;color:var(--muted)}
+.tip .sub{color:var(--muted);margin-top:3px}
+.tbl{overflow-x:auto}
+@media (max-width:640px){
+  .hide-sm{display:none}
+  th{white-space:normal;vertical-align:bottom;padding:0 4px 8px}
+  td{padding:8px 4px}
+  td.nm{white-space:normal}
+}
+footer details{margin:6px 0}
+footer summary{cursor:pointer;color:var(--ink2)}
+.err{padding:18px;color:var(--ink2)}
+h2.grp{font-size:22px;margin:38px 0 -4px;letter-spacing:-.01em}
+#cWin{position:sticky;top:0;z-index:6;padding:10px 14px;margin-top:12px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+#cWin .chips{margin:0 0 6px}
+#cWin .winlabel{font-size:13px;color:var(--ink2)}
+.chip:disabled{opacity:.4;cursor:default}
+#mapChips .msel{display:none;font:inherit;font-size:14px;padding:7px 12px;border:1px solid var(--grid);border-radius:999px;background:var(--surface);color:var(--ink);max-width:100%}
+@media (max-width:640px){#mapChips .chip{display:none}#mapChips .msel{display:block;width:100%}}
+</style>
+</head>
+<body>
+<main>
+  <nav class="tabs" aria-label="Nézetek"><a href="index.html">Határok</a><a href="muszaki.html">Rendszerállapot</a><a href="europa.html" aria-current="page">Európai piac</a><a href="idojaras.html">Időjárás</a><a href="foldgaz.html">Földgáz</a></nav>
+  <div id="banners"></div>
+  <header>
+    <h1>Európai piac</h1>
+    <p class="sub">Hol tart ma Magyarország az európai villamosenergia-piachoz képest, és mi változott az elmúlt évek során a termelésben, az árakban és az importban? A hosszú távú részek havi összesítések, ezek hetente frissülnek. Az oldal alján a földgáztározók és a magyar határpontok gázáramlása látható.</p>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <section class="card" id="cEu" data-src="ENTSO-E Transparency Platform – day-ahead árak (12.1.D)"></section>
+  <section class="card" id="cMap" data-src="ENTSO-E Transparency Platform – day-ahead árak (12.1.D), termelés típusonként (16.1.B&C), fizikai áramlás (12.1.G); CO₂-intenzitás és részarányok: saját számítás" style="display:none">
+    <h2>Térkép: az európai zónák egy pillantásra</h2>
+    <p class="hint">Egy színes terület egy ajánlati zóna (Észak-Olaszország az ország északi része, közelítő határral). Válassz mutatót. Egérrel vagy érintéssel az adott zóna összes elérhető értéke látszik.</p>
+    <div class="chips" id="mapChips" role="group" aria-label="Térkép mutatója"></div>
+    <div class="chips" id="mapTime" role="group" aria-label="Időablak" style="margin-top:8px"></div>
+    <div class="chart" id="mapChart"></div>
+    <div id="mapPanel"></div>
+    <div class="legend" id="mapLegend" style="margin-top:10px"></div>
+    <p class="note" id="mapNote"></p>
+    <div id="mapMiss"></div>
+  </section>
+  <section class="card" id="cFmap" data-src="ENTSO-E Transparency Platform – fizikai határkeresztező áramlás (12.1.G), zónapáronként; a zóna nettó pozíciója a térképen szereplő határok összege, saját számítás" style="display:none">
+    <h2>Európai áramlási térkép</h2>
+    <p class="hint">A nyilak a szomszédos zónák közti fizikai áramlás irányát és nagyságát mutatják (a nyíl vastagsága arányos a MW-tal). A zónák színe a nettó pozíció a térképen szereplő határokon: narancs a nettó importőr, kék a nettó exportőr. A csúszkával az elmúlt 48 óra bármely órája megnézhető.</p>
+    <div class="chips" style="align-items:center"><label for="fmSlider" style="font-size:13.5px;color:var(--ink2)">Óra:</label><input type="range" id="fmSlider" min="0" max="47" step="1" style="flex:1;min-width:160px;max-width:420px"><b id="fmLabel" class="num" style="font-size:13.5px"></b></div>
+    <div class="chart" id="fmChart"></div>
+    <div class="legend" id="fmLegend" style="margin-top:10px"></div>
+    <p class="note" id="fmNote"></p>
+  </section>
+  <section class="card" id="cKey" data-src="ENTSO-E Transparency Platform – havi összesítés (history.json), saját számítás"></section>
+  <section class="card" id="cWin"></section>
+  <section class="card" id="cMix" data-src="ENTSO-E Transparency Platform – termelés típusonként (16.1.B&C), havi összesítés">
+    <h2>A magyar termelés típusonként, havonta</h2>
+    <p class="hint">A hónap termelt villamos energiája GWh-ban (nettó termelés), vagy a hónap termelésének megoszlása százalékban. A hiányos hónapot a rendelkezésre álló órák átlagából becsüljük a teljes hónapra.</p>
+    <div class="chips" id="mixChips"></div>
+    <div class="legend" id="mixLegend"></div>
+    <div class="chart" id="mixChart"></div>
+  </section>
+  <section class="card" id="cSolar" data-src="ENTSO-E Transparency Platform – termelés (16.1.B&C) és beépített teljesítmény (14.1.A), havi összesítés">
+    <h2>A napenergia térnyerése</h2>
+    <p class="hint">A nap részaránya a magyar termelésben, és a havi legnagyobb napelemes teljesítmény az ENTSO-E-n közölt erőművi adatok szerint. A háztartási és egyéb, az ENTSO-E-n nem közölt napelemek hiányoznak, ezért a valós napenergia ennél több.</p>
+    <h3>A nap részaránya a termelésből, %</h3>
+    <div class="chart" id="solShare"></div>
+    <h3>A havi legnagyobb napelemes teljesítmény és az évi beépített teljesítmény, MW</h3>
+    <div class="legend" id="solLegend"></div>
+    <div class="chart" id="solPeak"></div>
+  </section>
+  <section class="card" id="cZone" data-src="ENTSO-E Transparency Platform – day-ahead árak (12.1.D), havi összesítés">
+    <h2>Az európai árak összevetése</h2>
+    <p class="hint">Válaszd ki az összehasonlítandó zónákat (legfeljebb hatot). A magyar ár akkor követi szorosan egy másik zóna árát, ha a köztük lévő határkapacitás nem szűk keresztmetszet.</p>
+    <div class="chips" id="zoneChips"></div>
+    <h3>Havi átlagár, €/MWh</h3>
+    <div class="legend" id="zoneLegend"></div>
+    <div class="chart" id="zAvg"></div>
+    <h3>Negatív árú órák havonta (óránkénti átlagár alapján)</h3>
+    <div class="chart" id="zNeg"></div>
+    <h3>Azonos árú órák a magyar zónával, a hónap óráinak %-ában</h3>
+    <div class="chart" id="zSame"></div>
+    <p class="note">Az azonos árú órák aránya a piaci összekapcsolás egyik jele: minél magasabb, annál ritkábban volt a két zóna között olyan szűk keresztmetszet, ami szétválasztotta az árat. A magyar zónára nem számolható saját magával, ezért a HU ebben az ábrában nem szerepel.</p>
+  </section>
+  <section class="card" id="cDuck" data-src="ENTSO-E Transparency Platform – day-ahead árak (12.1.D), fogyasztás és nap/szél termelés; maradék terhelés: saját számítás">
+    <h2>A „kacsagörbe": déli és esti ár, esti rámpa</h2>
+    <p class="hint">A napelemek délben lenyomják az árat, este viszont a termelés hirtelen eltűnik, miközben a fogyasztás csúcsra ér. A maradék terhelés (fogyasztás − nap − szél) déli mélypontja és esti emelkedése mutatja, mekkora terhelést kell a szabályozható erőműveknek és az importnak kiegyenlítenie.</p>
+    <h3>Magyar day-ahead ár: déli (10–16) és esti (18–22) átlag, €/MWh</h3>
+    <div class="legend" id="duckLegend"></div>
+    <div class="chart" id="duckPrice"></div>
+    <h3>Maradék terhelés déli (9–17 óra) minimuma, MW</h3>
+    <div class="chart" id="resMin"></div>
+    <h3>Legnagyobb esti (15–22 óra) rámpa: a havi 99. percentilis, MW/h</h3>
+    <div class="chart" id="ramp"></div>
+  </section>
+  <section class="card" id="cLoad" data-src="ENTSO-E Transparency Platform – tényleges fogyasztás (6.1.A), havi összesítés">
+    <h2>Fogyasztás: évi terhelési tartamgörbe</h2>
+    <p class="hint">A terhelési tartamgörbe azt mutatja, hogy az év óráinak hány százalékában haladta meg a fogyasztás az adott értéket. A bal szélén az évi csúcs, a jobb szélén az évi minimum áll. A görbe alakja és az évek közti eltolódása a rendszer méretezési igényét jelzi.</p>
+    <div class="legend" id="ldcLegend"></div>
+    <div class="chart" id="ldc"></div>
+    <h3>Havi csúcs és minimum, MW</h3>
+    <div class="legend" id="loadLegend"></div>
+    <div class="chart" id="loadPm"></div>
+  </section>
+  <section class="card" id="cImp" data-src="ENTSO-E Transparency Platform – fizikai határkeresztező áramlás (12.1.G), havi összesítés">
+    <h2>Import és export határonként</h2>
+    <p class="hint">A hónap nettó importja GWh-ban: a pozitív érték import Magyarországra, a negatív export. Az import részaránya a hónap fogyasztásához viszonyítva mutatja a külső függést.</p>
+    <div class="legend" id="impLegend"></div>
+    <div class="chart" id="impChart"></div>
+    <h3>Nettó import a fogyasztás %-ában (összes határ)</h3>
+    <div class="chart" id="impPct"></div>
+  </section>
+  <section class="card" id="cYear" data-src="ENTSO-E Transparency Platform – havi összesítés (history.json), saját számítás"></section>
+  <footer id="foot"></footer>
+  <p class="note" style="text-align:center;margin:6px 0 24px" id="ver">Oldalverzió: v2 · 2026-11-25 / 1</p>
+</main>
+
+<script>
+"use strict";
+const TZ = "Europe/Budapest";
+const GRP = [
+  {k:"nuclear", n:"Atomenergia", c:"--c1"}, {k:"gas", n:"Földgáz", c:"--c2"}, {k:"wind", n:"Szél", c:"--c3"},
+  {k:"solar", n:"Nap", c:"--c4"}, {k:"bio", n:"Biomassza, hulladék", c:"--c5"}, {k:"hydro", n:"Víz", c:"--c6"},
+  {k:"other", n:"Egyéb", c:"--c7"}, {k:"coal", n:"Szén, lignit", c:"--c8"}
+];
+const BORD = [{k:"AT", n:"Ausztria", c:"--c1"}, {k:"SK", n:"Szlovákia", c:"--c2"}, {k:"RO", n:"Románia", c:"--c3"},
+  {k:"RS", n:"Szerbia", c:"--c4"}, {k:"HR", n:"Horvátország", c:"--c5"}, {k:"SI", n:"Szlovénia", c:"--c6"}, {k:"UA", n:"Ukrajna", c:"--c7"}];
+const RAMP = ["#cde2fb","#b7d3f6","#9ec5f4","#86b6ef","#6da7ec","#5598e7","#3987e5","#2a78d6","#256abf","#1c5cab","#184f95","#104281","#0d366b"];
+const MONTHS = ["január","február","március","április","május","június","július","augusztus","szeptember","október","november","december"];
+
+const mkNum = (o) => { const f = new Intl.NumberFormat("hu-HU", o); return {format: v => f.format(v).replace(/^-/, "−")}; };
+const nf0 = mkNum({maximumFractionDigits:0});
+const nf1 = mkNum({minimumFractionDigits:1,maximumFractionDigits:1});
+const fTime = new Intl.DateTimeFormat("hu-HU",{timeZone:TZ,hour:"2-digit",minute:"2-digit",hour12:false});
+const fDate = new Intl.DateTimeFormat("hu-HU",{timeZone:TZ,month:"short",day:"numeric"});
+const fFull = new Intl.DateTimeFormat("hu-HU",{timeZone:TZ,year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false});
+const fWeek = new Intl.DateTimeFormat("hu-HU",{timeZone:TZ,weekday:"long"});
+const fParts = new Intl.DateTimeFormat("en-GB",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",hour12:false});
+const $ = (id) => document.getElementById(id);
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent){ const e = document.createElementNS(NS, tag); for (const k in (attrs||{})) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function signed(v, f){ f = f || nf0; const a = f.format(Math.abs(v)); return (v > 0 && a !== "0" ? "+" : v < 0 && a !== "0" ? "−" : "") + a; }
+function localParts(d){ const p = fParts.formatToParts(d), o = {}; p.forEach(x => o[x.type] = x.value); return {y:+o.year,m:+o.month,d:+o.day,h:(+o.hour)%24}; }
+function localDayKey(d){ const p = localParts(d); return p.y*10000 + p.m*100 + p.d; }
+function dayNum(k){ return Date.UTC(Math.floor(k / 10000), Math.floor(k / 100) % 100 - 1, k % 100) / 864e5; }
+function nice(min, max, n){
+  if (min === max){ max = min + 1; }
+  const span = max - min, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1,2,2.5,5,10].map(m => m*mag).find(s => s >= raw) || 10*mag;
+  const lo = Math.floor(min/step)*step, hi = Math.ceil(max/step)*step, t = [];
+  for (let v = lo; v <= hi + step/2; v += step) t.push(Math.round(v/step*1e6)/1e6*step);
+  return {lo, hi, ticks:t};
+}
+const has = (v) => v != null;
+const monthLabel = (k) => k.slice(0, 4) + ". " + MONTHS[+k.slice(5) - 1];
+
+let H = null, EU = null, NOW = new Date(), R = null;
+let mixMode = "gwh";
+let VIEW = {a:0, b:null};               // a havi grafikonok időablaka (indexek az R-ben; b=null: a végéig)
+function setView(a, b){ VIEW = {a:Math.max(0, a), b:b}; winSection(); renderCharts(); }
+let zoneSel = ["HU", "DE_LU", "AT", "RO"], zoneSlot = {};
+
+const getJson = (url, opt) => GF.getJson(url, opt);   // assets/gf.js: feltételes kérés (ETag), betöltésjelző
+async function load(){
+  const demo = new URLSearchParams(location.search).get("demo");
+  const [h, e] = await Promise.all([
+    getJson(demo ? "demo-history.json" : "history.json").catch(() => null),
+    getJson(demo ? "demo-europe.json" : "europe.json").catch(() => null)
+  ]);
+  H = h; EU = e;
+  if (!H && !EU){
+    $("cEu").innerHTML = '<div class="err"><b>Az adat nem tölthető be.</b><br>Az <code>europe.json</code> az adatgyűjtő első sikeres futása után, a <code>history.json</code> a hosszú távú gyűjtő első futása után jelenik meg (GitHub: <b>Actions</b> → <b>Hosszú távú adatok</b> → <b>Run workflow</b>). Ha a fájlt a gépedről nyitottad meg, indíts helyi szervert a mappában: <code>python3 -m http.server</code>.</div>';
+    document.querySelectorAll("main > section.card:not(#cEu)").forEach(s => s.style.display = "none");
+    return;
+  }
+  const dm = (H && H.demo) || (EU && EU.demo);
+  NOW = dm ? new Date((EU || H).generated_utc) : new Date();
+  if (H) model();
+  zoneSel = zoneSel.filter(z => !H || (H.zones || []).includes(z));
+  zoneSel.forEach(z => { zoneSlot[z] = firstFree(); });
+  render();
+  loadMapExtra();
+  let t; addEventListener("resize", () => { clearTimeout(t); t = setTimeout(renderCharts, 120); });
+  document.addEventListener("gf-theme", render);   // assets/gf.js: kézi témaváltó és rendszerbeállítás
+}
+function firstFree(){ const used = new Set(Object.values(zoneSlot)); for (let i = 0; i < 8; i++) if (!used.has(i)) return i; return 7; }
+
+// ---------------------------------------------------------------- modell (havi sorozatok)
+function model(){
+  const keys = Object.keys(H.months).sort();
+  const rows = keys.map(k => H.months[k]);
+  const col = (f) => rows.map(r => { try { const v = f(r); return v == null || Number.isNaN(v) ? null : v; } catch (e) { return null; } });
+  R = {keys, rows, n: keys.length, col, partial: rows.map(r => !!r.partial)};
+  R.totalGen = col(r => { const g = r.gen || {}; const v = Object.values(g).filter(has); return v.length ? v.reduce((a, b) => a + b, 0) : null; });
+  R.years = [...new Set(keys.map(k => +k.slice(0, 4)))];
+}
+function zoneVals(z, f){ return R.col(r => f(r.z && r.z[z])); }
+
+// ---------------------------------------------------------------- általános
+function legend(id, items){
+  $(id).innerHTML = items.map(it => {
+    const c = it.color, k = it.kind || "box";
+    let sv;
+    if (k === "box") sv = '<svg width="12" height="12"><rect width="12" height="12" rx="3" fill="' + c + '"/></svg>';
+    else sv = '<svg width="24" height="12"><line x1="1" y1="6" x2="23" y2="6" stroke="' + c + '" stroke-width="' + (it.w || 2.4) + '"' + (k === "dash" ? ' stroke-dasharray="6 4"' : '') + ' stroke-linecap="round"/></svg>';
+    return '<span>' + sv + esc(it.label) + '</span>';
+  }).join("");
+}
+function row(color, k, v){ return '<div class="row"><span>' + (color ? '<i style="background:' + color + '"></i>' : '') + k + '</span><b class="num">' + v + '</b></div>'; }
+function noData(host, msg){ host.innerHTML = '<div class="nodata">' + msg + '</div>'; }
+function tile(k, n, s){ return '<div class="tile"><div class="k">' + k + '</div><div class="n num">' + n + '</div><div class="s">' + s + '</div></div>'; }
+function lastIdx(arr){ for (let i = arr.length - 1; i >= 0; i--) if (arr[i] != null) return i; return -1; }
+
+function hoverIdx(host, svg, W, H_, x0, x1, n, info, vertical){
+  const tip = document.createElement("div"); tip.className = "tip"; host.appendChild(tip);
+  const guide = el("line", {y1:12, y2:H_ - 36, stroke:css("--ink2"), "stroke-width":1, "stroke-dasharray":"3 3", visibility:"hidden"}, svg);
+  const move = (ev) => {
+    const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) / r.width * W;
+    const i = Math.max(0, Math.min(n - 1, Math.floor((px - x0) / (x1 - x0) * n)));
+    const d = info(i);
+    if (!d){ tip.style.display = "none"; guide.setAttribute("visibility","hidden"); return; }
+    guide.setAttribute("x1", d.x); guide.setAttribute("x2", d.x); guide.setAttribute("visibility","visible");
+    tip.innerHTML = d.html; tip.style.display = "block";
+    const s = r.width / W, tw = tip.offsetWidth, left = d.x * s + 14;
+    tip.style.left = (left + tw > r.width ? Math.max(0, d.x * s - tw - 14) : left) + "px"; tip.style.top = "6px";
+  };
+  const hide = () => { tip.style.display = "none"; guide.setAttribute("visibility","hidden"); };
+  svg.addEventListener("pointermove", move); svg.addEventListener("pointerleave", hide); svg.addEventListener("pointerdown", move);
+}
+
+// Havi diagram. cfg: {series:[{label,color,values,kind:"line"|"bar",dash,w,short}], stack, unit, fmt, yMin, yMax, zero, height, step:[{...}], empty}
+// stack: a pozitív és a negatív értékek külön halmozódnak (nulla alatt lefelé).
+function mchart(host, cfg){
+  const a = Math.max(0, Math.min(VIEW.a, R.n - 1)), b = Math.max(a + 1, Math.min(VIEW.b == null ? R.n : VIEW.b, R.n));
+  if (a === 0 && b === R.n) return mchartCore(host, cfg, R, 0);
+  const Rv = {...R, n:b - a, keys:R.keys.slice(a, b), partial:R.partial.slice(a, b)};
+  const c = {...cfg, series:cfg.series.map(sr => ({...sr, values:(sr.values || []).slice(a, b)}))};
+  mchartCore(host, c, Rv, a);
+}
+function mchartCore(host, cfg, R, off){
+  host.innerHTML = "";
+  const n = R.n, W = Math.max(320, host.clientWidth), narrow = W < 520, Ht = cfg.height || (narrow ? 240 : 290);
+  const S = cfg.series.filter(s => s.values && s.values.some(has));
+  if (!S.length){ noData(host, cfg.empty || "Ehhez nincs közölt adat."); return; }
+  const m = {l:58, r:14, t:22, b:34};
+  let lo = Infinity, hi = -Infinity;
+  const upd = v => { if (v != null){ if (v < lo) lo = v; if (v > hi) hi = v; } };
+  if (cfg.stack){
+    for (let i = 0; i < n; i++){ let p = 0, q = 0, any = false; S.forEach(s => { const v = s.values[i]; if (v != null){ any = true; if (v >= 0) p += v; else q += v; } }); if (any){ upd(p); upd(q); } }
+  } else S.forEach(s => s.values.forEach(upd));
+  if (cfg.zero !== false){ lo = Math.min(lo, 0); hi = Math.max(hi, 0); }
+  if (cfg.yMin != null) lo = Math.min(lo, cfg.yMin);
+  if (cfg.yMax != null) hi = Math.max(hi, cfg.yMax);
+  const ny = nice(lo, hi, 5);
+  GF.a11y(host, {xs:R.keys.slice(0, n).map(monthLabel), series:S.map(s => ({label:s.label || "", values:s.values.slice(0, n)})), unit:cfg.unit || "", fmt:cfg.fmt});
+  const x0 = m.l, x1 = W - m.r, y0 = Ht - m.b, y1 = m.t, band = (x1 - x0) / n;
+  const X = i => x0 + (i + .5) * band, Y = v => y0 - (v - ny.lo) / (ny.hi - ny.lo) * (y0 - y1);
+  const svg = el("svg", {viewBox:"0 0 " + W + " " + Ht, width:W, height:Ht}, host);
+  const ink = css("--ink"), ink2 = css("--ink2"), grid = css("--grid"), muted = css("--muted"), surf = css("--surface");
+  // a folyamatban lévő (hiányos) hónap háttere
+  R.partial.forEach((p, i) => { if (p) el("rect", {x:X(i) - band/2, y:y1, width:band, height:y0 - y1, fill:css("--neutral"), opacity:.6}, svg); });
+  ny.ticks.forEach(t => {
+    el("line", {x1:x0, x2:x1, y1:Y(t), y2:Y(t), stroke: t === 0 ? muted : grid, "stroke-width": t === 0 ? 1.2 : 1}, svg);
+    const tx = el("text", {x:x0 - 8, y:Y(t) + 4, "text-anchor":"end", "font-size":12, fill:ink2}, svg); tx.textContent = (cfg.axfmt || nf0.format)(t);
+  });
+  const un = el("text", {x:x0 - 8, y:y1 - 9, "text-anchor":"end", "font-size":11, fill:muted}, svg); un.textContent = cfg.unit || "";
+  // évjelek januárnál
+  R.keys.forEach((k, i) => {
+    const mo = +k.slice(5);
+    if (mo === 1){
+      el("line", {x1:X(i) - band/2, x2:X(i) - band/2, y1:y1, y2:y0, stroke:grid}, svg);
+      const lab = el("text", {x:X(i) - band/2 + 3, y:y0 + 17, "font-size":narrow ? 11 : 12, fill:ink2, "font-weight":650}, svg); lab.textContent = k.slice(0, 4);
+    }
+    if (!narrow && n <= 40 && mo !== 1 && (mo - 1) % 3 === 0){
+      const lab = el("text", {x:X(i), y:y0 + 17, "text-anchor":"middle", "font-size":11, fill:muted}, svg); lab.textContent = MONTHS[mo - 1].slice(0, 3) + ".";
+    }
+  });
+  const bw = Math.max(2, band * .78);
+  // halmozott oszlopok
+  if (cfg.stack){
+    for (let i = 0; i < n; i++){
+      let p = 0, q = 0;
+      S.forEach(s => {
+        const v = s.values[i]; if (v == null || v === 0) return;
+        const a = v >= 0 ? p : q, b = a + v;
+        const top = Math.min(Y(a), Y(b)), h = Math.max(.6, Math.abs(Y(a) - Y(b)));
+        el("rect", {x:X(i) - bw/2, y:top, width:bw, height:h, fill:s.color, stroke:surf, "stroke-width":.8}, svg);
+        if (v >= 0) p = b; else q = b;
+      });
+    }
+  }
+  // sima oszlopok és vonalak
+  S.filter(s => !cfg.stack && s.kind === "bar").forEach(s => s.values.forEach((v, i) => {
+    if (v == null) return;
+    const top = Math.min(Y(v), Y(0)), h = Math.max(1, Math.abs(Y(v) - Y(0)));
+    el("rect", {x:X(i) - bw/2, y:top, width:bw, height:h, rx:Math.min(3, bw/3), fill:s.color, opacity:s.op || 1}, svg);
+  }));
+  const ends = [];
+  S.filter(s => !cfg.stack && (s.kind || "line") === "line").forEach(s => {
+    let d = "", open = false;
+    s.values.forEach((v, i) => { if (v == null){ open = false; return; } d += (open ? "L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1); open = true; });
+    el("path", {d, fill:"none", stroke:s.color, "stroke-width":s.w || 2.2, "stroke-dasharray":s.dash || "none", "stroke-linejoin":"round", "stroke-linecap":"round"}, svg);
+    const li = lastIdx(s.values);
+    if (li >= 0 && s.short) ends.push({s, x:X(li), y:Y(s.values[li])});
+  });
+  if (!narrow && ends.length && ends.length <= 6){
+    ends.sort((a, b) => a.y - b.y);
+    for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i-1].y < 14) ends[i].y = ends[i-1].y + 14;
+    ends.forEach(e => {
+      const t = el("text", {x:Math.min(e.x + 6, x1 - 2), y:e.y + 4, "text-anchor":e.x + 40 < x1 ? "start" : "end", "font-size":12, "font-weight":650, fill:ink, stroke:surf, "stroke-width":3, "paint-order":"stroke"}, svg);
+      t.textContent = e.s.short;
+    });
+  }
+  const fmt = cfg.fmt || (v => nf0.format(v));
+  hoverIdx(host, svg, W, Ht, x0, x1, n, i => {
+    let rows = "", any = false, tot = null;
+    (cfg.stack ? S.slice().reverse() : S).forEach(s => {
+      const v = s.values[i]; if (v == null) return; any = true; if (cfg.stack) tot = (tot || 0) + v;
+      rows += row(s.color, esc(s.label), (s.fmt || fmt)(v) + (cfg.unit ? " " + cfg.unit : ""));
+    });
+    if (!any) return null;
+    if (cfg.stack && tot != null && S.length > 1) rows += '<div class="row" style="border-top:1px solid var(--grid);margin-top:3px;padding-top:3px"><span>Összesen</span><b class="num">' + fmt(tot) + (cfg.unit ? " " + cfg.unit : "") + '</b></div>';
+    const note = R.partial[i] ? '<div class="sub">A hónap még folyamatban van.</div>' : "";
+    return {x:X(i), html:'<div class="t">' + monthLabel(R.keys[i]) + '</div>' + rows + note};
+  });
+  dragZoom(host, svg, W, Ht, x0, x1, y0, y1, n, off);
+}
+
+// Egérrel húzott kijelölés = nagyítás az összes havi grafikonra; dupla kattintás = vissza az egész időszakra.
+let DRAG = null;
+addEventListener("pointerup", () => {
+  if (!DRAG) return; const d = DRAG; DRAG = null; d.rect.setAttribute("visibility", "hidden");
+  if (d.ex == null || Math.abs(d.ex - d.sx) < 12) return;
+  const f = (x) => Math.max(0, Math.min(d.n - 1, Math.floor((x - d.x0) / (d.x1 - d.x0) * d.n)));
+  let i0 = f(Math.min(d.sx, d.ex)), i1 = f(Math.max(d.sx, d.ex));
+  if (i1 - i0 < 5){ const c = Math.round((i0 + i1) / 2); i0 = Math.max(0, c - 3); i1 = Math.min(d.n - 1, i0 + 5); }   // legalább 6 hónap
+  setView(d.off + i0, d.off + i1 + 1);
+});
+function dragZoom(host, svg, W, Ht, x0, x1, y0, y1, n, off){
+  const rect = el("rect", {y:y1, height:y0 - y1, fill:css("--c1"), opacity:.18, visibility:"hidden", "pointer-events":"none"}, svg);
+  const px = (ev) => { const r = svg.getBoundingClientRect(); return Math.max(x0, Math.min(x1, (ev.clientX - r.left) / r.width * W)); };
+  svg.addEventListener("pointerdown", ev => { if (ev.pointerType !== "mouse" || ev.button !== 0) return; ev.preventDefault(); DRAG = {rect, sx:px(ev), ex:null, n, off, x0, x1}; });
+  svg.addEventListener("pointermove", ev => {
+    if (!DRAG || DRAG.rect !== rect) return; const x = px(ev); DRAG.ex = x;
+    rect.setAttribute("x", Math.min(DRAG.sx, x)); rect.setAttribute("width", Math.abs(x - DRAG.sx)); rect.setAttribute("visibility", Math.abs(x - DRAG.sx) > 6 ? "visible" : "hidden");
+  });
+  svg.addEventListener("dblclick", () => setView(0, null));
+}
+
+
+// ---------------------------------------------------------------- térkép (négyzetrácsos kartogram)
+// (oszlop, sor) a rácson; a Nyugat–Kelet / Észak–Dél elrendezés közelítőleg földrajzi.
+const TILEPOS = {NL:[1,0], DE_LU:[2,0], PL:[3,0], FR:[0,1], BE:[1,1], CZ:[3,1], SK:[4,1], ES:[0,2], PT:[0,3], CH:[1,2], IT_NORD:[2,2], AT:[3,2], HU:[4,2], RO:[5,2],
+  SI:[3,3], HR:[4,3], RS:[5,3], GR:[4,4], BG:[5,4]};
+const TILECODE = {DE_LU:"DE", IT_NORD:"IT-N"};
+let GEO = null, MAPX = null, FREQ = null, mapMetric = "price", mapPin = null;
+const _cv = document.createElement("canvas").getContext("2d");
+function rgbOf(c){ _cv.fillStyle = "#000"; _cv.fillStyle = c; const v = _cv.fillStyle; if (v[0] === "#") return [1, 3, 5].map(i => parseInt(v.slice(i, i + 2), 16)); return (v.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(Number); }
+const mixRgb = (a, b, t) => a.map((x, i) => Math.round(x + (b[i] - x) * t));
+const rgbStr = (c) => "rgb(" + c.join(",") + ")";
+function lumOf(c){ const f = (v) => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }; return .2126 * f(c[0]) + .7152 * f(c[1]) + .0722 * f(c[2]); }
+const textOn = (c) => { const L = lumOf(c); return (L + .05) / .05 > 1.05 / (L + .05) ? "#0b0b0b" : "#ffffff"; };
+
+// Egy óra (a legutóbbi, amelyre van termelési adat és nem a jövőben van) mutatói: CO2, megújuló részarány, nettó import.
+function mapHour(src, netArr, netTs){
+  if (!src || !src.generation || !src.hourly_ts) return null;
+  const ts = src.hourly_ts.map(t => +new Date(t)), G = src.generation, types = Object.keys(G);
+  let i = -1;
+  for (let k = 0; k < ts.length; k++){ if (ts[k] > +NOW) break; if (types.some(t => has(G[t] && G[t][k]))) i = k; }
+  if (i < 0) return null;
+  const F = (src.co2 && src.co2.factors) || (MAPX && MAPX.c && MAPX.c.co2 && MAPX.c.co2.factors) || (MAPX && MAPX.e && MAPX.e.co2 && MAPX.e.co2.factors) || {};
+  let tot = 0, em = 0, res = 0;
+  types.forEach(t => { const v = G[t][i]; if (!has(v) || v < 0) return; tot += v; em += v * (F[t] != null ? F[t] : (F.other != null ? F.other : 700)); if (["solar", "wind", "hydro", "bio"].includes(t)) res += v; });
+  if (tot <= 0) return null;
+  let net = null;
+  if (netArr){
+    const nts = netTs || src.hourly_ts;
+    for (let k = nts.length - 1; k >= 0; k--){ if (+new Date(nts[k]) <= +NOW && has(netArr[k])){ net = netArr[k]; break; } }
+  }
+  const ld = src.load && has(src.load[i]) ? src.load[i] : null;
+  return {t:new Date(ts[i]), co2:em / tot, res:res / tot * 100, net, gen:tot, load:ld};
+}
+// ---------- órás idősorok a térképhez: ár, termelés, fogyasztás, CO₂, megújuló, nettó import (közös órás rács)
+let MSER = null, MSERK = null;
+function mapSeries(){
+  const C = MAPX && MAPX.c, E = MAPX && MAPX.e, D = MAPX && MAPX.d, key = [EU, C, E, D];
+  if (MSER && MSERK && key.every((x, i) => x === MSERK[i])) return MSER;
+  const lo = +NOW - 170 * 3600e3, hi = +NOW + 48 * 3600e3, set = new Set();
+  const add = (arr) => (arr || []).forEach(t => { const m = +new Date(t); if (m >= lo && m <= hi) set.add(m); });
+  if (EU && EU.ts) add(EU.ts); if (C) add(C.hourly_ts); if (E) add(E.hourly_ts);
+  const grid = [...set].sort((a, b) => a - b), n = grid.length, at = new Map(grid.map((m, i) => [m, i]));
+  const S = {grid, z:{}};
+  const Z = (z) => S.z[z] = S.z[z] || {price:new Array(n).fill(null), gen:new Array(n).fill(null), em:new Array(n).fill(null), res:new Array(n).fill(null), load:new Array(n).fill(null), net:new Array(n).fill(null)};
+  if (EU && EU.zones) Object.keys(EU.zones).forEach(z => { const a = EU.zones[z], r = Z(z); EU.ts.forEach((t, k) => { const i = at.get(+new Date(t)); if (i != null && has(a[k])) r.price[i] = a[k]; }); });
+  const F = (C && C.co2 && C.co2.factors) || (E && E.co2 && E.co2.factors) || {};
+  const fill = (z, ts, G, load, netArr, netTs) => {
+    const r = Z(z), types = G ? Object.keys(G) : [];
+    (ts || []).forEach((t, k) => {
+      const i = at.get(+new Date(t)); if (i == null) return;
+      if (types.some(x => has(G[x] && G[x][k]))){
+        let tot = 0, em = 0, rs = 0;
+        types.forEach(x => { const v = G[x][k]; if (!has(v) || v < 0) return; tot += v; em += v * (F[x] != null ? F[x] : (F.other != null ? F.other : 700)); if (["solar", "wind", "hydro", "bio"].includes(x)) rs += v; });
+        if (tot > 0){ r.gen[i] = tot; r.em[i] = em; r.res[i] = rs; }
+      }
+      if (load && has(load[k])) r.load[i] = load[k];
+      if (netArr && !netTs && has(netArr[k])) r.net[i] = netArr[k];
+    });
+    if (netArr && netTs) netTs.forEach((t, k) => { const i = at.get(+new Date(t)); if (i != null && has(netArr[k])) r.net[i] = netArr[k]; });
+  };
+  if (C && C.zones) Object.keys(C.zones).forEach(z => { const zz = C.zones[z]; fill(z, C.hourly_ts, zz.generation, zz.load && zz.load.actual, zz.net_import_mw, null); });
+  if (E) fill("HU", E.hourly_ts, E.generation, E.load && E.load.actual, D && D.net_import_mw, D && D.hourly_ts);
+  MSER = S; MSERK = key; return S;
+}
+// Időablak: "24h" = a legutóbbi 24 óra átlaga, "hour" = egy kiválasztott óra
+let mapTime = {mode:"24h", i:null};
+function mapWindow(S){
+  const g = S.grid; let now = -1; g.forEach((m, i) => { if (m <= +NOW) now = i; }); if (now < 0) now = g.length - 1;
+  const zs = Object.values(S.z);
+  const lastData = (() => { for (let i = now; i >= 0; i--){ const c = zs.filter(r => has(r.gen[i])).length; if (c >= Math.max(3, zs.filter(r => r.gen.some(has)).length * .5)) return i; } return now; })();
+  if (mapTime.mode === "hour"){ if (mapTime.i == null || mapTime.i >= g.length) mapTime.i = lastData; return {from:mapTime.i, to:mapTime.i, now, lastData, label:fDate.format(new Date(g[mapTime.i])) + " " + fTime.format(new Date(g[mapTime.i])) + "–" + fTime.format(new Date(g[mapTime.i] + 3600e3))}; }
+  const to = Math.max(lastData, now - 3), from = Math.max(0, to - 23);
+  return {from, to, now, lastData, label:"az elmúlt 24 óra átlaga (" + fDate.format(new Date(g[from])) + " " + fTime.format(new Date(g[from])) + " – " + fDate.format(new Date(g[to])) + " " + fTime.format(new Date(g[to] + 3600e3)) + ")"};
+}
+function mapModel(){
+  const M = {zones:new Set(), v:{}};
+  const put = (k, z, val, extra) => { if (!has(val)) return; (M.v[k] = M.v[k] || {})[z] = val; M.zones.add(z); if (extra) (M.at = M.at || {})[k + "|" + z] = extra; };
+  const S = mapSeries(), Wn = mapWindow(S); M.win = Wn; M.S = S;
+  const mean = (arr) => { let t = 0, c = 0; for (let i = Wn.from; i <= Wn.to; i++) if (has(arr[i])){ t += arr[i]; c++; } return c ? t / c : null; };
+  const sum = (arr) => { let t = 0, c = 0; for (let i = Wn.from; i <= Wn.to; i++) if (has(arr[i])){ t += arr[i]; c++; } return c ? t : null; };
+  const hu = S.z.HU;
+  Object.keys(S.z).forEach(z => {
+    const r = S.z[z];
+    put("price", z, mean(r.price));
+    if (hu && z !== "HU"){ let t = 0, c = 0; for (let i = Wn.from; i <= Wn.to; i++) if (has(r.price[i]) && has(hu.price[i])){ t += r.price[i] - hu.price[i]; c++; } if (c) put("diff", z, t / c); }
+    const g = sum(r.gen);
+    if (g) { put("gen", z, mean(r.gen)); put("co2", z, sum(r.em) / g); put("res", z, sum(r.res) / g * 100); }
+    put("load", z, mean(r.load)); put("net", z, mean(r.net));
+  });
+  if (H && H.months){
+    const keys = Object.keys(H.months).sort().filter(k => !H.months[k].partial).slice(-12);
+    if (keys.length >= 9) (H.zones || []).forEach(z => {
+      const a = keys.map(k => H.months[k].z && H.months[k].z[z] ? H.months[k].z[z].avg : null).filter(has), n = keys.map(k => H.months[k].z && H.months[k].z[z] ? H.months[k].z[z].neg : null).filter(has);
+      if (a.length >= 9) put("avg12", z, a.reduce((x, y) => x + y, 0) / a.length);
+      if (n.length >= 9) put("neg12", z, n.reduce((x, y) => x + y, 0));
+    });
+    M.span = keys.length ? monthLabel(keys[0]) + " – " + monthLabel(keys[keys.length - 1]) : "";
+  }
+  return M;
+}
+const MAP_METRICS = [
+  {k:"price", n:"Ár", u:"€/MWh", kind:"price", f:(v) => nf0.format(v), d:"Day-ahead ár a kiválasztott időablakban."},
+  {k:"diff", n:"Különbség a magyar árhoz", u:"€/MWh", kind:"div", hue:"--c2", f:(v) => signed(v, nf0), d:"Narancs: a zóna drágább a magyarnál, kék: olcsóbb."},
+  {k:"avg12", n:"Átlagár, 12 hónap", u:"€/MWh", kind:"price", f:(v) => nf0.format(v), d:"Az utolsó 12 lezárt hónap havi átlagainak átlaga."},
+  {k:"neg12", n:"Negatív árú órák, 12 hónap", u:"óra", kind:"seq", hue:"--c2", f:(v) => nf0.format(v), d:"Az utolsó 12 lezárt hónap negatív árú óráinak száma."},
+  {k:"co2", n:"CO₂-intenzitás", u:"g/kWh", kind:"seq", hue:"--c7", f:(v) => nf0.format(v), d:"A termelési mixből számolt életciklus-intenzitás (IPCC AR5 mediánok), a termeléssel súlyozva; az importot nem veszi figyelembe."},
+  {k:"res", n:"Megújuló részarány", u:"%", kind:"seq", hue:"--c3", f:(v) => nf0.format(v), d:"Nap, szél, víz és biomassza a közölt termelésen belül (a termeléssel súlyozva). Az óránkénti nézet napközben jóval nagyobb ingadozást mutat, mint a napi átlag."},
+  {k:"gen", n:"Termelés", u:"MW", kind:"seq", hue:"--c3", f:(v) => nf0.format(v), d:"A zónában közölt összes termelés a kiválasztott időablakban (átlagteljesítmény)."},
+  {k:"load", n:"Fogyasztás", u:"MW", kind:"seq", hue:"--c1", f:(v) => nf0.format(v), d:"A zóna tényleges fogyasztása a kiválasztott időablakban (átlagteljesítmény)."},
+  {k:"net", n:"Nettó import / export", u:"MW", kind:"div", hue:"--c2", f:(v) => signed(v, nf0), d:"Narancs: a zóna nettó importőr, kék: nettó exportőr (a kiválasztott időablakban)."}
+];
+
+// ---------- nagyítható / húzható térkép (viewBox alapú). A nézet térképenként megmarad az újrarajzoláskor.
+const MVIEW = {};
+function mapZoomable(host, svg, G, Wd, key, onChange){
+  // alapnézet: Európa magja (Izland–Ciprus); a világ többi része kicsinyítéssel és húzással elérhető
+  const DEF = G.W === 1100 && G.H === 900 ? {s:1.6, cx:490, cy:425} : {s:1, cx:G.W / 2, cy:G.H / 2};
+  const st = MVIEW[key] = MVIEW[key] || Object.assign({}, DEF), r = Wd / G.W;
+  st.dragged = false;
+  const clampv = () => { st.s = Math.max(1, Math.min(16, st.s)); const vw = G.W / st.s, vh = G.H / st.s; st.cx = Math.max(vw / 2, Math.min(G.W - vw / 2, st.cx)); st.cy = Math.max(vh / 2, Math.min(G.H - vh / 2, st.cy)); };
+  let raf = 0;
+  const apply = (notify) => {
+    clampv(); const vw = G.W / st.s, vh = G.H / st.s;
+    svg.setAttribute("viewBox", [st.cx - vw / 2, st.cy - vh / 2, vw, vh].join(" "));
+    svg.style.touchAction = st.s > DEF.s + .01 ? "none" : "pan-y"; svg.style.cursor = st.s > 1 ? "grab" : "";
+    if (notify && onChange){ cancelAnimationFrame(raf); raf = requestAnimationFrame(() => onChange(st, r)); }
+  };
+  const zoomAt = (f, px, py) => {
+    const ns = Math.max(1, Math.min(16, st.s * f)), vw0 = G.W / st.s, vh0 = G.H / st.s, x0 = st.cx - vw0 / 2, y0 = st.cy - vh0 / 2, fx = (px - x0) / vw0, fy = (py - y0) / vh0;
+    st.s = ns; const vw = G.W / ns, vh = G.H / ns; st.cx = px - fx * vw + vw / 2; st.cy = py - fy * vh + vh / 2; apply(true);
+  };
+  const toMap = (ev) => { const b = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal; return [vb.x + (ev.clientX - b.left) / b.width * vb.width, vb.y + (ev.clientY - b.top) / b.height * vb.height]; };
+  const bar = document.createElement("div"); bar.className = "mz";
+  [["+", "Nagyítás", () => zoomAt(1.6, st.cx, st.cy)], ["−", "Kicsinyítés", () => zoomAt(1 / 1.6, st.cx, st.cy)], ["⟲", "Alaphelyzet", () => { st.s = DEF.s; st.cx = DEF.cx; st.cy = DEF.cy; apply(true); }]].forEach(([t, ttl, fn]) => {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = t; b.title = ttl; b.setAttribute("aria-label", ttl); b.addEventListener("click", fn); bar.appendChild(b);
+  });
+  host.appendChild(bar);
+  svg.addEventListener("wheel", ev => { if (!(ev.ctrlKey || ev.metaKey)) return; ev.preventDefault(); const [px, py] = toMap(ev); zoomAt(ev.deltaY < 0 ? 1.3 : 1 / 1.3, px, py); }, {passive:false});
+  svg.addEventListener("dblclick", ev => { const [px, py] = toMap(ev); zoomAt(1.8, px, py); });
+  const ptr = new Map(); let pinch = null, down = null;
+  svg.addEventListener("pointerdown", ev => {
+    if (ev.pointerType === "mouse" && ev.button !== 0) return;
+    ptr.set(ev.pointerId, {x:ev.clientX, y:ev.clientY}); down = {x:ev.clientX, y:ev.clientY, cx:st.cx, cy:st.cy, moved:false};
+    if (ptr.size === 2){ const [a, b] = [...ptr.values()]; pinch = {d:Math.hypot(a.x - b.x, a.y - b.y), s:st.s}; }
+  });
+  svg.addEventListener("pointermove", ev => {
+    if (!ptr.has(ev.pointerId)) return; ptr.set(ev.pointerId, {x:ev.clientX, y:ev.clientY});
+    if (ptr.size === 2 && pinch){ const [a, b] = [...ptr.values()], d = Math.hypot(a.x - b.x, a.y - b.y); st.dragged = true; const mid = toMap({clientX:(a.x + b.x) / 2, clientY:(a.y + b.y) / 2}); zoomAt(Math.max(.5, Math.min(2, d / pinch.d * pinch.s / st.s)), mid[0], mid[1]); pinch.d = d; pinch.s = st.s; return; }
+    if (!down || st.s <= 1) return;
+    const dx = ev.clientX - down.x, dy = ev.clientY - down.y;
+    if (!down.moved && Math.hypot(dx, dy) < 5) return;
+    if (!down.moved){ down.moved = true; st.dragged = true; try{ svg.setPointerCapture(ev.pointerId); }catch(e){} svg.style.cursor = "grabbing"; }
+    st.cx = down.cx - dx / (r * st.s); st.cy = down.cy - dy / (r * st.s); apply(true);
+  });
+  const up = (ev) => { ptr.delete(ev.pointerId); if (ptr.size < 2) pinch = null; if (!ptr.size){ down = null; svg.style.cursor = st.s > 1 ? "grab" : ""; setTimeout(() => { st.dragged = false; }, 0); } };
+  svg.addEventListener("pointerup", up); svg.addEventListener("pointercancel", up);
+  return {st, r, apply};
+}
+
+// ---- közös térképalap: nagyítható SVG, a tartalmat (zónák, címkék, nyilak) a nagyítás szintjén újrarajzoljuk,
+// így a vonalvastagság és a betűméret képernyőpixelben állandó marad, a címkék pedig a terület méretétől függően jelennek meg.
+function geoSetup(host, key, draw){
+  const Wd = Math.min(Math.max(300, host.clientWidth), 860);
+  const svg = el("svg", {viewBox:"0 0 " + GEO.W + " " + GEO.H, role:"img", "aria-label":"Európai térkép, nagyítható"}, host);
+  svg.style.width = Wd + "px"; svg.style.height = (Wd * GEO.H / GEO.W) + "px"; svg.style.maxWidth = "100%"; svg.style.margin = "0 auto"; svg.style.display = "block"; svg.style.overflow = "hidden";
+  const tip = document.createElement("div"); tip.className = "tip"; host.style.position = "relative"; host.appendChild(tip);
+  const content = el("g", {}, svg);
+  const S = {svg, tip, content, host, Wd};
+  const Z = mapZoomable(host, svg, GEO, Wd, key, () => S.redraw());
+  S.st = Z.st; S.r = Z.r;
+  S.px = (n) => n / (S.r * S.st.s);                  // képernyőpixel → térképi egység
+  S.showTip = (ev, html) => { const hb = host.getBoundingClientRect(); tip.innerHTML = html; tip.style.display = "block"; const tw = tip.offsetWidth; let l = ev.clientX - hb.left + 12; if (l + tw > host.clientWidth) l = Math.max(0, ev.clientX - hb.left - tw - 12); tip.style.left = l + "px"; tip.style.top = Math.max(0, ev.clientY - hb.top - 10) + "px"; };
+  S.hideTip = () => { tip.style.display = "none"; };
+  S.redraw = () => { content.replaceChildren(); tip.style.display = "none"; draw(S); };
+  Z.apply(false); S.redraw();
+  return S;
+}
+// m = "c": országos nézet (áramlási térkép), m = "s": ajánlati zónák (NO1–5, SE1–4, DK1–2, olasz zónák külön)
+const SPLIT = ["NO", "SE", "DK", "IT"], GEOONLY = ["RU", "AM", "AZ"];
+const FALLBACK_NAMES = {RU:"Oroszország", AM:"Örményország", AZ:"Azerbajdzsán", GB:"Egyesült Királyság", BY:"Belarusz", IS:"Izland"};
+const zoneList = (m) => m === "s" ? Object.keys(GEO.zones).filter(z => !SPLIT.includes(z)).concat(Object.keys(GEO.sub || {})) : Object.keys(GEO.zones).map(z => z === "IT" ? "IT_NORD" : z);
+const zPath = (z, m) => m === "s" ? ((GEO.sub && GEO.sub[z]) || GEO.zones[z]) : (z === "IT_NORD" ? GEO.zones.IT : GEO.zones[z]);
+const zLabel = (z, m) => (m !== "s" && z === "IT_NORD") ? GEO.labels.IT : (GEO.labels[z] || null);
+const zBox = (z, m) => (GEO.bbox && ((m !== "s" && z === "IT_NORD") ? GEO.bbox.IT : GEO.bbox[z])) || null;
+const codeOf = (z) => TILECODE[z] || z.replace(/^([A-Z]{2})_(\w+)$/, "$1$2");
+function geoCols(){ const surf = rgbOf(css("--surface")), ink = rgbOf(css("--ink")); return {land:rgbStr(mixRgb(surf, ink, .13)), nodata:rgbStr(mixRgb(surf, ink, .07)), line:rgbStr(mixRgb(surf, ink, .5)), hatch:rgbStr(mixRgb(surf, ink, .3))}; }
+function geoBase(C, k, id){
+  const gc = geoCols();
+  const pat = el("pattern", {id:"hatchND", width:6 * k, height:6 * k, patternUnits:"userSpaceOnUse", patternTransform:"rotate(45)"}, el("defs", {}, C));
+  el("rect", {width:6 * k, height:6 * k, fill:gc.nodata}, pat); el("line", {x1:0, y1:0, x2:0, y2:6 * k, stroke:gc.hatch, "stroke-width":1.2 * k}, pat);
+  el("path", {d:GEO.ctx, fill:gc.land, stroke:gc.line, "stroke-width":.6 * k, "stroke-linejoin":"round"}, C);     // az ENTSO-E-n kívüli országok
+}
+
+function geoZoneMap(host, M, cur, vals, color, info, nm){
+  geoSetup(host, "zmap", (S) => {
+    const C = S.content, k = S.px(1), rs = S.r * S.st.s, surf = css("--surface"), ink = css("--ink"), zl = zoneList("s");
+    geoBase(C, k, "itN");
+    zl.forEach(z => {
+      const v = vals[z], pinned = z === mapPin;
+      const g = el("g", {tabindex:0, role:"img", "aria-label":nm(z) + ": " + (has(v) ? cur.f(v) + " " + cur.u : "nincs adat")}, C); g.style.cursor = "pointer"; g.style.outline = "none";
+      const gc = geoCols(), at = {d:zPath(z, "s"), fill:has(v) ? rgbStr(color(v)) : (GEOONLY.includes(z) ? gc.land : "url(#hatchND)"), stroke:pinned || z === "HU" ? ink : gc.line, "stroke-width":(pinned || z === "HU" ? 2.2 : .8) * k, "stroke-linejoin":"round"};
+      el("path", at, g);
+      const mv = (ev) => S.showTip(ev, info(z));
+      g.addEventListener("pointermove", mv); g.addEventListener("pointerenter", mv); g.addEventListener("pointerleave", S.hideTip);
+      g.addEventListener("click", () => { if (S.st.dragged) return; mapPin = mapPin === z ? null : z; mapSection(); });
+      g.addEventListener("focus", () => { const b = g.getBoundingClientRect(); mv({clientX:b.left + b.width / 2, clientY:b.top + b.height / 2}); }); g.addEventListener("blur", S.hideTip);
+    });
+    zl.forEach(z => {
+      const L = zLabel(z, "s"), B = zBox(z, "s"); if (!L || !B) return;
+      const v = vals[z], c = has(v) ? color(v) : null, tc = c ? textOn(c) : css("--ink2"), txt = has(v) ? cur.f(v) : "–";
+      const sw = (B[2] - B[0]) * rs, sh = (B[3] - B[1]) * rs, fs = 11.5 * k;
+      if (sw < txt.length * 7.4 + 8 || sh < 18) return;
+      const code = sw >= 46 && sh >= 32;
+      const t1 = el("text", {x:L[0], y:L[1] - (code ? fs * .15 : -fs * .35), "text-anchor":"middle", "font-size":fs, "font-weight":700, fill:tc, "pointer-events":"none"}, C); t1.textContent = txt;
+      if (code){ const t2 = el("text", {x:L[0], y:L[1] + fs * 1.05, "text-anchor":"middle", "font-size":fs * .78, "font-weight":600, fill:tc, opacity:.85, "pointer-events":"none"}, C); t2.textContent = codeOf(z); }
+    });
+  });
+}
+
+// ---- ország-panel: termelés, fogyasztás, nettó import, ár, CO₂, megújuló, frekvencia
+const NONSYNC = new Set(["NO", "SE", "FI", "IE", "CY", "GE"]);
+function zSeries(z){
+  const mk = (ts, L, G) => { const gen = G ? ts.map((_, i) => { let s = 0, any = false; Object.keys(G).forEach(t => { const v = G[t] && G[t][i]; if (has(v) && v > 0){ s += v; any = true; } }); return any ? s : null; }) : null; return {ts:ts.map(x => +new Date(x)), load:L, gen}; };
+  if (!MAPX) return null;
+  if (z === "HU" && MAPX.e && MAPX.e.hourly_ts) return mk(MAPX.e.hourly_ts, MAPX.e.load && MAPX.e.load.actual, MAPX.e.generation);
+  const C = MAPX.c, zz = C && C.zones && C.zones[z]; if (!zz) return null;
+  return mk(C.hourly_ts, zz.load && zz.load.actual, zz.generation);
+}
+function mapPanel(M, nm){
+  const host = $("mapPanel"); if (!host) return;
+  const z = mapPin || "HU", V = (k) => M.v[k] && M.v[k][z], tiles = [];
+  const add = (lbl, v, unit, f) => { if (has(v)) tiles.push('<div class="pt"><div class="pl">' + lbl + '</div><div class="pv num">' + (f || nf0.format)(v) + ' <small>' + unit + '</small></div></div>'); };
+  add("Termelés", V("gen"), "MW"); add("Fogyasztás", V("load"), "MW"); add("Nettó import (+) / export (−)", V("net"), "MW", (v) => signed(v, nf0));
+  add("Nagykereskedelmi ár", V("price"), "€/MWh"); add("CO₂-intenzitás", V("co2"), "g/kWh"); add("Megújuló részarány", V("res"), "%");
+  let fq = "";
+  if (FREQ && FREQ.minute && !NONSYNC.has(z)){
+    const m = FREQ.minute.mean || [], t0 = +new Date(FREQ.minute.t0), st = (FREQ.minute.step || 60) * 1000, Wn = M.win, g = M.S && M.S.grid;
+    let ft = 0, fc = 0;
+    if (Wn && g) for (let k = 0; k < m.length; k++){ const t = t0 + k * st; if (t >= g[Wn.from] && t < g[Wn.to] + 3600e3 && has(m[k])){ ft += m[k]; fc++; } }
+    const i = fc >= 30 ? 0 : -1;
+    if (i >= 0){ tiles.push('<div class="pt"><div class="pl">Rendszerfrekvencia</div><div class="pv num">' + (ft / fc).toFixed(3).replace(".", ",") + ' <small>Hz</small></div></div>'); fq = z === "DK" ? " Dánia nyugati fele a kontinentális, keleti fele az északi rendszerhez tartozik, a frekvencia a kontinentálisra vonatkozik." : " A frekvencia az egész kontinentális szinkronterületre közös (Energy-Charts mérés)."; }
+  } else if (NONSYNC.has(z)) fq = " Ez a zóna külön szinkronterület (északi / ír / ciprusi / grúz rendszer): a kontinentális frekvencia rá nem érvényes.";
+  // kis diagram: fogyasztás és termelés az elmúlt 48 órában
+  let spark = "";
+  const S = zSeries(z);
+  if (S && S.load && S.gen){
+    const n = S.ts.length, i1 = (() => { let j = n - 1; while (j > 0 && S.ts[j] > +NOW) j--; return j; })(), i0 = Math.max(0, i1 - 47);
+    const xs = [], L = [], G = [];
+    for (let i = i0; i <= i1; i++){ xs.push(S.ts[i]); L.push(S.load[i]); G.push(S.gen[i]); }
+    const all = L.concat(G).filter(has);
+    if (all.length > 10){
+      const W = 560, Hh = 120, p = {l:46, r:8, t:8, b:20}, lo = Math.min(...all), hi = Math.max(...all), y0 = Math.max(0, lo - (hi - lo) * .15), y1 = hi + (hi - lo) * .1 || 1;
+      const X = (i) => p.l + i / Math.max(1, xs.length - 1) * (W - p.l - p.r), Y = (v) => p.t + (1 - (v - y0) / (y1 - y0)) * (Hh - p.t - p.b);
+      const pa = (a) => { let d = "", on = false; a.forEach((v, i) => { if (!has(v)){ on = false; return; } d += (on ? "L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1); on = true; }); return d; };
+      let s = '<svg viewBox="0 0 ' + W + ' ' + Hh + '" width="100%" role="img" aria-label="Fogyasztás és termelés, utolsó 48 óra" style="max-width:' + W + 'px;display:block">';
+      [0, .5, 1].forEach(f => { const v = y0 + (y1 - y0) * f, y = Y(v); s += '<line x1="' + p.l + '" x2="' + (W - p.r) + '" y1="' + y + '" y2="' + y + '" stroke="' + css("--grid") + '"/><text x="' + (p.l - 6) + '" y="' + (y + 4) + '" text-anchor="end" font-size="11" fill="' + css("--muted") + '">' + nf0.format(v) + '</text>'; });
+      [0, Math.floor((xs.length - 1) / 2), xs.length - 1].forEach(i => { s += '<text x="' + X(i) + '" y="' + (Hh - 5) + '" text-anchor="' + (i === 0 ? "start" : i === xs.length - 1 ? "end" : "middle") + '" font-size="11" fill="' + css("--muted") + '">' + fDate.format(new Date(xs[i])) + ' ' + fTime.format(new Date(xs[i])) + '</text>'; });
+      s += '<path d="' + pa(L) + '" fill="none" stroke="' + css("--c1") + '" stroke-width="2" stroke-linejoin="round"/><path d="' + pa(G) + '" fill="none" stroke="' + css("--c3") + '" stroke-width="2" stroke-linejoin="round"/></svg>';
+      spark = '<div class="chart" style="margin-top:8px"><div class="legend" style="margin:0 0 4px"><span><i style="background:var(--c1)"></i>Fogyasztás (MW)</span><span><i style="background:var(--c3)"></i>Termelés (MW)</span></div>' + s + '</div>';
+    }
+  }
+  if (!tiles.length){ host.innerHTML = ""; return; }
+  host.innerHTML = '<h3 style="margin:14px 0 8px">' + esc(nm(z)) + (mapPin ? "" : ' <small style="font-weight:500;color:var(--muted)">(kattints egy másik országra a váltáshoz)</small>') + '</h3>' + (M.win ? '<p class="note" style="margin:0 0 8px">Időablak: ' + esc(M.win.label) + '.</p>' : '') + '<div class="ptiles">' + tiles.join("") + '</div>' + spark + (fq ? '<p class="note">' + esc(fq.trim()) + '</p>' : "");
+}
+
+let mapSeen = new Set();
+function mapSection(keep){
+  const card = $("cMap");
+  if (!EU && !H){ card.style.display = "none"; return; }
+  const M = mapModel();
+  if (GEO && GEO.sub) Object.values(M.v).forEach(dv => Object.keys(GEO.sub).forEach(z => { const par = GEO.subParent[z]; if (!has(dv[z]) && ["NO", "SE", "DK"].includes(par) && has(dv[par])) dv[z] = dv[par]; }));   // amíg a zónaadat nem érkezik meg, az országos érték látszik
+  // a gombok listája nem függ a kiválasztott órától: ami egyszer elérhető volt, az marad (egy órában hiányozhat adat)
+  MAP_METRICS.forEach(m => { if (M.v[m.k] && Object.keys(M.v[m.k]).length >= 4) mapSeen.add(m.k); });
+  const avail = MAP_METRICS.filter(m => mapSeen.has(m.k));
+  if (!avail.length){ card.style.display = "none"; return; }
+  card.style.display = "";
+  if (!avail.some(m => m.k === mapMetric)) mapMetric = avail[0].k;
+  const cur = MAP_METRICS.find(m => m.k === mapMetric), vals = M.v[mapMetric] || {}, names = (EU && EU.names) || (H && H.names) || {}, nm = (z) => names[z] || FALLBACK_NAMES[z] || z;
+  const chips = $("mapChips"); if (!keep) chips.innerHTML = "";
+  if (!keep) avail.forEach(m => { const b = document.createElement("button"); b.className = "chip"; b.type = "button"; b.setAttribute("aria-pressed", String(m.k === mapMetric)); b.textContent = m.n; b.addEventListener("click", () => { mapMetric = m.k; mapSection(); }); chips.appendChild(b); });
+  if (!keep){   // keskeny kijelzőn a mutatók egyetlen legördülő listában vannak (a gombsor fél képernyőt foglalna)
+    const sel = document.createElement("select"); sel.className = "msel"; sel.setAttribute("aria-label", "Mutató");
+    avail.forEach(m => { const o = document.createElement("option"); o.value = m.k; o.textContent = m.n; if (m.k === mapMetric) o.selected = true; sel.appendChild(o); });
+    sel.addEventListener("change", () => { mapMetric = sel.value; mapSection(); }); chips.appendChild(sel);
+  }
+
+  // időablak: az elmúlt 24 óra átlaga (alap) vagy egy kiválasztott óra
+  if (keep && mapTime.mode === "hour" && mapTime.lb) mapTime.lb.textContent = M.win.label;
+  const tc = $("mapTime"), S_ = M.S, shortM = ["avg12", "neg12"].includes(mapMetric);
+  if (!keep){ tc.innerHTML = ""; tc.style.display = shortM ? "none" : ""; }
+  if (!shortM && !keep){
+    const mk = (txt, mode) => { const b = document.createElement("button"); b.className = "chip"; b.type = "button"; b.setAttribute("aria-pressed", String(mapTime.mode === mode)); b.textContent = txt; b.addEventListener("click", () => { mapTime.mode = mode; if (mode === "hour") mapTime.i = null; mapSection(); }); return b; };
+    tc.appendChild(mk("Elmúlt 24 óra átlaga", "24h")); tc.appendChild(mk("Óránként", "hour"));
+    if (mapTime.mode === "hour"){
+      const w = document.createElement("div"); w.className = "mtl";
+      // a csúszka csak olyan órákon mozog, amelyekre az adott mutatóhoz legalább 4 zónában van érték: így nem lehet üres térképre húzni
+      const srcK = {price:"price", diff:"price", gen:"gen", co2:"gen", res:"gen", load:"load", net:"net"}[mapMetric] || "gen", zsr = Object.values(S_.z);
+      const okAt = (i) => zsr.reduce((c, r) => c + (has(r[srcK][i]) ? 1 : 0), 0) >= 4;
+      let lo = Math.max(0, M.win.now - 120), hi = Math.min(S_.grid.length - 1, M.win.now + 36);
+      while (hi > lo && !okAt(hi)) hi--;
+      while (lo < hi && !okAt(lo)) lo++;
+      if (mapTime.i == null || mapTime.i > hi) mapTime.i = hi;
+      if (mapTime.i < lo) mapTime.i = lo;
+      const sl = document.createElement("input"); sl.type = "range"; sl.min = lo; sl.max = hi; sl.step = 1; sl.value = mapTime.i; sl.setAttribute("aria-label", "Óra kiválasztása");
+      const lb = document.createElement("span"); lb.className = "num"; lb.textContent = M.win.label;
+      sl.addEventListener("input", () => { mapTime.i = +sl.value; lb.textContent = fDate.format(new Date(S_.grid[mapTime.i])) + " " + fTime.format(new Date(S_.grid[mapTime.i])); clearTimeout(mapTime.tm); mapTime.tm = setTimeout(() => mapSection(true), 40); });
+      mapTime.lb = lb; w.appendChild(sl); w.appendChild(lb); tc.appendChild(w);
+      if (mapTime.i !== M.win.from){ mapSection(true); return; }
+    }
+  }
+
+  // színskála
+  const arr = Object.values(vals).slice().sort((a, b) => a - b), q = (p) => arr.length ? arr[Math.min(arr.length - 1, Math.floor(arr.length * p))] : 0;
+  const neutral = rgbOf(css("--neutral")), surf = css("--surface");
+  let color, legendHtml;
+  if (cur.kind === "price"){
+    const smax = Math.max(50, Math.ceil(q(.98) / 25) * 25), neg = rgbOf(css("--c2"));
+    color = (v) => rgbOf(v < 0 ? css("--c2") : RAMP[Math.round(Math.min(1, v / smax) * 12)]);
+    legendHtml = '<span><svg width="110" height="12"><defs><linearGradient id="mg"><stop offset="0" stop-color="' + RAMP[0] + '"/><stop offset="1" stop-color="' + RAMP[12] + '"/></linearGradient></defs><rect width="110" height="12" rx="3" fill="url(#mg)"/></svg>0 → ' + nf0.format(smax) + ' ' + cur.u + '</span>' +
+      (arr[0] < 0 ? '<span><svg width="12" height="12"><rect width="12" height="12" rx="3" fill="' + rgbStr(neg) + '"/></svg>negatív ár</span>' : "");
+  } else if (cur.kind === "seq"){
+    const smax = Math.max(1, q(.98)), hue = rgbOf(css(cur.hue));
+    color = (v) => mixRgb(neutral, hue, .08 + .92 * Math.max(0, Math.min(1, v / smax)));
+    legendHtml = '<span><svg width="110" height="12"><rect width="110" height="12" rx="3" fill="' + rgbStr(neutral) + '"/><rect width="110" height="12" rx="3" fill="url(#mg)"/><defs><linearGradient id="mg"><stop offset="0" stop-color="' + rgbStr(mixRgb(neutral, hue, .08)) + '"/><stop offset="1" stop-color="' + rgbStr(hue) + '"/></linearGradient></defs></svg>0 → ' + nf0.format(smax) + ' ' + cur.u + '</span>';
+  } else {
+    const m_ = Math.max(1, Math.max(Math.abs(q(.04)), Math.abs(q(.96)))), pos = rgbOf(css(cur.hue)), negc = rgbOf(css("--c1"));
+    color = (v) => v >= 0 ? mixRgb(neutral, pos, Math.min(1, v / m_)) : mixRgb(neutral, negc, Math.min(1, -v / m_));
+    legendHtml = '<span><svg width="150" height="12"><defs><linearGradient id="mg"><stop offset="0" stop-color="' + rgbStr(negc) + '"/><stop offset=".5" stop-color="' + rgbStr(neutral) + '"/><stop offset="1" stop-color="' + rgbStr(pos) + '"/></linearGradient></defs><rect width="150" height="12" rx="3" fill="url(#mg)"/></svg>' + nf0.format(-m_) + ' · 0 · +' + nf0.format(m_) + ' ' + cur.u + '</span>';
+  }
+  $("mapLegend").innerHTML = legendHtml + '<span><svg width="12" height="12"><rect x=".5" y=".5" width="11" height="11" rx="3" fill="none" stroke="' + css("--ink2") + '" stroke-dasharray="2 2"/></svg>nincs érték a gyűjtésben</span>' + (arr.length < 1 ? '<span><b>Erre az órára ennél a mutatónál még nincs közölt adat.</b></span>' : '');
+
+  // rajz
+  const host = $("mapChart"); host.innerHTML = "";
+  const names2 = names;
+  const info = (z) => {
+    let h = '<div class="t">' + esc(nm(z)) + '</div>';
+    MAP_METRICS.forEach(m => { const v = M.v[m.k] && M.v[m.k][z]; if (!has(v)) return; h += row(m.k === mapMetric ? css("--ink2") : null, esc(m.n), m.f(v) + " " + m.u); });
+    if (M.win && !["avg12", "neg12"].includes(mapMetric)) h += '<div class="sub">' + esc(M.win.label) + '</div>';
+    return h;
+  };
+  if (GEO){
+    geoZoneMap(host, M, cur, vals, color, info, nm);
+  } else {
+
+  const W = Math.min(Math.max(300, host.clientWidth), 660), cols = 6, rows = 5, ts = Math.floor(W / cols), H_ = ts * rows, narrow = ts < 70;
+  const svg = el("svg", {viewBox:"0 0 " + (ts * cols) + " " + H_, width:ts * cols, height:H_, role:"img", "aria-label":"Négyzetrácsos európai zónatérkép: " + cur.n}, host);
+  svg.style.maxWidth = "100%"; svg.style.margin = "0 auto";
+  const tip = document.createElement("div"); tip.className = "tip"; host.style.position = "relative"; host.appendChild(tip);
+  const zonesAll = Object.keys(TILEPOS).filter(z => (H && (H.zones || []).includes(z)) || (EU && EU.zones && EU.names && EU.names[z]) || M.zones.has(z));
+  const showTip = (z, tx, ty) => { tip.innerHTML = info(z); tip.style.display = "block"; const r = svg.getBoundingClientRect(), s = r.width / (ts * cols), tw = tip.offsetWidth; let l = tx * s + 10; if (l + tw > host.clientWidth) l = Math.max(0, tx * s - tw - 10); tip.style.left = l + "px"; tip.style.top = Math.max(0, ty * s - 8) + "px"; };
+  zonesAll.forEach(z => {
+    const [cx, cy] = TILEPOS[z], x = cx * ts + 2, y = cy * ts + 2, w = ts - 4, v = vals[z], code = TILECODE[z] || z;
+    const g = el("g", {tabindex:0, role:"img", "aria-label":nm(z) + ": " + (has(v) ? cur.f(v) + " " + cur.u : "nincs adat")}, svg); g.style.cursor = "pointer"; g.style.outline = "none";
+    let fill = null, tc = css("--ink2");
+    if (has(v)){ const c = color(v); fill = rgbStr(c); tc = textOn(c); }
+    const r = el("rect", {x, y, width:w, height:w, rx:8, fill:fill || "none", stroke:z === mapPin ? css("--ink") : (z === "HU" ? css("--ink") : (fill ? "none" : css("--muted"))), "stroke-width":z === mapPin ? 3 : (z === "HU" ? 2.2 : 1.2), "stroke-dasharray":fill ? "none" : "3 3"}, g);
+    const t1 = el("text", {x:x + w / 2, y:y + w * (narrow ? .38 : .36), "text-anchor":"middle", "font-size":narrow ? 11 : 12.5, "font-weight":650, fill:tc}, g); t1.textContent = code;
+    const t2 = el("text", {x:x + w / 2, y:y + w * (narrow ? .68 : .66), "text-anchor":"middle", "font-size":narrow ? 13 : 16, "font-weight":700, fill:tc}, g); t2.textContent = has(v) ? cur.f(v) : "–";
+    const enter = (ev) => { const b = svg.getBoundingClientRect(); showTip(z, (ev.clientX - b.left) / b.width * (ts * cols), cy * ts); };
+    g.addEventListener("pointermove", enter); g.addEventListener("pointerenter", enter);
+    g.addEventListener("pointerleave", () => { if (!mapPin) tip.style.display = "none"; else showTip(mapPin, TILEPOS[mapPin][0] * ts + ts, TILEPOS[mapPin][1] * ts); });
+    g.addEventListener("click", () => { mapPin = mapPin === z ? null : z; mapSection(); });
+    g.addEventListener("focus", () => showTip(z, cx * ts + ts, cy * ts)); g.addEventListener("blur", () => { tip.style.display = "none"; });
+  });
+  }
+
+  const at = null, winTxt = (M.win && !["avg12", "neg12"].includes(mapMetric)) ? " Időablak: " + M.win.label + "." : "";
+  $("mapNote").textContent = cur.d + (mapMetric === "avg12" || mapMetric === "neg12" ? " (" + (M.span || "") + ")" : "") + winTxt +
+    " A zónák időbeli adata eltérhet, mert a közlők késve töltik fel; az utolsó órák később módosulhatnak. A kiemelt keret a magyar zóna (vagy a kiválasztott ország). Norvégia, Svédország, Dánia és Olaszország ajánlati zónánként látszik (a zónahatárok közelítők, megyék/régiók alapján rajzoltuk). A csíkozott területekhez ehhez a mutatóhoz nincs érték a legutóbbi gyűjtésben. Nagyítás: +/− gombok, Ctrl + görgő, dupla kattintás vagy két ujjas csippentés; húzással mozgatható.";
+  mapPanel(M, nm);
+  const miss = !GEO ? [] : zoneList("s").filter(z => !has(vals[z])).map(z => nm(z));
+  const mm = $("mapMiss"), ml = ((EU && EU.missing) || []).slice(0, 120), er = ((EU && EU.errors) || []).slice(0, 40);
+  if (mm) mm.innerHTML = (miss.length || ml.length || er.length) ? '<details class="note"><summary>Gyűjtési napló (a legutóbbi futás)</summary>' +
+    (miss.length ? '<p>Ehhez a mutatóhoz nincs érték a legutóbbi gyűjtésben: ' + esc(miss.join(", ")) + '.</p>' : "") +
+    (ml.length ? '<p>Kimaradt vagy üres lekérdezések (' + ml.length + '): ' + esc(ml.join("; ")) + '</p>' : "") +
+    (er.length ? '<p>Hibák: ' + esc(er.join("; ")) + '</p>' : "") + '</details>' : "";
+}
+async function loadMapExtra(){
+  const demo = new URLSearchParams(location.search).get("demo");
+  const g = (f) => getJson((demo ? "demo-" : "") + f).catch(() => null);
+  const [c, e, d, geo, fq] = await Promise.all([g("countries.json"), g("engineer.json"), g("data.json"), getJson("europe-geo.json", {static:true}).catch(() => null), g("frequency.json")]);
+  FREQ = fq;
+  if (geo){ GEO = geo; mapSection(); fmapSection(); }
+  if (c || e){ MAPX = {c, e, d}; mapSection(); }
+}
+
+
+// ---------------------------------------------------------------- európai áramlási térkép
+let fmIdx = null, fmFocus = null;
+function fmapSection(){
+  const card = $("cFmap");
+  if (!EU || !EU.flows || !EU.flows.length || !GEO){ card.style.display = "none"; return; }
+  card.style.display = "";
+  const ts = EU.flow_ts.map(t => new Date(t)), n = ts.length, FL = EU.flows, names = EU.names || {}, nm = (z) => names[z] || FALLBACK_NAMES[z] || z;
+  const cnt = (i) => FL.filter(f => has(f.mw[i])).length, best = Math.max(0, ...ts.map((_, i) => cnt(i)));
+  if (fmIdx == null || fmIdx >= n){ fmIdx = -1; for (let i = 0; i < n; i++) if (ts[i] <= NOW && cnt(i) >= best * .7) fmIdx = i; if (fmIdx < 0) fmIdx = n - 1; }
+  const sl = $("fmSlider"); sl.max = n - 1; sl.value = fmIdx;
+  sl.oninput = () => { fmIdx = +sl.value; fmapSection(); };
+  const t = ts[fmIdx]; $("fmLabel").textContent = fDate.format(t) + " " + fTime.format(t) + "–" + fTime.format(new Date(t.getTime() + 3600e3));
+  const focus = fmFocus || "HU";
+  const net = {}; FL.forEach(f => { const v = f.mw[fmIdx]; if (!has(v)) return; net[f.a] = (net[f.a] || 0) + v; net[f.b] = (net[f.b] || 0) - v; });   // + = nettó export
+  const arr = Object.values(net).map(Math.abs).sort((a, b) => a - b), mx = Math.max(500, arr[Math.floor(arr.length * .9)] || 500);
+  const neutral = rgbOf(css("--neutral")), imp = rgbOf(css("--c2")), exp = rgbOf(css("--c1"));
+  const host = $("fmChart"); host.innerHTML = "";
+  const col = (z) => { const v = net[z]; if (!has(v)) return null; return v > 0 ? mixRgb(neutral, exp, Math.min(1, v / mx)) : mixRgb(neutral, imp, Math.min(1, -v / mx)); };
+  const zinfo = (z) => '<div class="t">' + esc(nm(z)) + '</div>' + (has(net[z]) ? row(null, net[z] > 0 ? "Nettó export" : "Nettó import", nf0.format(Math.abs(net[z])) + " MW") : "<div>Nincs adat</div>") +
+    FL.filter(f => (f.a === z || f.b === z) && has(f.mw[fmIdx])).map(f => { const o = f.a === z ? f.b : f.a, v = f.a === z ? f.mw[fmIdx] : -f.mw[fmIdx]; return row(null, (v >= 0 ? "export → " : "import ← ") + esc(nm(o)), nf0.format(Math.abs(v)) + " MW"); }).join("");
+  const drawn = FL.map(f => ({f, v:f.mw[fmIdx]})).filter(({f, v}) => has(v) && Math.abs(v) >= 20 && GEO.labels[f.a] && GEO.labels[f.b]);
+  geoSetup(host, "fmap", (S) => {
+    const C = S.content, k = S.px(1), rs = S.r * S.st.s, ink = css("--ink"), surf = css("--surface");
+    geoBase(C, k, "itN2");
+    zoneList("c").forEach(z => {
+      const c = col(z), g = el("g", {}, C); g.style.cursor = "pointer";
+      const gc = geoCols(), at = {d:zPath(z, "c"), fill:c ? rgbStr(c) : (GEOONLY.includes(z) ? gc.land : "url(#hatchND)"), stroke:z === focus ? ink : gc.line, "stroke-width":(z === focus ? 2.4 : .8) * k, "stroke-linejoin":"round"};
+      el("path", at, g);
+      g.addEventListener("pointermove", ev => S.showTip(ev, zinfo(z))); g.addEventListener("pointerleave", S.hideTip);
+      g.addEventListener("click", () => { if (S.st.dragged) return; fmFocus = (fmFocus === z || z === "HU") ? null : z; fmapSection(); });
+    });
+    // országkódok a zónákon (csak ahol elfér)
+    zoneList("c").forEach(z => { const L = zLabel(z, "c"), B = zBox(z, "c"); if (!L || !B) return; if ((B[2] - B[0]) * rs < 30 || (B[3] - B[1]) * rs < 20) return; const cc = col(z), tc = cc ? textOn(cc) : css("--ink2");
+      const tx = el("text", {x:L[0], y:L[1] + 3.5 * k, "text-anchor":"middle", "font-size":9.5 * k, "font-weight":700, fill:tc, opacity:.8, "pointer-events":"none"}, C); tx.textContent = codeOf(z); });
+    // nyilak: a fókuszországba befelé (import, narancs) és onnan kifelé (export, kék) megkülönböztetve, a többi szürke
+    const lbls = [];
+    drawn.slice().sort((x, y) => Math.abs(x.v) - Math.abs(y.v)).forEach(({f, v}) => {
+      const A = GEO.labels[f.a], B = GEO.labels[f.b], fromZ = v >= 0 ? f.a : f.b, toZ = v >= 0 ? f.b : f.a, from = v >= 0 ? A : B, to = v >= 0 ? B : A, a = Math.abs(v);
+      const kind = toZ === focus ? "imp" : fromZ === focus ? "exp" : "oth", colr = kind === "imp" ? css("--c2") : kind === "exp" ? css("--c1") : ink;
+      const w = (0.9 + Math.min(a, 4000) / 4000 * 2.4) * k * (kind === "oth" ? 1 : 1.25), dx = to[0] - from[0], dy = to[1] - from[1], L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, op = kind === "oth" ? .45 : .95;
+      const g = el("g", {}, C); g.style.cursor = "pointer";
+      el("line", {x1:from[0], y1:from[1], x2:to[0], y2:to[1], stroke:colr, "stroke-width":w, opacity:op, "stroke-linecap":"round"}, g);
+      const ah = (kind === "oth" ? 5.5 : 7) * k, tx = from[0] + dx * .84, ty = from[1] + dy * .84;
+      el("polygon", {points:[[tx + ux * ah, ty + uy * ah], [tx - uy * ah * .6, ty + ux * ah * .6], [tx + uy * ah * .6, ty - ux * ah * .6]].map(p => p.join(",")).join(" "), fill:colr, opacity:Math.min(1, op + .15)}, g);
+      el("line", {x1:from[0], y1:from[1], x2:to[0], y2:to[1], stroke:"transparent", "stroke-width":Math.max(w, 12 * k)}, g);
+      g.addEventListener("pointermove", ev => S.showTip(ev, '<div class="t">' + esc(nm(fromZ)) + " → " + esc(nm(toZ)) + '</div>' + row(null, kind === "imp" ? "Import (" + esc(nm(focus)) + ")" : kind === "exp" ? "Export (" + esc(nm(focus)) + ")" : "Fizikai nettó áramlás", nf0.format(a) + " MW")));
+      g.addEventListener("pointerleave", S.hideTip);
+      lbls.push({from, to, a, kind, colr, len:L * rs});
+    });
+    // értékcímkék: a fókuszország nyilai kapnak elsőbbséget, utána a nagyobb áramlások; ütközésnél odébb kerül, ha nem fér el, elmarad
+    const boxes = [], fsz = 10.5 * k, hit = (x, y, w, h) => boxes.some(b => x < b[0] + b[2] && x + w > b[0] && y < b[1] + b[3] && y + h > b[1]);
+    lbls.sort((x, y) => (y.kind !== "oth") - (x.kind !== "oth") || y.a - x.a).forEach(l => {
+      if (l.len < 44) return;
+      const txt = (l.kind === "imp" ? "import " : l.kind === "exp" ? "export " : "") + nf0.format(l.a), tw = txt.length * fsz * .6 + 8 * k, th = fsz * 1.3;
+      for (const t of [.46, .36, .56, .28, .64, .2, .72]){
+        const x = l.from[0] + (l.to[0] - l.from[0]) * t, y = l.from[1] + (l.to[1] - l.from[1]) * t;
+        if (hit(x - tw / 2, y - th / 2, tw, th)) continue;
+        boxes.push([x - tw / 2, y - th / 2, tw, th]);
+        el("rect", {x:x - tw / 2, y:y - th / 2, width:tw, height:th, rx:th / 2, fill:surf, opacity:.92, stroke:l.kind === "oth" ? "none" : l.colr, "stroke-width":1.2 * k, "pointer-events":"none"}, C);
+        const tt = el("text", {x, y:y + fsz * .36, "text-anchor":"middle", "font-size":fsz, "font-weight":650, fill:ink, "pointer-events":"none"}, C); tt.textContent = txt;
+        break;
+      }
+    });
+  });
+  $("fmLegend").innerHTML = '<span><svg width="30" height="12"><line x1="2" y1="6" x2="28" y2="6" stroke="' + css("--c2") + '" stroke-width="3" stroke-linecap="round"/></svg>import: ' + esc(nm(focus)) + ' felé</span>' +
+    '<span><svg width="30" height="12"><line x1="2" y1="6" x2="28" y2="6" stroke="' + css("--c1") + '" stroke-width="3" stroke-linecap="round"/></svg>export: ' + esc(nm(focus)) + ' felől</span>' +
+    '<span><svg width="30" height="12"><line x1="2" y1="6" x2="28" y2="6" stroke="' + css("--ink") + '" stroke-width="2" opacity=".45" stroke-linecap="round"/></svg>egyéb áramlás (a szám: MW)</span>' +
+    '<span><svg width="150" height="12"><defs><linearGradient id="fmg"><stop offset="0" stop-color="' + rgbStr(exp) + '"/><stop offset=".5" stop-color="' + rgbStr(neutral) + '"/><stop offset="1" stop-color="' + rgbStr(imp) + '"/></linearGradient></defs><rect width="150" height="12" rx="3" fill="url(#fmg)"/></svg>zóna: nettó export ← 0 → nettó import (±' + nf0.format(mx) + ' MW)</span>';
+  const top = drawn.slice().sort((x, y) => Math.abs(y.v) - Math.abs(x.v)).slice(0, 5).map(({f, v}) => esc(nm(v >= 0 ? f.a : f.b)) + " → " + esc(nm(v >= 0 ? f.b : f.a)) + ": " + nf0.format(Math.abs(v)) + " MW").join("; ");
+  $("fmNote").textContent = "Fókusz: " + nm(focus) + (fmFocus ? " (kattints rá újra, vagy Magyarországra a visszaálláshoz)" : " (kattints egy másik országra a váltáshoz)") + ". Legnagyobb áramlások ebben az órában: " + (top || "–") + ". A fizikai áramlás nem azonos a kereskedelmi menetrenddel (hurokáramlások miatt eltérhet). A zónák nettó pozíciója csak a térképen szereplő határokat tartalmazza (az Egyesült Királyság, Izland és az egyenáramú tengeri kábelek többsége nélkül). A nyilak a zónák középpontjai között egyenes vonalak, nem a vezetékek tényleges nyomvonalai. Nagyítás: +/− gombok, Ctrl + görgő, dupla kattintás vagy két ujjas csippentés; húzással mozgatható.";
+}
+
+// ---------------------------------------------------------------- renderelés
+function render(){ banners(); meta(); renderChartsFixed(); renderCharts(); foot(); }
+function renderChartsFixed(){ winSection(); chipsMix(); chipsZone(); }
+function winSection(){
+  const host = $("cWin"); if (!H || !R || R.n < 8){ host.style.display = "none"; return; }
+  host.style.display = "";
+  const a = Math.max(0, Math.min(VIEW.a, R.n - 1)), b = Math.max(a + 1, Math.min(VIEW.b == null ? R.n : VIEW.b, R.n)), full = a === 0 && b === R.n;
+  const P = [["Mind", R.n], ["5 év", 60], ["3 év", 36], ["2 év", 24], ["12 hónap", 12]].filter((x, i) => i === 0 || x[1] < R.n);
+  let html = '<div class="chips" role="group" aria-label="Időablak">' + P.map(([l, k]) => {
+    const on = b === R.n && (b - a) === Math.min(k, R.n) && (k < R.n || full);
+    return '<button class="chip" type="button" data-k="' + k + '" aria-pressed="' + on + '">' + l + '</button>'; }).join("") +
+    '<button class="chip" type="button" data-s="-1" aria-label="Korábbra" ' + (a === 0 ? "disabled" : "") + '>◀</button>' +
+    '<button class="chip" type="button" data-s="1" aria-label="Későbbre" ' + (b === R.n ? "disabled" : "") + '>▶</button></div>' +
+    '<div class="winlabel">Időablak: <b>' + monthLabel(R.keys[a]) + ' – ' + monthLabel(R.keys[b - 1]) + '</b> (' + (b - a) + ' hónap)<span class="hide-sm"> · Egérrel húzd végig a kívánt szakaszt egy grafikonon a nagyításhoz, dupla kattintással vissza.</span></div>';
+  host.innerHTML = html;
+  host.querySelectorAll("[data-k]").forEach(btn => btn.addEventListener("click", () => { const k = +btn.dataset.k; k >= R.n ? setView(0, null) : setView(R.n - k, null); }));
+  host.querySelectorAll("[data-s]").forEach(btn => btn.addEventListener("click", () => {
+    const w = b - a, st = Math.max(1, Math.round(w / 2)) * +btn.dataset.s; let na = a + st; na = Math.max(0, Math.min(R.n - w, na)); setView(na, na + w >= R.n ? null : na + w); }));
+}
+function renderCharts(){
+  euSection(); mapSection(); fmapSection(); keySection();
+  if (!H){ ["cMix","cSolar","cZone","cDuck","cLoad","cImp","cYear"].forEach(id => { const s = $(id); s.style.display = ""; s.querySelectorAll(".chart,.chips,.legend").forEach(x => x.innerHTML = ""); }); noHist(); return; }
+  mixSection(); solarSection(); zoneSection(); duckSection(); loadSection(); impSection(); yearSection();
+}
+function noHist(){
+  const msg = '<div class="nodata">A több éves adat (<code>history.json</code>) még nem készült el. Indítsd el a <b>Hosszú távú adatok</b> workflow-t: GitHub → <b>Actions</b> → <b>Hosszú távú adatok</b> → <b>Run workflow</b>.</div>';
+  ["mixChart","solShare","solPeak","zAvg","zNeg","zSame","duckPrice","resMin","ramp","ldc","loadPm","impChart","impPct"].forEach(id => $(id).innerHTML = "");
+  $("cKey").innerHTML = msg; $("cYear").innerHTML = "";
+  ["cMix","cSolar","cZone","cDuck","cLoad","cImp","cYear"].forEach(id => { $(id).style.display = "none"; });
+}
+function banners(){
+  const miss = [];
+  if (!EU) miss.push("az európai ár-pillanatkép (europe.json)");
+  if (!H) miss.push("a több éves adatok (history.json)");
+  GF.banners($("banners"), {demo:(H && H.demo) || (EU && EU.demo), generatedUtc:EU && EU.generated_utc, now:NOW, missing:miss, what:"az európai ár-pillanatkép"});
+}
+function meta(){
+  const m = [];
+  if (EU) m.push("Európai árak: " + fFull.format(new Date(EU.generated_utc)));
+  if (H) m.push("Több éves adatok frissítve: " + fFull.format(new Date(H.generated_utc)));
+  m.push("Forrás: ENTSO-E Transparency Platform");
+  const st = GF.state({demo:(H && H.demo) || (EU && EU.demo), generatedUtc:EU && EU.generated_utc, now:NOW, partial:(!EU || !H) ? ["Egy adatfájl még hiányzik."] : []});
+  $("meta").className = "status";
+  $("meta").innerHTML = GF.stateTag(st) + m.map(x => "<span>" + esc(x) + "</span>").join("");
+}
+
+// ---------------------------------------------------------------- európai pillanatkép
+function euSection(){
+  const host = $("cEu");
+  if (!EU || !EU.zones || !Object.keys(EU.zones).length){
+    host.innerHTML = '<h2>Day-ahead árak Európában</h2><div class="nodata">Az európai árakra nincs közölt adat.</div>'; return;
+  }
+  const T = EU.ts.map(s => new Date(s)), n = T.length, Z = EU.zones, names = EU.names || {};
+  let nowIdx = -1; T.forEach((t, i) => { if (t <= NOW) nowIdx = i; });
+  if (nowIdx < 0) nowIdx = 0;
+  const codes = Object.keys(Z).sort((a, b) => avg(Z[a]) - avg(Z[b]));
+  function avg(a){ const v = a.filter(has); return v.length ? v.reduce((x, y) => x + y, 0) / v.length : 0; }
+  const nm = (c) => names[c] || c;
+  const cur = {}; codes.forEach(c => cur[c] = Z[c][nowIdx]);
+  const hu = cur.HU;
+  const live = codes.filter(c => cur[c] != null);
+  let tiles = "";
+  if (hu != null){
+    tiles += tile("Magyar ár most", nf1.format(hu) + ' <small>€/MWh</small>', fTime.format(T[nowIdx]) + "–" + fTime.format(new Date(T[nowIdx].getTime() + 3600e3)));
+    { const w = Z.HU.slice(Math.max(0, nowIdx - 23), nowIdx + 1).filter(has); if (w.length >= 12) tiles += tile("Magyar ár, elmúlt 24 óra átlaga", nf1.format(w.reduce((x, y) => x + y, 0) / w.length) + ' <small>€/MWh</small>', "a „most” érték mellé, a napszak-torzítás elkerülésére"); }
+    if (cur.DE_LU != null) tiles += tile("Különbség a német–luxemburgi zónához", signed(hu - cur.DE_LU, nf1) + ' <small>€/MWh</small>', "pozitív: a magyar ár magasabb");
+    const same = live.filter(c => c !== "HU" && Math.abs(cur[c] - hu) < 0.01);
+    tiles += tile("Azonos árú zóna a magyarral", same.length + ' <small>/ ' + (live.length - 1) + '</small>', same.length ? same.map(nm).join(", ") : "nincs ilyen zóna most");
+  }
+  if (live.length){
+    const lo = live.reduce((a, b) => cur[a] <= cur[b] ? a : b), hi = live.reduce((a, b) => cur[a] >= cur[b] ? a : b);
+    tiles += tile("Legolcsóbb zóna most", nf1.format(cur[lo]) + ' <small>€/MWh</small>', esc(nm(lo)));
+    tiles += tile("Legdrágább zóna most", nf1.format(cur[hi]) + ' <small>€/MWh</small>', esc(nm(hi)));
+    tiles += tile("Ármélység a zónák közt", nf1.format(cur[hi] - cur[lo]) + ' <small>€/MWh</small>', "legdrágább − legolcsóbb");
+  }
+  host.innerHTML = '<h2>Day-ahead árak Európában</h2>' +
+    '<p class="hint">Zónánként az óránkénti day-ahead ár az elmúlt két napra, a mai napra és a holnapra (ha már közölték). Az azonos színű sorok azonos árat jelentenek. Árkülönbség általában ott jelenik meg, ahol a zónák közti hálózati kapacitás kimerült. A sorok az átlagár szerint vannak rendezve.</p>' +
+    '<div class="tiles">' + tiles + '</div>' +
+    '<h3>Árak zónánként és óránként, €/MWh</h3><div class="legend" id="heatLegend"></div><div class="chart" id="heat"></div>' +
+    '<h3>Az aktuális óra ára zónánként</h3><div class="tbl" id="euTable"></div>' +
+    '<p class="note">A day-ahead ár a másnapi piac eredménye. 2025. október 1-je óta a piac 15 perces időegységekkel működik: az ábrán az óra négy árának átlaga látszik. A számított különbségek ezért az óra egészére vonatkoznak.</p>';
+  // legenda
+  const pos = [].concat(...codes.map(c => Z[c])).filter(v => v != null && v >= 0).sort((a, b) => a - b);
+  const smax = Math.max(100, Math.ceil((pos[Math.floor(pos.length * .98)] || 100) / 50) * 50);
+  const hasNeg = [].concat(...codes.map(c => Z[c])).some(v => v != null && v < 0);
+  $("heatLegend").innerHTML = '<span><svg width="90" height="12"><defs><linearGradient id="hg"><stop offset="0" stop-color="' + RAMP[0] + '"/><stop offset="1" stop-color="' + RAMP[12] + '"/></linearGradient></defs><rect width="90" height="12" rx="3" fill="url(#hg)"/></svg>0 → ' + nf0.format(smax) + ' €/MWh</span>' +
+    (hasNeg ? '<span><svg width="12" height="12"><rect width="12" height="12" rx="3" fill="' + css("--c2") + '"/></svg>negatív ár</span>' : "") +
+    '<span><svg width="12" height="12"><rect width="12" height="12" rx="3" fill="none" stroke="' + css("--ink2") + '"/></svg>nincs adat</span>';
+  heat($("heat"), T, codes, Z, nm, nowIdx, smax);
+  // táblázat
+  const todayKey = localDayKey(NOW);
+  const dayAvg = (c, key) => { const v = Z[c].filter((x, i) => x != null && localDayKey(T[i]) === key); return v.length === 24 || v.length > 0 ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+  const tomorrowKey = (() => { const d = new Date(NOW.getTime() + 24 * 3600e3); return localDayKey(d); })();
+  let html = '<table><thead><tr><th>Zóna</th><th class="r">Most, €/MWh</th><th class="r">Különbség a HU-hoz</th><th class="r hide-sm">Mai átlag</th><th class="r hide-sm">Holnapi átlag</th></tr></thead><tbody>';
+  codes.slice().sort((a, b) => (cur[a] == null) - (cur[b] == null) || cur[a] - cur[b]).forEach(c => {
+    const t = dayAvg(c, todayKey), tm = dayAvg(c, tomorrowKey);
+    html += '<tr><td class="nm">' + esc(nm(c)) + '</td><td class="r num">' + (cur[c] == null ? "–" : nf1.format(cur[c])) + '</td><td class="r num">' +
+      (cur[c] == null || hu == null || c === "HU" ? "–" : signed(cur[c] - hu, nf1)) + '</td><td class="r num hide-sm">' + (t == null ? "–" : nf1.format(t)) + '</td><td class="r num hide-sm">' + (tm == null ? "–" : nf1.format(tm)) + '</td></tr>';
+  });
+  $("euTable").innerHTML = html + "</tbody></table>";
+}
+
+function heat(host, T, codes, Z, nm, nowIdx, smax){
+  host.innerHTML = "";
+  const n = T.length, W = Math.max(320, host.clientWidth), narrow = W < 520;
+  const rowH = narrow ? 18 : 21, lw = narrow ? 44 : 160, m = {l:lw, r:8, t:26, b:26};
+  const Ht = m.t + codes.length * rowH + m.b;
+  const x0 = m.l, x1 = W - m.r, cw = (x1 - x0) / n;
+  const svg = el("svg", {viewBox:"0 0 " + W + " " + Ht, width:W, height:Ht}, host);
+  const ink2 = css("--ink2"), grid = css("--grid"), muted = css("--muted"), surf = css("--surface"), ink = css("--ink");
+  const neg = css("--c2");
+  const color = (v) => {
+    if (v == null) return null;
+    if (v < 0) return neg;
+    const f = Math.min(1, v / smax);
+    return RAMP[Math.round(f * 12)];
+  };
+  codes.forEach((c, r) => {
+    const y = m.t + r * rowH;
+    const lab = el("text", {x:x0 - 8, y:y + rowH / 2 + 4, "text-anchor":"end", "font-size":12, fill:c === "HU" ? ink : ink2, "font-weight":c === "HU" ? 700 : 400}, svg);
+    lab.textContent = narrow ? c.replace("_LU", "").replace("IT_NORD", "ITn") : nm(c);
+    Z[c].forEach((v, i) => {
+      const f = color(v);
+      if (f == null) el("rect", {x:x0 + i * cw + .4, y:y + 1, width:Math.max(1, cw - .8), height:rowH - 2, fill:"none", stroke:grid, "stroke-width":.6}, svg);
+      else el("rect", {x:x0 + i * cw + .4, y:y + 1, width:Math.max(1, cw - .8), height:rowH - 2, fill:f}, svg);
+    });
+  });
+  // napok és órák
+  let lastKey = null;
+  const nowDay = localDayKey(NOW);
+  T.forEach((t, i) => {
+    const p = localParts(t), key = localDayKey(t);
+    if (key !== lastKey){
+      lastKey = key;
+      if (i > 0) el("line", {x1:x0 + i * cw, x2:x0 + i * cw, y1:m.t - 4, y2:Ht - m.b, stroke:surf, "stroke-width":2}, svg);
+      const dd = dayNum(key) - dayNum(nowDay);
+      const rel = dd === 0 ? "ma" : dd === 1 ? "holnap" : dd === -1 ? "tegnap" : fDate.format(t);
+      const dl = el("text", {x:x0 + i * cw + 4, y:m.t - 9, "font-size":12, fill:ink2, "font-weight":650}, svg);
+      dl.textContent = narrow ? rel : rel + " · " + fWeek.format(t);
+    }
+    if (p.h % (narrow ? 12 : 6) === 0){
+      const lab = el("text", {x:x0 + (i + .5) * cw, y:Ht - m.b + 15, "text-anchor":"middle", "font-size":11, fill:ink2}, svg);
+      lab.textContent = String(p.h).padStart(2, "0") + ":00";
+    }
+  });
+  // most
+  const xn = x0 + (nowIdx + .5) * cw;
+  el("line", {x1:xn, x2:xn, y1:m.t - 2, y2:Ht - m.b, stroke:ink, "stroke-width":1.4, "stroke-dasharray":"4 3"}, svg);
+  // hover
+  const tip = document.createElement("div"); tip.className = "tip"; host.appendChild(tip);
+  const move = (ev) => {
+    const r = svg.getBoundingClientRect(), sx = r.width / W;
+    const px = (ev.clientX - r.left) / sx, py = (ev.clientY - r.top) / sx;
+    const i = Math.floor((px - x0) / cw), rr = Math.floor((py - m.t) / rowH);
+    if (i < 0 || i >= n || rr < 0 || rr >= codes.length){ tip.style.display = "none"; return; }
+    const c = codes[rr], v = Z[c][i], huv = Z.HU ? Z.HU[i] : null, t = T[i];
+    let h = '<div class="t">' + esc(nm(c)) + '</div><div class="sub" style="margin:0 0 3px">' + fDate.format(t) + ' ' + fTime.format(t) + '–' + fTime.format(new Date(t.getTime() + 3600e3)) + '</div>';
+    h += v == null ? '<div class="sub">nincs közölt ár</div>' : row(color(v), "Ár", nf1.format(v) + " €/MWh");
+    if (v != null && huv != null && c !== "HU") h += row(null, "Különbség a HU-hoz", signed(v - huv, nf1) + " €/MWh");
+    tip.innerHTML = h; tip.style.display = "block";
+    const tw = tip.offsetWidth, left = px * sx + 14;
+    tip.style.left = (left + tw > r.width ? Math.max(0, px * sx - tw - 14) : left) + "px"; tip.style.top = Math.max(0, py * sx - 70) + "px";
+  };
+  svg.addEventListener("pointermove", move); svg.addEventListener("pointerdown", move); svg.addEventListener("pointerleave", () => { tip.style.display = "none"; });
+}
+
+// ---------------------------------------------------------------- kulcsszámok
+function lastComplete(arrOf, k){
+  const idx = []; for (let i = R.n - 1; i >= 0 && idx.length < 2 * k; i--) if (!R.partial[i]) idx.push(i);
+  return {cur: idx.slice(0, k), prev: idx.slice(k, 2 * k)};
+}
+function keySection(){
+  const host = $("cKey");
+  if (!H){ host.innerHTML = ""; return; }
+  const w = lastComplete(null, 12);
+  if (w.cur.length < 12){ host.innerHTML = '<h2>Az elmúlt 12 hónap</h2><div class="nodata">Még nincs 12 lezárt hónap a több éves adatban.</div>'; return; }
+  const sum = (ix, f) => { let s = 0, any = false; ix.forEach(i => { const v = f(R.rows[i]); if (v != null){ s += v; any = true; } }); return any ? s : null; };
+  const ratio = (ix, a, b) => { const x = sum(ix, a), y = sum(ix, b); return x == null || !y ? null : x / y * 100; };
+  const gen = (g) => (r) => r.gen ? r.gen[g] : null;
+  const tot = (r) => r.gen ? Object.values(r.gen).reduce((a, b) => a + (b || 0), 0) : null;
+  const mets = [
+    {k:"A nap részaránya a termelésben", f:ix => ratio(ix, gen("solar"), tot), u:"%", d:nf1, up:"+"},
+    {k:"A földgáz részaránya a termelésben", f:ix => ratio(ix, gen("gas"), tot), u:"%", d:nf1},
+    {k:"Negatív árú órák", f:ix => sum(ix, r => r.price ? r.price.neg_h : null), u:"óra", d:nf0},
+    {k:"Átlagos day-ahead ár", f:ix => { let s = 0, c = 0; ix.forEach(i => { const p = R.rows[i].price; if (p && p.avg != null){ s += p.avg * p.n; c += p.n; } }); return c ? s / c : null; }, u:"€/MWh", d:nf1},
+    {k:"Nettó import a fogyasztás %-ában", f:ix => ratio(ix, r => r.imp_gwh, r => r.load_gwh), u:"%", d:nf1},
+    {k:"Esti rámpa (havi 99. percentilis átlaga)", f:ix => { const v = ix.map(i => R.rows[i].ramp_p99).filter(has); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; }, u:"MW/h", d:nf0}
+  ];
+  const a = R.keys[w.cur[w.cur.length - 1]], b = R.keys[w.cur[0]];
+  let t = "";
+  mets.forEach(m => {
+    const c = m.f(w.cur), p = w.prev.length === 12 ? m.f(w.prev) : null;
+    t += tile(m.k, c == null ? "–" : m.d.format(c) + ' <small>' + m.u + '</small>', p == null || c == null ? "nincs összevetés" : "az előző 12 hónaphoz képest " + signed(c - p, m.d) + " " + m.u);
+  });
+  host.innerHTML = '<h2>Az elmúlt 12 lezárt hónap</h2><p class="hint">' + monthLabel(a) + " – " + monthLabel(b) + '. A változás az azt megelőző 12 hónaphoz viszonyít.</p><div class="tiles">' + t + '</div>';
+}
+
+// ---------------------------------------------------------------- termelési mix
+function chipsMix(){
+  const host = $("mixChips");
+  host.innerHTML = '<button class="chip" data-m="gwh" aria-pressed="' + (mixMode === "gwh") + '">GWh</button><button class="chip" data-m="pct" aria-pressed="' + (mixMode === "pct") + '">Megoszlás, %</button>';
+  host.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { mixMode = b.dataset.m; chipsMix(); if (H) mixSection(); }));
+}
+function mixSection(){
+  const gk = GRP.filter(g => R.rows.some(r => r.gen && r.gen[g.k] != null));
+  legend("mixLegend", gk.map(g => ({label:g.n, color:css(g.c)})));
+  const series = gk.map(g => ({label:g.n, color:css(g.c), values:R.col(r => {
+    const v = r.gen ? r.gen[g.k] : null; if (v == null) return null;
+    if (mixMode === "gwh") return v;
+    const tot = Object.values(r.gen).reduce((a, b) => a + (b || 0), 0); return tot ? v / tot * 100 : null;
+  })}));
+  mchart($("mixChart"), {series, stack:true, unit:mixMode === "gwh" ? "GWh" : "%", fmt:mixMode === "gwh" ? nf0.format : nf1.format, yMax:mixMode === "pct" ? 100 : undefined});
+}
+
+// ---------------------------------------------------------------- nap
+function solarSection(){
+  const sv = R.rows.map((r, i) => r.gen && r.gen.solar != null && R.totalGen[i] ? r.gen.solar / R.totalGen[i] * 100 : null);
+  mchart($("solShare"), {series:[{label:"A nap részaránya", color:css("--c4"), values:sv, kind:"bar"}], unit:"%", fmt:nf1.format});
+  const peak = R.col(r => r.solar_peak);
+  const inst = R.keys.map(k => { const a = H.annual && H.annual[k.slice(0, 4)]; return a && a.inst && a.inst.solar != null ? a.inst.solar : null; });
+  legend("solLegend", [{label:"Havi legnagyobb teljesítmény", color:css("--c4"), kind:"line"}, {label:"Beépített teljesítmény (ENTSO-E, évi adat)", color:css("--ink2"), kind:"dash"}]);
+  mchart($("solPeak"), {series:[{label:"Legnagyobb teljesítmény", color:css("--c4"), values:peak, short:"csúcs"}, {label:"Beépített teljesítmény", color:css("--ink2"), values:inst, dash:"6 4", w:1.8}], unit:"MW"});
+}
+
+// ---------------------------------------------------------------- zónák
+function chipsZone(){
+  const host = $("zoneChips");
+  if (!H){ host.innerHTML = ""; return; }
+  const zs = (H.zones || []).filter(z => R.rows.some(r => r.z && r.z[z]));
+  const names = (H && H.names) || (EU && EU.names) || {};
+  host.innerHTML = zs.map(z => {
+    const on = zoneSel.includes(z), c = on ? css("--c" + (zoneSlot[z] + 1)) : "transparent";
+    return '<button class="chip" data-z="' + z + '" aria-pressed="' + on + '"><i style="background:' + c + ';' + (on ? "" : "border:1px solid var(--muted)") + '"></i>' + esc(names[z] || z) + '</button>';
+  }).join("");
+  host.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+    const z = b.dataset.z, i = zoneSel.indexOf(z);
+    if (i >= 0){ zoneSel.splice(i, 1); delete zoneSlot[z]; }
+    else { if (zoneSel.length >= 6) return; zoneSlot[z] = firstFree(); zoneSel.push(z); }
+    chipsZone(); zoneSection();
+  }));
+}
+function zoneSection(){
+  const names = (H && H.names) || (EU && EU.names) || {};
+  const sel = zoneSel.filter(z => R.rows.some(r => r.z && r.z[z]));
+  if (!sel.length){ ["zAvg","zNeg","zSame"].forEach(id => noData($(id), "Válassz ki legalább egy zónát.")); $("zoneLegend").innerHTML = ""; return; }
+  const col = (z) => css("--c" + (zoneSlot[z] + 1));
+  legend("zoneLegend", sel.map(z => ({label:names[z] || z, color:col(z), kind:"line"})));
+  const mk = (f, skipHU) => sel.filter(z => !(skipHU && z === "HU")).map(z => ({label:names[z] || z, color:col(z), values:zoneVals(z, f), short:sel.length <= 3 ? z.replace("_LU", "") : undefined}));
+  mchart($("zAvg"), {series:mk(zz => zz ? zz.avg : null), unit:"€/MWh", fmt:nf1.format});
+  mchart($("zNeg"), {series:mk(zz => zz ? zz.neg : null), unit:"óra"});
+  mchart($("zSame"), {series:mk(zz => zz ? zz.same : null, true), unit:"%", fmt:nf1.format, yMax:100, empty:"Válassz ki a magyaron kívül legalább egy zónát."});
+}
+
+// ---------------------------------------------------------------- kacsagörbe
+function duckSection(){
+  legend("duckLegend", [{label:"Déli átlagár (10–16)", color:css("--c4"), kind:"line"}, {label:"Esti átlagár (18–22)", color:css("--c1"), kind:"line"}]);
+  mchart($("duckPrice"), {series:[
+    {label:"Déli átlagár", color:css("--c4"), values:R.col(r => r.price ? r.price.mid : null), short:"dél"},
+    {label:"Esti átlagár", color:css("--c1"), values:R.col(r => r.price ? r.price.eve : null), short:"este"}
+  ], unit:"€/MWh", fmt:nf1.format});
+  mchart($("resMin"), {series:[{label:"Déli maradék terhelés minimuma", color:css("--c7"), values:R.col(r => r.res_min_mid), kind:"line"}], unit:"MW", empty:"A maradék terheléshez fogyasztás és nap/szél termelés kell."});
+  mchart($("ramp"), {series:[{label:"Esti rámpa (99. percentilis)", color:css("--c2"), values:R.col(r => r.ramp_p99), kind:"bar"}], unit:"MW/h"});
+}
+
+// ---------------------------------------------------------------- fogyasztás
+function ldcChart(host){
+  host.innerHTML = "";
+  const ann = H.annual || {};
+  const ys = Object.keys(ann).filter(y => ann[y].ldc).sort();
+  if (!ys.length){ noData(host, "A terhelési tartamgörbéhez nincs elég fogyasztási adat."); $("ldcLegend").innerHTML = ""; return; }
+  const m = {l:58, r:14, t:22, b:36}, W = Math.max(320, host.clientWidth), narrow = W < 520, Ht = narrow ? 250 : 300;
+  const nPts = ann[ys[0]].ldc.length, xs = ann[ys[0]].ldc.map((_, i) => i * 100 / (nPts - 1));
+  const rampFor = (i) => RAMP[Math.round(3 + (ys.length === 1 ? 9 : i / (ys.length - 1) * 9))];
+  let lo = Infinity, hi = -Infinity;
+  ys.forEach(y => ann[y].ldc.forEach(v => { if (v != null){ lo = Math.min(lo, v); hi = Math.max(hi, v); } }));
+  const ny = nice(lo * .85, hi * 1.02, 5);
+  const x0 = m.l, x1 = W - m.r, y0 = Ht - m.b, y1 = m.t;
+  const X = v => x0 + v / 100 * (x1 - x0), Y = v => y0 - (v - ny.lo) / (ny.hi - ny.lo) * (y0 - y1);
+  const svg = el("svg", {viewBox:"0 0 " + W + " " + Ht, width:W, height:Ht}, host);
+  const ink = css("--ink"), ink2 = css("--ink2"), grid = css("--grid"), muted = css("--muted"), surf = css("--surface");
+  ny.ticks.forEach(t => {
+    el("line", {x1:x0, x2:x1, y1:Y(t), y2:Y(t), stroke:t === 0 ? muted : grid}, svg);
+    const tx = el("text", {x:x0 - 8, y:Y(t) + 4, "text-anchor":"end", "font-size":12, fill:ink2}, svg); tx.textContent = nf0.format(t);
+  });
+  const un = el("text", {x:x0 - 8, y:y1 - 9, "text-anchor":"end", "font-size":11, fill:muted}, svg); un.textContent = "MW";
+  [0, 20, 40, 60, 80, 100].forEach(p => {
+    el("line", {x1:X(p), x2:X(p), y1:y0, y2:y0 + 4, stroke:muted}, svg);
+    const tx = el("text", {x:X(p), y:y0 + 17, "text-anchor":p === 0 ? "start" : p === 100 ? "end" : "middle", "font-size":12, fill:ink2}, svg); tx.textContent = p + "%";
+  });
+  const xl = el("text", {x:x1, y:y0 + 31, "text-anchor":"end", "font-size":11, fill:muted}, svg); xl.textContent = "az év óráinak hány %-ában haladja meg a fogyasztás az értéket";
+  const cols = {};
+  ys.forEach((y, k) => {
+    cols[y] = rampFor(k);
+    const d = ann[y].ldc.map((v, i) => v == null ? "" : (i ? "L" : "M") + X(xs[i]).toFixed(1) + " " + Y(v).toFixed(1)).join("");
+    el("path", {d, fill:"none", stroke:cols[y], "stroke-width":k === ys.length - 1 ? 2.8 : 2, "stroke-dasharray":ann[y].ldc_partial ? "6 4" : "none", "stroke-linejoin":"round", "stroke-linecap":"round"}, svg);
+  });
+  legend("ldcLegend", ys.map(y => ({label:y + (ann[y].ldc_partial ? " (eddig)" : ""), color:cols[y], kind:ann[y].ldc_partial ? "dash" : "line"})));
+  hoverIdx(host, svg, W, Ht, x0, x1, nPts, i => {
+    let rows = ""; ys.slice().reverse().forEach(y => { const v = ann[y].ldc[i]; if (v != null) rows += row(cols[y], y + (ann[y].ldc_partial ? " (eddig)" : ""), nf0.format(v) + " MW"); });
+    return {x:x0 + (i + .5) * (x1 - x0) / nPts, html:'<div class="t">Az órák ' + nf0.format(xs[i]) + '%-ában ennél több</div>' + rows};
+  });
+}
+function loadSection(){
+  ldcChart($("ldc"));
+  legend("loadLegend", [{label:"Havi csúcs", color:css("--c8"), kind:"line"}, {label:"Havi minimum", color:css("--c1"), kind:"line"}]);
+  mchart($("loadPm"), {series:[
+    {label:"Havi csúcs", color:css("--c8"), values:R.col(r => r.load_peak), short:"csúcs"},
+    {label:"Havi minimum", color:css("--c1"), values:R.col(r => r.load_min), short:"minimum"}
+  ], unit:"MW", empty:"Ehhez nincs közölt fogyasztási adat."});
+}
+
+// ---------------------------------------------------------------- import
+function impSection(){
+  const bk = BORD.filter(b => R.rows.some(r => r.border && r.border[b.k] != null));
+  legend("impLegend", bk.map(b => ({label:b.n, color:css(b.c)})));
+  mchart($("impChart"), {series:bk.map(b => ({label:b.n, color:css(b.c), values:R.col(r => r.border ? r.border[b.k] : null)})), stack:true, unit:"GWh",
+    empty:"A határkeresztező áramlásokhoz nincs közölt adat."});
+  mchart($("impPct"), {series:[{label:"Nettó import a fogyasztás %-ában", color:css("--c1"), values:R.rows.map(r => r.imp_gwh != null && r.load_gwh ? r.imp_gwh / r.load_gwh * 100 : null), kind:"bar"}], unit:"%", fmt:nf1.format});
+}
+
+// ---------------------------------------------------------------- éves összefoglaló
+function yearSection(){
+  const host = $("cYear");
+  const years = R.years;
+  const rowsOf = (y) => R.rows.map((r, i) => ({r, i})).filter(x => R.keys[x.i].startsWith(y + "-"));
+  let html = '<h2>Éves összefoglaló</h2><p class="hint">Az évek összehasonlítása a havi összesítésekből. Az összegek (energia, import) csak lezárt, teljes évre jelennek meg; a folyamatban lévő évnél a részarányok és átlagok az eddigi hónapokból számolt értékek.</p><div class="tbl"><table><thead><tr><th>Év</th><th class="r">Átlagár, €/MWh</th><th class="r">Negatív órák</th><th class="r">Nap, %</th><th class="r hide-sm">Gáz, %</th><th class="r hide-sm">Atom, %</th><th class="r hide-sm">Fogyasztás, TWh</th><th class="r hide-sm">Csúcs, MW</th><th class="r">Import, %</th></tr></thead><tbody>';
+  years.slice().reverse().forEach(y => {
+    const xs = rowsOf(y), complete = xs.length === 12 && xs.every(x => !x.r.partial);
+    const sm = (f) => { let s = 0, a = false; xs.forEach(x => { const v = f(x.r); if (v != null){ s += v; a = true; } }); return a ? s : null; };
+    const tot = sm(r => r.gen ? Object.values(r.gen).reduce((a, b) => a + (b || 0), 0) : null);
+    const sh = (g) => { const v = sm(r => r.gen ? r.gen[g] : null); return v == null || !tot ? "–" : nf1.format(v / tot * 100); };
+    let pS = 0, pC = 0; xs.forEach(x => { const p = x.r.price; if (p && p.avg != null){ pS += p.avg * p.n; pC += p.n; } });
+    const neg = sm(r => r.price ? r.price.neg_h : null), load = sm(r => r.load_gwh), imp = sm(r => r.imp_gwh);
+    const peaks = xs.map(x => x.r.load_peak).filter(has);
+    html += '<tr><td class="nm">' + y + (complete ? "" : " (eddig)") + '</td><td class="r num">' + (pC ? nf1.format(pS / pC) : "–") + '</td><td class="r num">' + (neg == null ? "–" : nf0.format(neg)) + '</td><td class="r num">' + sh("solar") + (y <= 2021 ? "*" : "") + '</td><td class="r num hide-sm">' + sh("gas") + '</td><td class="r num hide-sm">' + sh("nuclear") + '</td><td class="r num hide-sm">' +
+      (complete && load != null ? nf1.format(load / 1000) : "–") + '</td><td class="r num hide-sm">' + (peaks.length ? nf0.format(Math.max(...peaks)) : "–") + '</td><td class="r num">' + (load && imp != null ? nf1.format(imp / load * 100) : "–") + '</td></tr>';
+  });
+  host.innerHTML = html + '</tbody></table></div><p class="note">A termelési részarányok az ENTSO-E-nek jelentett termelésből számolt arányok (az összes jelentett termelés százalékában). A magyar napelemes termelésnek csak a jelentett erőművek szerepelnek az ENTSO-E-n: a háztartási méretű kiserőművek és a kisebb parkok hiányoznak, ezért a Nap, % a valóságosnál kisebb. *2019–2021-ben a jelentés még különösen hiányos volt (a hazai napelemes kapacitás ekkor már több mint egy gigawatt volt), ezért ezeknél az éveknél a részarány nem összehasonlítható a későbbiekkel, és a növekedés egy része a jelentés bővüléséből ered, nem csak a telepített kapacitásból.</p>';
+}
+
+// ---------------------------------------------------------------- lábjegyzet
+function foot(){
+  const miss = H && H.missing && H.missing.length ? H.missing.length : 0;
+  const errs = [].concat((H && H.errors) || [], (EU && EU.errors) || []);
+  $("foot").innerHTML =
+    '<p>Forrás: ENTSO-E Transparency Platform (day-ahead árak, fogyasztás, termelés típusonként, határkeresztező fizikai áramlás, beépített teljesítmény). A hónapok budapesti idő szerint értendők. Az energia az elérhető órák átlagából, a hónap teljes óraszámára vetítve számolt (a hónapot legalább az órák fele fedi le).</p>' +
+    '<p>A negatív árú órák és az azonos árú órák az óránkénti átlagárból számolódnak. A maradék terhelés = fogyasztás − (nap + szél), az ENTSO-E-n közölt erőművi termelésből; a közölt adatban nem szereplő (háztartási) napelemek miatt a valós érték eltérhet. Az esti rámpa a szomszédos órák különbsége 15 és 22 óra között, csak növekedő értékekből.</p>' +
+    (H ? '<details><summary>Adatminőség: ' + (miss ? miss + ' lekérdezés nem adott adatot' : 'minden lekérdezés adott adatot') + (errs.length ? ', ' + errs.length + ' hiba' : '') + '</summary><p>' +
+      (miss ? 'Nem közölt adat: ' + esc(H.missing.slice(0, 40).join(", ")) + (H.missing.length > 40 ? " …" : "") + '. ' : '') +
+      (errs.length ? 'Hibák: ' + esc(errs.slice(0, 20).join("; ")) : '') + '</p></details>' : '');
+}
+load();
+</script>
+<script>
+// ---------- grafikonok és térképek mentése képként (PNG). Csak egérrel fölé víve (érintőképernyőn halványan) látszik.
+(function(){
+  const NS = "http://www.w3.org/2000/svg", rs = getComputedStyle(document.documentElement);
+  const vars = (s) => s.replace(/var\((--[\w-]+)\)/g, (m, n) => rs.getPropertyValue(n).trim() || m);
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  function legendItems(card){
+    const out = [];
+    card.querySelectorAll(".legend > *").forEach(it => {
+      const txt = it.textContent.trim().replace(/\s+/g, " "); if (!txt) return;
+      let col = null; const sw = it.querySelector("i,rect,line,path,polygon");
+      if (sw){ const cs = getComputedStyle(sw), tg = sw.tagName.toLowerCase(), ok = (c) => c && /^(rgb|#)/.test(c) && c !== "rgba(0, 0, 0, 0)"; col = tg === "i" ? cs.backgroundColor : tg === "line" ? cs.stroke : (ok(cs.fill) ? cs.fill : (ok(cs.stroke) ? cs.stroke : null)); }
+      out.push({txt, col});
+    });
+    return out;
+  }
+  async function save(host){
+    const svg = host.querySelector("svg:not(.xbi)"); if (!svg) return;
+    const card = host.closest(".card") || document.body, vb = svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width ? svg.viewBox.baseVal : null;
+    const W0 = vb ? vb.width : svg.getBoundingClientRect().width, H0 = vb ? vb.height : svg.getBoundingClientRect().height;
+    const bodyCs = getComputedStyle(document.body), ff = bodyCs.fontFamily, surf = rs.getPropertyValue("--surface").trim() || "#fff", ink = rs.getPropertyValue("--ink").trim() || "#000", ink2 = rs.getPropertyValue("--ink2").trim() || "#555";
+    const OUT_W = Math.max(640, Math.round(W0)), sc = OUT_W / W0, ch = H0 * sc;
+    const h2 = card.querySelector("h2"), h3 = (() => { let e = host.previousElementSibling; while (e){ if (/^H3$/.test(e.tagName)) return e; e = e.previousElementSibling; } return null; })();
+    const title = (h2 ? h2.textContent.replace(/\s+/g, " ").trim() : document.title) + (h3 ? " – " + h3.textContent.trim() : "");
+    const src = (card.getAttribute("data-src") || "").trim(), leg = legendItems(card);
+    // jelmagyarázat sorokba tördelve
+    let lx = 16, ly = 0, rows = 1; const items = [];
+    leg.forEach(l => { const w = 22 + l.txt.length * 6.6 + 14; if (lx + w > OUT_W - 16 && lx > 16){ lx = 16; rows++; } items.push({...l, x:lx, row:rows - 1}); lx += w; });
+    const headH = 44, legH = leg.length ? rows * 20 + 8 : 0, footH = src ? 40 : 14, H = headH + ch + legH + footH;
+    const clone = svg.cloneNode(true); clone.removeAttribute("style"); clone.setAttribute("width", OUT_W); clone.setAttribute("height", ch); clone.setAttribute("x", 0); clone.setAttribute("y", headH);
+    if (!clone.getAttribute("viewBox")) clone.setAttribute("viewBox", "0 0 " + W0 + " " + H0);
+    clone.querySelectorAll(".mz").forEach(e => e.remove());
+    let s = '<svg xmlns="' + NS + '" width="' + OUT_W + '" height="' + H + '" viewBox="0 0 ' + OUT_W + ' ' + H + '" font-family="' + esc(ff.replace(/"/g, "'")) + '"><rect width="100%" height="100%" fill="' + esc(surf) + '"/>' +
+      '<text x="16" y="28" font-size="17" font-weight="700" fill="' + esc(ink) + '">' + esc(title) + '</text>' + new XMLSerializer().serializeToString(clone);
+    items.forEach(l => { const y = headH + ch + 8 + l.row * 20; if (l.col) s += '<rect x="' + l.x + '" y="' + (y + 2) + '" width="12" height="12" rx="3" fill="' + esc(l.col) + '"/>'; s += '<text x="' + (l.x + (l.col ? 18 : 0)) + '" y="' + (y + 13) + '" font-size="12.5" fill="' + esc(ink2) + '">' + esc(l.txt) + '</text>'; });
+    if (src){ const t = "Forrás: " + src, fy = H - 22; const mid = t.length > 120 ? t.lastIndexOf(" ", 120) : -1; s += '<text x="16" y="' + fy + '" font-size="11.5" fill="' + esc(ink2) + '">' + esc(mid > 0 ? t.slice(0, mid) : t) + '</text>' + (mid > 0 ? '<text x="16" y="' + (fy + 14) + '" font-size="11.5" fill="' + esc(ink2) + '">' + esc(t.slice(mid + 1)) + '</text>' : ""); }
+    s += '<text x="' + (OUT_W - 16) + '" y="' + (H - 6) + '" text-anchor="end" font-size="10.5" fill="' + esc(ink2) + '" opacity=".7">GridFlow Analytics</text></svg>';
+    s = vars(s);
+    const img = new Image(); img.decoding = "sync";
+    await new Promise((ok, no) => { img.onload = ok; img.onerror = no; img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(s); }).catch(() => null);
+    const cv = document.createElement("canvas"), k = 2; cv.width = OUT_W * k; cv.height = H * k; const g = cv.getContext("2d"); g.scale(k, k); g.fillStyle = surf; g.fillRect(0, 0, OUT_W, H);
+    try{ g.drawImage(img, 0, 0, OUT_W, H); }catch(e){ return; }
+    const name = (title.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "grafikon") + ".png";
+    cv.toBlob(b => { if (!b) return; const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }, "image/png");
+  }
+  function attach(host){
+    if (host.querySelector(":scope > .xb")) return;
+    if (!host.querySelector("svg")) return;
+    if (getComputedStyle(host).position === "static") host.style.position = "relative";
+    const b = document.createElement("button"); b.type = "button"; b.className = "xb"; b.title = "Mentés képként (PNG)"; b.setAttribute("aria-label", "Mentés képként (PNG)");
+    b.innerHTML = '<svg class="xbi" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1.5v8M3.6 6.3 7 9.7l3.4-3.4M2 12h10"/></svg>';
+    b.addEventListener("click", ev => { ev.stopPropagation(); save(host); });
+    host.appendChild(b);
+  }
+  function scan(){ document.querySelectorAll(".chart, .mapwrap").forEach(attach); }
+  const st = document.createElement("style");
+  st.textContent = ".xb{position:absolute;top:4px;right:4px;z-index:4;width:28px;height:28px;border:1px solid var(--grid);background:var(--surface);color:var(--ink2);border-radius:8px;padding:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .15s}" +
+    ".chart:hover>.xb,.mapwrap:hover>.xb,.xb:focus-visible{opacity:.92}@media (hover:none){.xb{opacity:.5;width:26px;height:26px}}.xb:hover{color:var(--ink)}" +
+    ".mz{position:absolute;top:8px;left:8px;display:flex;gap:4px;z-index:3}.mz button{width:30px;height:30px;border:1px solid var(--grid);background:var(--surface);color:var(--ink);border-radius:8px;font-size:17px;line-height:1;cursor:pointer;opacity:.9;padding:0}.mz button:hover{opacity:1}";
+  document.head.appendChild(st);
+  let t = 0; new MutationObserver(() => { clearTimeout(t); t = setTimeout(scan, 120); }).observe(document.body, {childList:true, subtree:true});
+  scan();
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,17 @@
+[Unit]
+Description=ENTSO-E adatgyűjtés (határáramlás, árak és mérnöki adatkörök)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=aramlas
+Group=aramlas
+EnvironmentFile=/etc/hu-aramlas.env
+ExecStart=/opt/hu-aramlas/venv/bin/python /opt/hu-aramlas/collector.py --out /var/www/hu-aramlas/data.json
+TimeoutStartSec=600
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/www/hu-aramlas

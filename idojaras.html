@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Időjárás – szél, napsugárzás, hőmérséklet és csapadék a megújuló termeléshez</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="Magyarország és a szomszédos országok időjárás-előrejelzése (Open-Meteo): napsugárzás, szél, hőmérséklet, felhőzet, csapadék, a tényleges nap- és szélerőművi termeléssel összevetve.">
+<link rel="stylesheet" href="assets/gf.css">
+<script src="assets/gf.js"></script>
+<style>
+.card h3{font-size:14px;margin:18px 0 6px;color:var(--ink2);font-weight:650}
+.card .note{margin:10px 0 0;color:var(--muted);font-size:12.5px;max-width:90ch}
+.nodata,.err{padding:14px;border:1px dashed var(--grid);border-radius:10px;color:var(--ink2);font-size:14px}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 18px}
+@media (max-width:760px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{border-left:3px solid var(--grid);padding:2px 0 2px 10px}
+.tile .k{color:var(--ink2);font-size:12.5px}
+.tile .n{font-size:24px;font-weight:650;line-height:1.2;white-space:nowrap}
+.tile .n small{font-size:13px;color:var(--ink2);font-weight:600}
+.tile .s{color:var(--muted);font-size:12px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px}
+.legend i.ln{height:3px;border-radius:2px;width:18px}
+.chart{position:relative;width:100%}
+.chart svg:focus-visible{outline:2px solid var(--c1);outline-offset:2px;border-radius:6px}
+.tip .sub{color:var(--muted);margin-top:3px}
+#cWin{padding:10px 14px;margin-top:12px}
+@media (min-width:760px) and (min-height:640px){#cWin{position:sticky;top:6px;z-index:6;box-shadow:0 6px 22px rgba(0,0,0,.10)}}
+#cWin .chips{margin:0 0 4px}
+@media (max-height:640px){#cWin{position:static}}
+tr.sep td{border-top:2px solid var(--grid)}
+.tbl{overflow-x:auto;max-width:100%}
+@media (max-width:640px){.hide-sm{display:none}th{white-space:normal;padding:0 4px 8px}td{padding:8px 4px}td.nm{white-space:normal}}
+details.alt{margin-top:10px;font-size:13.5px;color:var(--ink2)}
+details.alt summary{cursor:pointer}
+</style>
+</head>
+<body>
+<main>
+  <nav class="tabs" aria-label="Nézetek"><a href="index.html">Határok</a><a href="muszaki.html">Rendszerállapot</a><a href="europa.html">Európai piac</a><a href="idojaras.html" aria-current="page">Időjárás</a><a href="foldgaz.html">Földgáz</a></nav>
+  <div id="banners"></div>
+  <header>
+    <h1>Időjárás és megújuló termelés</h1>
+    <p class="sub">Szél, napsugárzás, hőmérséklet, felhőzet és csapadék Magyarországra és a szomszédos országokra: az elmúlt három nap és az előrejelzés. A nap- és szélerőművek tényleges termelése az ENTSO-E adataiból mellé van téve, hogy látszódjon, mit hozott az időjárás.</p>
+    <div class="status" id="meta"></div>
+  </header>
+
+  <section class="card" id="cWin" aria-label="Időablak és helyek">
+    <div class="chips" id="winChips" role="group" aria-label="Időablak"></div>
+  </section>
+
+  <section class="card" id="cNow" data-src="Open-Meteo.com (CC BY 4.0) – Magyarország: Budapest, Győr, Pécs, Szeged, Debrecen, Miskolc egyszerű átlaga"></section>
+
+  <section class="card" id="cPlaces" aria-label="Helyek az ábrákon">
+    <h2>Helyek az ábrákon</h2>
+    <p class="hint">Alapból a magyar átlag látszik. Kapcsolj be legfeljebb négy települést (vagy szomszédos ország fővárosát) az összehasonlításhoz; a szín a kiválasztás sorrendjét követi, és minden ábrán ugyanaz.</p>
+    <div class="chips" id="placeChips" role="group" aria-label="Összehasonlítandó helyek"></div>
+  </section>
+
+  <section class="card" id="cSun" data-src="Open-Meteo.com (CC BY 4.0) – globális sugárzás; ENTSO-E Transparency Platform – nap-termelés tény és előrejelzés (16.1.B&C, 14.1.D)">
+    <h2>Napsugárzás és napelemes termelés</h2>
+    <p class="hint">A globális sugárzás W/m²-ben, az előző óra átlaga: a nap-termelés ezzel arányosan követi. Éjjel nulla, felhős napon töredéke a derült égboltnak.</p>
+    <h3>Globális sugárzás</h3><div class="legend" id="sunLeg"></div>
+    <div class="chart" id="sunChart" role="img" aria-label="Globális sugárzás, W/m²"></div>
+    <h3>Tényleges és előrejelzett nap-termelés (MW, Magyarország)</h3><div class="legend" id="sunGLeg"></div>
+    <div class="chart" id="sunGen" role="img" aria-label="Magyarországi napelemes termelés, MW"></div>
+  </section>
+
+  <section class="card" id="cWind" data-src="Open-Meteo.com (CC BY 4.0) – szélsebesség 120 m-en; ENTSO-E Transparency Platform – szél-termelés tény és előrejelzés (16.1.B&C, 14.1.D)">
+    <h2>Szél és szélerőművi termelés</h2>
+    <p class="hint">A szélsebesség 120 m magasságban, m/s. A szélerőmű teljesítménye a sebesség harmadik hatványával nő nagyjából 3 és 12 m/s között, efölött szabályozott, kb. 25 m/s-nál leállnak, ezért kis sebességváltozás is nagy termeléskülönbséget ad.</p>
+    <h3>Szélsebesség (120 m)</h3><div class="legend" id="windLeg"></div>
+    <div class="chart" id="windChart" role="img" aria-label="Szélsebesség 120 méteren, m/s"></div>
+    <h3>Tényleges és előrejelzett szél-termelés (MW, Magyarország)</h3><div class="legend" id="windGLeg"></div>
+    <div class="chart" id="windGen" role="img" aria-label="Magyarországi szélerőművi termelés, MW"></div>
+  </section>
+
+  <section class="card" id="cTemp" data-src="Open-Meteo.com (CC BY 4.0) – hőmérséklet 2 m-en">
+    <h2>Hőmérséklet</h2>
+    <p class="hint">A hőmérséklet a fogyasztást is mozgatja (fűtés télen, hűtés nyáron), a napelemek hatásfokát pedig hideg, derült időben javítja.</p>
+    <div class="legend" id="tempLeg"></div>
+    <div class="chart" id="tempChart" role="img" aria-label="Hőmérséklet 2 méteren, °C"></div>
+  </section>
+
+  <section class="card" id="cCloud" data-src="Open-Meteo.com (CC BY 4.0) – felhőzet és csapadék">
+    <h2>Felhőzet és csapadék</h2>
+    <h3>Felhőzet (%)</h3><div class="legend" id="cloudLeg"></div>
+    <div class="chart" id="cloudChart" role="img" aria-label="Felhőzet, százalék"></div>
+    <h3>Csapadék (mm/óra)</h3><div class="legend" id="precLeg"></div>
+    <div class="chart" id="precChart" role="img" aria-label="Csapadék, mm óránként"></div>
+  </section>
+
+  <section class="card" id="cTable" data-src="Open-Meteo.com (CC BY 4.0)">
+    <h2>Helyek összevetése</h2>
+    <p class="hint">A kiválasztott időpontra és az utána következő 24 órára. A magyar helyek átlaga adja a fenti grafikonok alapértelmezett vonalát.</p>
+    <div class="tbl" id="placeTable"></div>
+    <h3>Napi összesítés (Magyarország, helyi nap)</h3>
+    <div class="tbl" id="dayTable"></div>
+  </section>
+
+  <footer id="foot"></footer>
+  <p class="note" style="text-align:center;margin:6px 0 24px;color:var(--muted);font-size:12.5px" id="ver">Oldalverzió: v2 · 2026-11-25 / 1</p>
+</main>
+<script>
+const TZ = "Europe/Budapest";
+const mkNum = (o) => { const f = new Intl.NumberFormat("hu-HU", o); return {format: v => f.format(v).replace(/^-/, "−")}; };
+const nf0 = mkNum({maximumFractionDigits:0}), nf1 = mkNum({minimumFractionDigits:1, maximumFractionDigits:1}), nf2 = mkNum({minimumFractionDigits:2, maximumFractionDigits:2});
+const fTime = new Intl.DateTimeFormat("hu-HU", {timeZone:TZ, hour:"2-digit", minute:"2-digit", hour12:false});
+const fDate = new Intl.DateTimeFormat("hu-HU", {timeZone:TZ, month:"short", day:"numeric"});
+const fDay = new Intl.DateTimeFormat("en-CA", {timeZone:TZ, year:"numeric", month:"2-digit", day:"2-digit"});
+const fWeek = new Intl.DateTimeFormat("hu-HU", {timeZone:TZ, weekday:"short"});
+const fFull = new Intl.DateTimeFormat("hu-HU", {timeZone:TZ, year:"numeric", month:"short", day:"numeric", hour:"2-digit", minute:"2-digit", hour12:false});
+const $ = (id) => document.getElementById(id);
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const NS = "http://www.w3.org/2000/svg";
+const has = (v) => v != null && !Number.isNaN(v);
+function el(tag, attrs, parent){ const e = document.createElementNS(NS, tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function nice(min, max, n){
+  if (min === max) max = min + 1;
+  const span = max - min, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw) || 10 * mag;
+  const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step, t = [];
+  for (let v = lo; v <= hi + step / 2; v += step) t.push(Math.round(v / step * 1e6) / 1e6 * step);
+  return {lo, hi, ticks:t};
+}
+
+let WX = null, EN = null, TS = [], NOW = new Date(), nowIdx = 0;
+const SEL = {win:"3", places:[], i0:0, i1:0};
+const MAXP = 4;
+const WINS = [["1", "±1 nap", 24], ["3", "±3 nap", 72], ["all", "Teljes (3 nap múlt + 5 nap előrejelzés)", null]];
+const PCOL = ["--c2", "--c3", "--c4", "--c5"];   // a kiválasztás sorrendje adja a színt (legfeljebb MAXP hely)
+const pcol = (id) => { const k = SEL.places.indexOf(id); return k < 0 ? null : "var(" + PCOL[k] + ")"; };
+const VARS = {
+  temperature_2m:{n:"Hőmérséklet", u:"°C", f:nf1},
+  wind_speed_120m:{n:"Szélsebesség (120 m)", u:"m/s", f:nf1},
+  shortwave_radiation:{n:"Globális sugárzás", u:"W/m²", f:nf0},
+  cloud_cover:{n:"Felhőzet", u:"%", f:nf0},
+  precipitation:{n:"Csapadék", u:"mm/óra", f:nf1}
+};
+
+const getJson = (url, opt) => GF.getJson(url, opt);   // assets/gf.js: feltételes kérés (ETag), betöltésjelző
+async function load(){
+  const demo = new URLSearchParams(location.search).get("demo");
+  try{
+    WX = await getJson(demo ? "demo-weather.json" : "weather.json");
+  }catch(err){
+    $("cNow").innerHTML = '<div class="err"><b>Az időjárási adat még nem tölthető be.</b> (' + esc(err.message) + ')<br>A <code>weather.json</code> az adatgyűjtés első sikeres futása után jelenik meg.</div>';
+    document.querySelectorAll("main > section.card:not(#cNow)").forEach(s => s.style.display = "none");
+    foot(); return;
+  }
+  try{ EN = await getJson(demo ? "demo-engineer.json" : "engineer.json"); }catch(e){ EN = null; }
+  TS = WX.ts.map(s => +new Date(s));
+  NOW = WX.demo ? new Date(WX.generated_utc) : new Date();
+  nowIdx = 0; TS.forEach((t, i) => { if (t <= +NOW) nowIdx = i; });
+  setWin(SEL.win);
+  controls(); renderAll();
+  let rt = 0; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(renderCharts, 150); });
+  document.addEventListener("gf-theme", renderAll);   // assets/gf.js: kézi témaváltó és rendszerbeállítás
+}
+function setWin(k){
+  SEL.win = k;
+  const w = WINS.find(x => x[0] === k) || WINS[1], h = w[2];
+  SEL.i0 = h == null ? 0 : Math.max(0, nowIdx - h);
+  SEL.i1 = h == null ? TS.length - 1 : Math.min(TS.length - 1, nowIdx + h);
+}
+function controls(){
+  const wc = $("winChips"); wc.innerHTML = "";
+  WINS.forEach(([k, name]) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = name;
+    b.setAttribute("aria-pressed", String(k === SEL.win)); b.onclick = () => { setWin(k); controls(); renderAll(); }; wc.appendChild(b);
+  });
+  const pc = $("placeChips"); pc.innerHTML = "";
+  const base = document.createElement("button"); base.type = "button"; base.className = "chip"; base.disabled = true; base.setAttribute("aria-pressed", "true");
+  base.innerHTML = '<i style="background:var(--c1)"></i>Magyar átlag'; pc.appendChild(base);
+  WX.places.forEach((p, k) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "chip";
+    const on = SEL.places.includes(p.id); b.setAttribute("aria-pressed", String(on));
+    b.innerHTML = '<i style="background:' + (pcol(p.id) || "var(--grid)") + '"></i>' + esc(p.name) + (p.group === "nb" ? ' <small style="color:var(--muted)">' + esc(p.country) + '</small>' : "");
+    b.onclick = () => { const k = SEL.places.indexOf(p.id); if (k >= 0) SEL.places.splice(k, 1); else { SEL.places.push(p.id); if (SEL.places.length > MAXP) SEL.places.shift(); } controls(); renderCharts(); };
+    pc.appendChild(b);
+  });
+}
+function renderAll(){ banners(); meta(); renderNow(); renderCharts(); renderTables(); foot(); }
+
+function banners(){
+  GF.banners($("banners"), {demo:WX.demo, generatedUtc:WX.generated_utc, now:NOW, what:"az időjárási adat", demoText:"Csak az oldal kinézetének előnézete, nem valós időjárás."});
+}
+function meta(){
+  const g = new Date(WX.generated_utc), age = Math.max(0, Math.round((NOW - g) / 6e4));
+  const st = GF.state({demo:WX.demo, generatedUtc:WX.generated_utc, now:NOW, partial:(WX.errors && WX.errors.length) ? ["Néhány hely adata hiányzik."] : []});
+  const p = [GF.stateTag(st), '<span><b>Letöltve:</b> ' + fFull.format(g) + ' (' + (age < 90 ? age + " perce" : nf0.format(age / 60) + " órája") + ')</span>',
+    '<span><b>Rács:</b> ' + fDate.format(new Date(TS[0])) + ' – ' + fDate.format(new Date(TS[TS.length - 1])) + ' (a múlt a modell elemzése, a jövő előrejelzés)</span>',
+    '<span>Forrás: ' + esc(WX.source) + '</span>'];
+  if (WX.errors && WX.errors.length) p.push('<span>Hiányos: ' + esc(WX.errors.join("; ")) + '</span>');
+  $("meta").className = "status"; $("meta").innerHTML = p.join("");
+}
+
+// ---------------------------------------------------------------- összesítők
+const hu = (k) => WX.hu[k];
+function sliceStat(arr, a, b, kind){
+  let s = 0, c = 0, lo = null, hi = null;
+  for (let i = Math.max(0, a); i <= Math.min(arr.length - 1, b); i++){ const v = arr[i]; if (!has(v)) continue; s += v; c++; lo = lo == null ? v : Math.min(lo, v); hi = hi == null ? v : Math.max(hi, v); }
+  if (!c) return null;
+  return kind === "sum" ? s : kind === "min" ? lo : kind === "max" ? hi : s / c;
+}
+function tile(k, n, s){ return '<div class="tile"><div class="k">' + k + '</div><div class="n num">' + n + '</div><div class="s">' + s + '</div></div>'; }
+function renderNow(){
+  const i = nowIdx, t = new Date(TS[i]);
+  const v = (k) => has(hu(k)[i]) ? hu(k)[i] : null;
+  const f1 = (x, u, f) => x == null ? "–" : (f || nf1).format(x) + " <small>" + u + "</small>";
+  const nxt = [i + 1, i + 24], prv = [i - 23, i];
+  const rs = sliceStat(hu("shortwave_radiation"), nxt[0], nxt[1], "sum"), rp = sliceStat(hu("shortwave_radiation"), prv[0], prv[1], "sum");
+  const ws = sliceStat(hu("wind_speed_120m"), nxt[0], nxt[1], "avg"), wp = sliceStat(hu("wind_speed_120m"), prv[0], prv[1], "avg");
+  const ps = sliceStat(hu("precipitation"), nxt[0], nxt[1], "sum"), pp = sliceStat(hu("precipitation"), prv[0], prv[1], "sum");
+  const tl = sliceStat(hu("temperature_2m"), nxt[0], nxt[1], "min"), th = sliceStat(hu("temperature_2m"), nxt[0], nxt[1], "max");
+  const kwh = (x) => x == null ? null : x / 1000;
+  $("cNow").innerHTML =
+    '<h2>Magyarország most és a következő 24 órában</h2>' +
+    '<p class="hint">A hat magyar hely egyszerű átlaga. A „most” az aktuális modellóra (' + fDate.format(t) + ' ' + fTime.format(t) + ', helyi idő).</p>' +
+    '<div class="tiles">' +
+      tile("Hőmérséklet most", f1(v("temperature_2m"), "°C"), "következő 24 óra: " + (tl == null ? "–" : nf1.format(tl) + " … " + nf1.format(th) + " °C")) +
+      tile("Szél most (120 m)", f1(v("wind_speed_120m"), "m/s"), "következő 24 óra átlaga: " + (ws == null ? "–" : nf1.format(ws) + " m/s") + (wp == null ? "" : " (előző: " + nf1.format(wp) + ")")) +
+      tile("Sugárzás most", f1(v("shortwave_radiation"), "W/m²", nf0), "következő 24 óra összege: " + (rs == null ? "–" : nf2.format(kwh(rs)) + " kWh/m²") + (rp == null ? "" : " (előző: " + nf2.format(kwh(rp)) + ")")) +
+      tile("Felhőzet most", f1(v("cloud_cover"), "%", nf0), "csapadék a következő 24 órában: " + (ps == null ? "–" : nf1.format(ps) + " mm") + (pp == null ? "" : " (előző: " + nf1.format(pp) + ")")) +
+    '</div>';
+}
+
+// ---------------------------------------------------------------- grafikon
+function series(k){
+  const out = [{name:"Magyar átlag", color:"var(--c1)", values:hu(k), w:2.6}];
+  SEL.places.forEach(id => { const p = WX.places.find(q => q.id === id); if (p && p.hourly[k]) out.push({name:p.name, color:pcol(id), values:p.hourly[k], w:1.8}); });
+  return out;
+}
+function legend(id, items){
+  $(id).innerHTML = items.map(s => '<span><i class="' + (s.bar ? "" : "ln") + '" style="background:' + s.color + (s.dash ? ";opacity:.65" : "") + '"></i>' + esc(s.name) + (s.dash ? " (szaggatott)" : "") + '</span>').join("") + '<span><i style="background:var(--neutral);border:1px solid var(--grid)"></i>előrejelzés</span>';
+}
+function lineChart(host, cfg){
+  host.innerHTML = "";
+  const i0 = SEL.i0, i1 = SEL.i1, n = i1 - i0 + 1;
+  const vals = [];
+  cfg.series.forEach(s => { for (let i = i0; i <= i1; i++) if (has(s.values[i])) vals.push(s.values[i]); });
+  if (cfg.bars) for (let i = i0; i <= i1; i++) if (has(cfg.bars.values[i])) vals.push(cfg.bars.values[i]);
+  if (!vals.length){ host.innerHTML = '<div class="nodata">' + (cfg.empty || "Nincs adat ebben az időablakban.") + '</div>'; return; }
+  GF.a11y(host, {xs:TS.slice(i0, i1 + 1).map(t => new Date(t)), series:cfg.series.concat(cfg.bars ? [{name:cfg.bars.name, values:cfg.bars.values}] : []).map(s => ({label:s.name, values:s.values.slice(i0, i1 + 1)})), unit:cfg.unit, fmt:v => cfg.fmt.format(v), title:cfg.aria});
+  const W = Math.max(320, host.clientWidth), narrow = W < 520, H = narrow ? 190 : 230, m = {l:narrow ? 42 : 50, r:12, t:24, b:30};
+  let lo = cfg.min != null ? cfg.min : Math.min(...vals), hi = cfg.max != null ? cfg.max : Math.max(...vals);
+  if (cfg.min == null && cfg.zero) lo = Math.min(0, lo);
+  const ny = nice(lo, hi, 4); lo = cfg.min != null ? cfg.min : ny.lo; hi = cfg.max != null ? cfg.max : ny.hi;
+  const pw = W - m.l - m.r, X = (i) => m.l + (i - i0) / Math.max(1, n - 1) * pw, Y = (v) => m.t + (1 - (v - lo) / (hi - lo)) * (H - m.t - m.b);
+  const svg = el("svg", {viewBox:"0 0 " + W + " " + H, width:W, height:H, role:"img", "aria-label":cfg.aria + " (billentyűzettel a nyílgombokkal bejárható)", tabindex:0}, host);
+  const grid = css("--grid"), muted = css("--muted"), ink2 = css("--ink2");
+  // előrejelzési sáv
+  if (nowIdx < i1) el("rect", {x:X(Math.max(nowIdx, i0)), y:m.t, width:X(i1) - X(Math.max(nowIdx, i0)), height:H - m.t - m.b, fill:css("--neutral"), opacity:.55}, svg);
+  // y rács
+  const yt = cfg.max != null || cfg.min != null ? nice(lo, hi, 4).ticks.filter(v => v >= lo - 1e-9 && v <= hi + 1e-9) : ny.ticks;
+  yt.forEach(v => { const y = Y(v); el("line", {x1:m.l, x2:W - m.r, y1:y, y2:y, stroke:grid}, svg); const t = el("text", {x:m.l - 6, y:y + 4, "text-anchor":"end", "font-size":11, fill:muted}, svg); t.textContent = (Math.abs(v - Math.round(v)) > 1e-6 ? nf1 : nf0).format(v); });
+  const ut = el("text", {x:2, y:11, "text-anchor":"start", "font-size":11, fill:muted}, svg); ut.textContent = cfg.unit;
+  // x tengely: helyi éjfél (dátum) és 6 óránkénti jelek
+  for (let i = i0; i <= i1; i++){
+    const tm = fTime.format(new Date(TS[i])), mid = tm === "00:00";
+    const hh = +tm.slice(0, 2), per = pw / Math.max(1, n - 1), stepH = per * 6 >= 54 ? 6 : per * 12 >= 54 ? 12 : 0;
+    if (!(mid || (stepH && n <= 100 && tm.endsWith(":00") && hh % stepH === 0))) continue;
+    if (mid && i !== i0 && per * 6 < 54 && X(i) - m.l < 34) continue;
+    if (mid) el("line", {x1:X(i), x2:X(i), y1:m.t, y2:H - m.b, stroke:grid}, svg);
+    const t = el("text", {x:X(i), y:H - 10, "text-anchor":i === i0 ? "start" : "middle", "font-size":11, fill:mid ? ink2 : muted, "font-weight":mid ? 650 : 400}, svg);
+    t.textContent = mid ? fDate.format(new Date(TS[i])) : tm;
+  }
+  // most
+  if (nowIdx >= i0 && nowIdx <= i1){
+    el("line", {x1:X(nowIdx), x2:X(nowIdx), y1:m.t, y2:H - m.b, stroke:ink2, "stroke-dasharray":"4 3", "stroke-width":1.2}, svg);
+    const t = el("text", {x:X(nowIdx) + 4, y:m.t + 11, "font-size":11, fill:ink2}, svg); t.textContent = "most";
+  }
+  // oszlopok
+  if (cfg.bars){
+    const bw = Math.max(1.2, pw / n * .78), col = css(cfg.bars.cssVar || "--c1");
+    for (let i = i0; i <= i1; i++){ const v = cfg.bars.values[i]; if (!has(v) || v <= 0) continue; const y = Y(v); el("rect", {x:X(i) - bw / 2, y, width:bw, height:Math.max(1, Y(lo) - y), rx:Math.min(2, bw / 2), fill:col}, svg); }
+  }
+  // vonalak
+  const path = (arr) => { let d = "", on = false; for (let i = i0; i <= i1; i++){ const v = arr[i]; if (!has(v)){ on = false; continue; } d += (on ? "L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1); on = true; } return d; };
+  cfg.series.forEach(s => { const p = el("path", {d:path(s.values), fill:"none", stroke:css((s.color.match(/--[\w-]+/) || [""])[0]) || s.color, "stroke-width":s.w || 2, "stroke-linejoin":"round", "stroke-linecap":"round"}, svg); if (s.dash) p.setAttribute("stroke-dasharray", "5 4"); });
+  // hover / billentyűzet
+  const tip = document.createElement("div"); tip.className = "tip"; host.style.position = "relative"; host.appendChild(tip);
+  const guide = el("line", {y1:m.t, y2:H - m.b, stroke:ink2, "stroke-width":1, visibility:"hidden"}, svg);
+  const dots = cfg.series.map(s => el("circle", {r:3.6, fill:css((s.color.match(/--[\w-]+/) || [""])[0]) || s.color, stroke:css("--surface"), "stroke-width":1.5, visibility:"hidden"}, svg));
+  const show = (i) => {
+    i = Math.max(i0, Math.min(i1, i)); const x = X(i);
+    guide.setAttribute("x1", x); guide.setAttribute("x2", x); guide.setAttribute("visibility", "visible");
+    let h = '<div class="t">' + fDate.format(new Date(TS[i])) + ' ' + fTime.format(new Date(TS[i])) + (i > nowIdx ? ' · előrejelzés' : '') + '</div>';
+    cfg.series.forEach((s, k) => { const v = s.values[i]; dots[k].setAttribute("visibility", has(v) ? "visible" : "hidden"); if (has(v)){ dots[k].setAttribute("cx", x); dots[k].setAttribute("cy", Y(v)); } h += '<div class="row"><span><i style="background:' + s.color + '"></i>' + esc(s.name) + '</span><b class="num">' + (has(v) ? cfg.fmt.format(v) + ' ' + cfg.unit : 'nincs adat') + '</b></div>'; });
+    if (cfg.bars){ const v = cfg.bars.values[i]; h += '<div class="row"><span><i style="background:var(' + (cfg.bars.cssVar || "--c1") + ')"></i>' + esc(cfg.bars.name) + '</span><b class="num">' + (has(v) ? cfg.fmt.format(v) + ' ' + cfg.unit : 'nincs adat') + '</b></div>'; }
+    if (cfg.note) h += '<div class="sub">' + esc(cfg.note) + '</div>';
+    tip.innerHTML = h; tip.style.display = "block";
+    const tw = tip.offsetWidth; let l = x + 12; if (l + tw > host.clientWidth) l = Math.max(0, x - tw - 12); tip.style.left = l + "px"; tip.style.top = Math.max(0, m.t + 6) + "px";
+  };
+  const hide = () => { tip.style.display = "none"; guide.setAttribute("visibility", "hidden"); dots.forEach(d => d.setAttribute("visibility", "hidden")); };
+  const idxAt = (ev) => { const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) / r.width * W; return Math.round(i0 + (px - m.l) / pw * (n - 1)); };
+  const cap = el("rect", {x:m.l, y:m.t, width:pw, height:H - m.t - m.b, fill:"transparent"}, svg);
+  cap.addEventListener("pointermove", ev => show(idxAt(ev))); cap.addEventListener("pointerdown", ev => show(idxAt(ev))); cap.addEventListener("pointerleave", hide);
+  let kb = Math.min(Math.max(nowIdx, i0), i1);
+  svg.addEventListener("keydown", ev => {
+    if (ev.key === "ArrowLeft") kb--; else if (ev.key === "ArrowRight") kb++; else if (ev.key === "Home") kb = i0; else if (ev.key === "End") kb = i1; else if (ev.key === "Escape"){ hide(); return; } else return;
+    ev.preventDefault(); kb = Math.max(i0, Math.min(i1, kb)); show(kb);
+  });
+  svg.addEventListener("focus", () => show(kb)); svg.addEventListener("blur", hide);
+}
+// a tényleges / előrejelzett termelés a weather.json órarácsára illesztve
+function genOnGrid(type, which){
+  if (!EN || !EN.hourly_ts) return null;
+  const src = which === "fc" ? (EN.solar_wind_forecast || {})[type] : (EN.generation || {})[type];
+  if (!src) return null;
+  const idx = new Map(EN.hourly_ts.map((s, i) => [+new Date(s), i])), out = TS.map(t => { const k = idx.get(t); return k == null || !has(src[k]) ? null : src[k]; });
+  return out.some(has) ? out : null;
+}
+function renderCharts(){
+  const defs = [
+    ["sunChart", "sunLeg", "shortwave_radiation", {zero:true, note:"Az érték az előző óra átlaga."}],
+    ["windChart", "windLeg", "wind_speed_120m", {zero:true}],
+    ["tempChart", "tempLeg", "temperature_2m", {}],
+    ["cloudChart", "cloudLeg", "cloud_cover", {min:0, max:100}]
+  ];
+  defs.forEach(([host, leg, k, extra]) => {
+    const v = VARS[k], ser = series(k);
+    lineChart($(host), Object.assign({series:ser, unit:v.u, fmt:v.f, aria:v.n}, extra));
+    legend(leg, ser);
+  });
+  // csapadék: oszlopok (magyar átlag), a kiválasztott helyek vonalként
+  const psr = series("precipitation").slice(1);
+  lineChart($("precChart"), {series:psr, bars:{name:"Magyar átlag", values:hu("precipitation"), cssVar:"--c1"}, unit:"mm/óra", fmt:nf1, aria:"Csapadék", zero:true, note:"Az érték az előző óra összege."});
+  legend("precLeg", [{name:"Magyar átlag", color:"var(--c1)", bar:true}].concat(psr));
+  // tényleges és előrejelzett termelés (ENTSO-E) – ugyanabban az időablakban
+  [["sunGen", "sunGLeg", "solar", "Nap-termelés"], ["windGen", "windGLeg", "wind", "Szél-termelés"]].forEach(([host, leg, type, label]) => {
+    const act = genOnGrid(type, "act"), fc = genOnGrid(type, "fc");
+    if (!act && !fc){ $(host).innerHTML = '<div class="nodata">Az ENTSO-E termelési adat nem érhető el (az <code>engineer.json</code> az adatgyűjtés után jelenik meg).</div>'; $(leg).innerHTML = ""; return; }
+    const ser = []; if (act) ser.push({name:"Tényleges", color:"var(--c3)", values:act, w:2.6}); if (fc) ser.push({name:"ENTSO-E előrejelzés", color:"var(--c4)", values:fc, w:2, dash:true});
+    lineChart($(host), {series:ser, unit:"MW", fmt:nf0, aria:label + ", MW", zero:true});
+    legend(leg, ser);
+  });
+}
+
+// ---------------------------------------------------------------- táblázatok
+function renderTables(){
+  const i = nowIdx, row = (p) => {
+    const h = p.hourly, g = (k) => has(h[k][i]) ? h[k][i] : null;
+    const rs = sliceStat(h.shortwave_radiation, i + 1, i + 24, "sum"), ps = sliceStat(h.precipitation, i + 1, i + 24, "sum");
+    return '<td class="nm">' + esc(p.name) + ' <small style="color:var(--muted);font-weight:400">' + esc(p.country) + '</small></td>' +
+      '<td class="r num">' + (g("temperature_2m") == null ? "–" : nf1.format(g("temperature_2m"))) + '</td><td class="r num">' + (g("wind_speed_120m") == null ? "–" : nf1.format(g("wind_speed_120m"))) + '</td>' +
+      '<td class="r num hide-sm">' + (g("shortwave_radiation") == null ? "–" : nf0.format(g("shortwave_radiation"))) + '</td><td class="r num hide-sm">' + (g("cloud_cover") == null ? "–" : nf0.format(g("cloud_cover"))) + '</td>' +
+      '<td class="r num">' + (rs == null ? "–" : nf2.format(rs / 1000)) + '</td><td class="r num">' + (ps == null ? "–" : nf1.format(ps)) + '</td>';
+  };
+  let h = '<table><thead><tr><th>Hely</th><th class="r">Hőm., °C</th><th class="r">Szél, m/s</th><th class="r hide-sm">Sugárzás, W/m²</th><th class="r hide-sm">Felhő, %</th><th class="r">Sugárzás, 24 óra, kWh/m²</th><th class="r">Csapadék, 24 óra, mm</th></tr></thead><tbody>';
+  let nb = false;
+  WX.places.forEach(p => { h += '<tr' + (p.group === "nb" && !nb ? ' class="sep"' : '') + '>' + row(p) + '</tr>'; if (p.group === "nb") nb = true; });
+  $("placeTable").innerHTML = h + '</tbody></table>';
+  // napi összesítés (magyar átlag, helyi nap)
+  const days = new Map();
+  TS.forEach((t, k) => { const key = fDay.format(new Date(t)); if (!days.has(key)) days.set(key, []); days.get(key).push(k); });
+  let d = '<table><thead><tr><th>Nap</th><th class="r">Min–max, °C</th><th class="r">Szél átl., m/s</th><th class="r">Sugárzás, kWh/m²</th><th class="r hide-sm">Felhő átl., %</th><th class="r">Csapadék, mm</th><th class="r hide-sm">Órák</th></tr></thead><tbody>';
+  [...days.entries()].forEach(([key, ks]) => {
+    const a = ks[0], b = ks[ks.length - 1], T = new Date(TS[a]);
+    const mn = sliceStat(hu("temperature_2m"), a, b, "min"), mx = sliceStat(hu("temperature_2m"), a, b, "max"), ws = sliceStat(hu("wind_speed_120m"), a, b, "avg"),
+      rs = sliceStat(hu("shortwave_radiation"), a, b, "sum"), cl = sliceStat(hu("cloud_cover"), a, b, "avg"), ps = sliceStat(hu("precipitation"), a, b, "sum");
+    const fut = a > nowIdx;
+    d += '<tr><td class="nm">' + fDate.format(T) + ' ' + fWeek.format(T) + (fut ? ' <small style="color:var(--muted);font-weight:400">előrejelzés</small>' : (b >= nowIdx ? ' <small style="color:var(--muted);font-weight:400">ma</small>' : '')) + '</td>' +
+      '<td class="r num">' + (mn == null ? "–" : nf1.format(mn) + " … " + nf1.format(mx)) + '</td><td class="r num">' + (ws == null ? "–" : nf1.format(ws)) + '</td><td class="r num">' + (rs == null ? "–" : nf2.format(rs / 1000)) + '</td>' +
+      '<td class="r num hide-sm">' + (cl == null ? "–" : nf0.format(cl)) + '</td><td class="r num">' + (ps == null ? "–" : nf1.format(ps)) + '</td><td class="r num hide-sm">' + ks.length + '</td></tr>';
+  });
+  $("dayTable").innerHTML = d + '</tbody></table>';
+}
+
+function foot(){
+  $("foot").innerHTML =
+    '<p><b>Hogyan olvasd.</b> A múltbeli időszak az Open-Meteo modell-elemzése (nem helyszíni mérés), a jövőbeli az előrejelzés, ezért a két rész pontossága eltér. A magyar átlag hat település egyszerű átlaga, nem termeléssúlyozott: a napelemek és szélerőművek tényleges eloszlása más. A tényleges termelés (ENTSO-E) és az időjárás kapcsolatát a beépített kapacitás, a leállások és a korlátozások is alakítják.</p>' +
+    '<p>Időjárási adatok: <a href="https://open-meteo.com/" style="color:inherit">Open-Meteo.com</a>, <a href="https://creativecommons.org/licenses/by/4.0/" style="color:inherit">CC BY 4.0</a>. Az Open-Meteo ingyenes API-ja nem kereskedelmi célú felhasználásra szól. Nap- és szél-termelés: ENTSO-E Transparency Platform.</p>';
+}
+load();
+</script>
+
+<script>
+// ---------- grafikonok és térképek mentése képként (PNG). Csak egérrel fölé víve (érintőképernyőn halványan) látszik.
+(function(){
+  const NS = "http://www.w3.org/2000/svg", rs = getComputedStyle(document.documentElement);
+  const vars = (s) => s.replace(/var\((--[\w-]+)\)/g, (m, n) => rs.getPropertyValue(n).trim() || m);
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  function legendItems(card){
+    const out = [];
+    card.querySelectorAll(".legend > *").forEach(it => {
+      const txt = it.textContent.trim().replace(/\s+/g, " "); if (!txt) return;
+      let col = null; const sw = it.querySelector("i,rect,line,path,polygon");
+      if (sw){ const cs = getComputedStyle(sw), tg = sw.tagName.toLowerCase(), ok = (c) => c && /^(rgb|#)/.test(c) && c !== "rgba(0, 0, 0, 0)"; col = tg === "i" ? cs.backgroundColor : tg === "line" ? cs.stroke : (ok(cs.fill) ? cs.fill : (ok(cs.stroke) ? cs.stroke : null)); }
+      out.push({txt, col});
+    });
+    return out;
+  }
+  async function save(host){
+    const svg = host.querySelector("svg:not(.xbi)"); if (!svg) return;
+    const card = host.closest(".card") || document.body, vb = svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width ? svg.viewBox.baseVal : null;
+    const W0 = vb ? vb.width : svg.getBoundingClientRect().width, H0 = vb ? vb.height : svg.getBoundingClientRect().height;
+    const bodyCs = getComputedStyle(document.body), ff = bodyCs.fontFamily, surf = rs.getPropertyValue("--surface").trim() || "#fff", ink = rs.getPropertyValue("--ink").trim() || "#000", ink2 = rs.getPropertyValue("--ink2").trim() || "#555";
+    const OUT_W = Math.max(640, Math.round(W0)), sc = OUT_W / W0, ch = H0 * sc;
+    const h2 = card.querySelector("h2"), h3 = (() => { let e = host.previousElementSibling; while (e){ if (/^H3$/.test(e.tagName)) return e; e = e.previousElementSibling; } return null; })();
+    const title = (h2 ? h2.textContent.replace(/\s+/g, " ").trim() : document.title) + (h3 ? " – " + h3.textContent.trim() : "");
+    const src = (card.getAttribute("data-src") || "").trim(), leg = legendItems(card);
+    // jelmagyarázat sorokba tördelve
+    let lx = 16, ly = 0, rows = 1; const items = [];
+    leg.forEach(l => { const w = 22 + l.txt.length * 6.6 + 14; if (lx + w > OUT_W - 16 && lx > 16){ lx = 16; rows++; } items.push({...l, x:lx, row:rows - 1}); lx += w; });
+    const headH = 44, legH = leg.length ? rows * 20 + 8 : 0, footH = src ? 40 : 14, H = headH + ch + legH + footH;
+    const clone = svg.cloneNode(true); clone.removeAttribute("style"); clone.setAttribute("width", OUT_W); clone.setAttribute("height", ch); clone.setAttribute("x", 0); clone.setAttribute("y", headH);
+    if (!clone.getAttribute("viewBox")) clone.setAttribute("viewBox", "0 0 " + W0 + " " + H0);
+    clone.querySelectorAll(".mz").forEach(e => e.remove());
+    let s = '<svg xmlns="' + NS + '" width="' + OUT_W + '" height="' + H + '" viewBox="0 0 ' + OUT_W + ' ' + H + '" font-family="' + esc(ff.replace(/"/g, "'")) + '"><rect width="100%" height="100%" fill="' + esc(surf) + '"/>' +
+      '<text x="16" y="28" font-size="17" font-weight="700" fill="' + esc(ink) + '">' + esc(title) + '</text>' + new XMLSerializer().serializeToString(clone);
+    items.forEach(l => { const y = headH + ch + 8 + l.row * 20; if (l.col) s += '<rect x="' + l.x + '" y="' + (y + 2) + '" width="12" height="12" rx="3" fill="' + esc(l.col) + '"/>'; s += '<text x="' + (l.x + (l.col ? 18 : 0)) + '" y="' + (y + 13) + '" font-size="12.5" fill="' + esc(ink2) + '">' + esc(l.txt) + '</text>'; });
+    if (src){ const t = "Forrás: " + src, fy = H - 22; const mid = t.length > 120 ? t.lastIndexOf(" ", 120) : -1; s += '<text x="16" y="' + fy + '" font-size="11.5" fill="' + esc(ink2) + '">' + esc(mid > 0 ? t.slice(0, mid) : t) + '</text>' + (mid > 0 ? '<text x="16" y="' + (fy + 14) + '" font-size="11.5" fill="' + esc(ink2) + '">' + esc(t.slice(mid + 1)) + '</text>' : ""); }
+    s += '<text x="' + (OUT_W - 16) + '" y="' + (H - 6) + '" text-anchor="end" font-size="10.5" fill="' + esc(ink2) + '" opacity=".7">GridFlow Analytics</text></svg>';
+    s = vars(s);
+    const img = new Image(); img.decoding = "sync";
+    await new Promise((ok, no) => { img.onload = ok; img.onerror = no; img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(s); }).catch(() => null);
+    const cv = document.createElement("canvas"), k = 2; cv.width = OUT_W * k; cv.height = H * k; const g = cv.getContext("2d"); g.scale(k, k); g.fillStyle = surf; g.fillRect(0, 0, OUT_W, H);
+    try{ g.drawImage(img, 0, 0, OUT_W, H); }catch(e){ return; }
+    const name = (title.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "grafikon") + ".png";
+    cv.toBlob(b => { if (!b) return; const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }, "image/png");
+  }
+  function attach(host){
+    if (host.querySelector(":scope > .xb")) return;
+    if (!host.querySelector("svg")) return;
+    if (getComputedStyle(host).position === "static") host.style.position = "relative";
+    const b = document.createElement("button"); b.type = "button"; b.className = "xb"; b.title = "Mentés képként (PNG)"; b.setAttribute("aria-label", "Mentés képként (PNG)");
+    b.innerHTML = '<svg class="xbi" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1.5v8M3.6 6.3 7 9.7l3.4-3.4M2 12h10"/></svg>';
+    b.addEventListener("click", ev => { ev.stopPropagation(); save(host); });
+    host.appendChild(b);
+  }
+  function scan(){ document.querySelectorAll(".chart, .mapwrap").forEach(attach); }
+  const st = document.createElement("style");
+  st.textContent = ".xb{position:absolute;top:4px;right:4px;z-index:4;width:28px;height:28px;border:1px solid var(--grid);background:var(--surface);color:var(--ink2);border-radius:8px;padding:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .15s}" +
+    ".chart:hover>.xb,.mapwrap:hover>.xb,.xb:focus-visible{opacity:.92}@media (hover:none){.xb{opacity:.5;width:26px;height:26px}}.xb:hover{color:var(--ink)}" +
+    ".mz{position:absolute;top:8px;left:8px;display:flex;gap:4px;z-index:3}.mz button{width:30px;height:30px;border:1px solid var(--grid);background:var(--surface);color:var(--ink);border-radius:8px;font-size:17px;line-height:1;cursor:pointer;opacity:.9;padding:0}.mz button:hover{opacity:1}";
+  document.head.appendChild(st);
+  let t = 0; new MutationObserver(() => { clearTimeout(t); t = setTimeout(scan, 120); }).observe(document.body, {childList:true, subtree:true});
+  scan();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1514 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rendszerállapot – a magyar villamosenergia-rendszer ENTSO-E adatai</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="Fizikai és menetrendezett áramlás, termelési mix, maradék terhelés, blokkszintű termelés, kiesések és rendszeregyensúly a magyar villamosenergia-rendszerben, ENTSO-E adatok alapján.">
+<link rel="stylesheet" href="assets/gf.css">
+<script src="assets/gf.js"></script>
+<style>
+.meta{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;color:var(--muted);font-size:13px}
+.card h3{font-size:14px;margin:18px 0 6px;color:var(--ink2);font-weight:650}
+.card .note{margin:10px 0 0;color:var(--muted);font-size:12.5px;max-width:90ch}
+.nodata{padding:14px;border:1px dashed var(--grid);border-radius:10px;color:var(--ink2);font-size:14px}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 18px}
+@media (max-width:640px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{border-left:3px solid var(--grid);padding:2px 0 2px 10px}
+.tile .k{color:var(--ink2);font-size:12.5px}
+.tile .n{font-size:24px;font-weight:650;line-height:1.2;white-space:nowrap}
+.tile .n small{font-size:13px;color:var(--ink2);font-weight:600}
+.tile .s{color:var(--muted);font-size:12px}
+.legend svg{display:block}
+.chart{position:relative;width:100%}
+.tip .sub{color:var(--muted);margin-top:3px}
+td.nm i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:8px;vertical-align:-1px}
+.mini{position:relative;height:10px;background:var(--neutral);border-radius:5px;min-width:80px}
+.mini b{position:absolute;left:0;top:0;bottom:0;border-radius:5px;background:var(--c1)}
+#flowTable,#ntcBox,#genTable{overflow-x:auto}
+@media (max-width:640px){
+  .hide-sm{display:none}
+  th{white-space:normal;vertical-align:bottom;padding:0 4px 8px}
+  td{padding:8px 4px}
+  td.nm{white-space:normal}
+}
+footer details{margin:6px 0}
+footer summary{cursor:pointer;color:var(--ink2)}
+.err{padding:18px;color:var(--ink2)}
+html{scroll-behavior:smooth}
+.tbl{overflow-x:auto;max-width:100%}
+.ctl{padding:8px 12px}
+.ctl .ctlrow{display:flex;align-items:flex-start;gap:10px;margin:0 0 6px}
+.ctl .ctlk{flex:0 0 74px;padding-top:7px;color:var(--ink2);font-size:13px;font-weight:650}
+.ctl .chips{margin:0;gap:6px}
+.ctl .chip{padding:5px 10px;font-size:13px}
+.zsel{font:inherit;font-size:13px;padding:5px 10px;border:1px solid var(--grid);border-radius:999px;background:var(--surface);color:var(--ink);max-width:100%}
+.zsel[data-on]{border-color:var(--ink2);font-weight:650}
+.ctl .note{margin:4px 0 0}
+@media (min-width:760px){.ctl{display:flex;flex-wrap:wrap;gap:4px 22px;align-items:center}.ctl .ctlrow{margin:0;align-items:center}.ctl .ctlk{flex:none;padding-top:0}}
+@media (min-width:760px) and (min-height:640px){.ctl{position:sticky;top:6px;z-index:20;box-shadow:0 6px 22px rgba(0,0,0,.10)}}
+@media (max-width:640px){.ctl .ctlrow{flex-direction:column;gap:2px}.ctl .ctlk{padding-top:0;flex:none}}
+.zn{color:var(--ink2);font-weight:500}
+nav.jump{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 0}
+nav.jump a{padding:5px 11px;border-radius:999px;border:1px solid var(--grid);color:var(--ink2);text-decoration:none;font-size:13px;background:var(--surface)}
+nav.jump a:hover{color:var(--ink);border-color:var(--ink2)}
+</style>
+</head>
+<body>
+<main>
+  <nav class="tabs" aria-label="Nézetek"><a href="index.html">Határok</a><a href="muszaki.html" aria-current="page">Rendszerállapot</a><a href="europa.html">Európai piac</a><a href="idojaras.html">Időjárás</a><a href="foldgaz.html">Földgáz</a></nav>
+  <div id="banners"></div>
+  <header>
+    <h1>Rendszerállapot</h1>
+    <p class="sub">A magyar villamosenergia-rendszer működése az ENTSO-E Transparency Platform adataiból: mi a tényleges fizikai állapot, mi volt a terv, és hol tér el kettő.</p>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <nav class="jump" aria-label="Ugrás a részekhez"><a href="#fq_cNow">Frekvencia</a><a href="#ctl">Ország, időablak</a><a href="#snap">Pillanatkép</a><a href="#cGen">Termelés</a><a href="#cLoad">Fogyasztás</a><a href="#cRes">Maradék terhelés</a><a href="#cFlow">Határok</a><a href="#cUnits">Blokkok</a><a href="#cOut">Kiesések</a><a href="#cBal">Szabályozás</a><a href="#cSnsp">Nem-szinkron részarány</a></nav>
+  <section class="card" id="fq_cNow" data-src="Energy-Charts (Fraunhofer ISE), CC BY 4.0, energy-charts.info"></section>
+
+  <section class="card" id="fq_cMin" data-src="Energy-Charts (Fraunhofer ISE), CC BY 4.0, energy-charts.info">
+    <h2>Frekvencia, az elmúlt 24 óra percenként</h2>
+    <p class="hint">A vastag vonal a percátlag, a vékonyak a percen belüli legkisebb és legnagyobb másodperces érték. A szaggatott vonalak az 50,00 Hz névleges értéket és a ±50 mHz-es normál sávot jelölik.</p>
+    <div class="legend" id="fq_minLegend"></div>
+    <div class="chart" id="fq_minChart"></div>
+  </section>
+
+  <section class="card" id="fq_cDaily" data-src="Energy-Charts (Fraunhofer ISE), CC BY 4.0, energy-charts.info; napi mutatók saját számítás">
+    <h2>Frekvencia, napi mutatók</h2>
+    <p class="hint">A napokat egyezményesen UTC szerint számoljuk. A szórás a frekvencia ingadozásának mértéke: a nagyobb szórású napokon a rendszer rosszabbul tartotta az egyensúlyt.</p>
+    <div class="chips" id="fq_win" role="group" aria-label="Időablak"></div>
+    <h3>Napi szórás, mHz</h3>
+    <div class="chart" id="fq_stdChart"></div>
+    <h3>A ±50 mHz-es sávon kívül töltött idő, a nap %-ában</h3>
+    <div class="chart" id="fq_outChart"></div>
+    <h3>Napi legkisebb és legnagyobb frekvencia</h3>
+    <div class="legend" id="fq_mmLegend"></div>
+    <div class="chart" id="fq_mmChart"></div>
+  </section>
+
+  <section class="card" id="fq_cHist" data-src="Energy-Charts (Fraunhofer ISE), CC BY 4.0, energy-charts.info; saját számítás">
+    <h2>Frekvencia, eloszlás</h2>
+    <p class="hint">A másodperces értékek 10 mHz-es sávokba sorolva, az 50 Hz-hez képesti eltérés szerint. A vonal a legutóbbi nap eloszlása, az oszlopok a fenti időablak napjaié.</p>
+    <div class="legend" id="fq_histLegend"></div>
+    <div class="chart" id="fq_histChart"></div>
+    <h3>Az eltérés nagysága szerint, a kiválasztott időablakban</h3>
+    <div class="tbl" id="fq_tailTable"></div>
+  </section>
+
+  <section class="card" id="fq_cEvents" data-src="Energy-Charts (Fraunhofer ISE), CC BY 4.0, energy-charts.info; saját számítás"></section>
+
+  <p class="note" id="ctlNote" style="margin:14px 2px 6px"></p>
+  <section class="card ctl" id="ctl" aria-label="Ország és időablak">
+    <div class="ctlrow"><span class="ctlk">Ország</span><div class="chips" id="zoneChips" role="group" aria-label="Ország"></div></div>
+    <div class="ctlrow"><span class="ctlk">Időablak</span><div class="chips" id="winChips" role="group" aria-label="Időablak"></div></div>
+    <div class="ctlrow" id="zoomRow" style="display:none"><span class="ctlk">Nagyítás</span><div class="chips"><span id="zoomTxt" style="align-self:center;font-size:13.5px"></span><button class="chip" type="button" id="zoomReset">Vissza az időablakra</button></div></div>
+  </section>
+
+  <section class="card" id="snap" data-src="ENTSO-E Transparency Platform – fogyasztás (6.1.A), termelés típusonként (16.1.B&C), határkeresztező áramlás (12.1.G)"></section>
+
+  <section class="card" id="cGen" data-src="ENTSO-E Transparency Platform – termelés típusonként (16.1.B&C). CO₂-tényezők: IPCC AR5 WG3 Annex III életciklus-mediánok, saját számítás">
+    <h2>Termelés típusonként <span class="zn"></span></h2>
+    <p class="hint">Órás átlag, MW. A halvány terület a még nem közölt időszak.</p>
+    <div class="legend" id="genLeg"></div>
+    <div class="chart" id="genChart" role="img" aria-label="Magyarországi termelés típusonként, halmozott területdiagram"></div>
+    <h3>Összetétel az utolsó közölt órában</h3>
+    <div id="genTable"></div>
+    <h3>Termelés-alapú szén-dioxid-intenzitás</h3>
+    <div class="legend" id="co2Leg"></div>
+    <div class="chart" id="co2Chart" role="img" aria-label="A hazai termelés szén-dioxid-intenzitása, g/kWh"></div>
+    <p class="note" id="co2Note"></p>
+    <h3>Összevetés: termelés-alapú CO₂-intenzitás országonként, a kiválasztott időablak átlaga</h3>
+    <div class="chart" id="co2Rank" role="img" aria-label="Országok termelés-alapú szén-dioxid-intenzitása, g/kWh"></div>
+    <p class="note" id="co2RankNote"></p>
+  </section>
+
+  <section class="card" id="cLoad" data-src="ENTSO-E Transparency Platform – tényleges fogyasztás (6.1.A) és day-ahead előrejelzés (6.1.B)">
+    <h2>Fogyasztás: tény és day-ahead előrejelzés <span class="zn"></span></h2>
+    <p class="hint">A rendszerirányító előző napi előrejelzése és a tényleges terhelés. A különbség a szabályozási igény egyik fő forrása.</p>
+    <div class="legend" id="loadLeg"></div>
+    <div class="chart" id="loadChart" role="img" aria-label="Fogyasztás: tény és előrejelzés"></div>
+    <h3>Előrejelzési hiba (tény − előrejelzés)</h3>
+    <div class="chart" id="loadErr" role="img" aria-label="Fogyasztás előrejelzési hibája óránként"></div>
+    <div class="tiles" id="loadTiles" style="margin-top:14px"></div>
+  </section>
+
+  <section class="card" id="cRes" data-src="ENTSO-E Transparency Platform – fogyasztás (6.1.A), nap- és szélerőművi termelés (16.1.B&C) és day-ahead előrejelzés (14.1.D); maradék terhelés: saját számítás">
+    <h2>Maradék terhelés és esti rámpa <span class="zn"></span></h2>
+    <p class="hint">Maradék terhelés = fogyasztás − (nap + szél). Ezt kell a szabályozható erőműveknek és az importnak fedeznie. A délutáni–esti emelkedés (MW/h) a napelemes rendszerek legnagyobb üzemi kihívása.</p>
+    <div class="legend" id="resLeg"></div>
+    <div class="chart" id="resChart" role="img" aria-label="Fogyasztás, nap- és szélerőművi termelés, maradék terhelés"></div>
+    <div class="tiles" id="resTiles" style="margin-top:14px"></div>
+    <h3>Nap- és szélerőművek: day-ahead előrejelzés és tény</h3>
+    <div class="legend" id="swLeg"></div>
+    <div class="chart" id="solChart" role="img" aria-label="Napelemes termelés: tény és előrejelzés"></div>
+    <div class="chart" id="windChart" role="img" aria-label="Széltermelés: tény és előrejelzés" style="margin-top:8px"></div>
+  </section>
+
+  <section class="card" id="cFlow" data-src="ENTSO-E Transparency Platform – fizikai áramlás (12.1.G), menetrendezett kereskedelmi csere (12.1.F), napi NTC (11.1.A)">
+    <h2>Határkeresztező áramlás: fizikai és menetrendezett</h2>
+    <p class="hint">Pozitív érték: import Magyarországra. A fizikai áramlás a mért érték, a menetrend a kereskedelmi szerződések eredménye. A kettő különbsége (hurok- és tranzitáramlás) azt mutatja, mennyit terhel a magyar hálózat olyan áramlás, amit nem itt rendeltek meg.</p>
+    <div class="chips" id="flowChips"></div>
+    <div class="legend" id="flowLeg"></div>
+    <div class="chart" id="flowChart" role="img" aria-label="Fizikai és menetrendezett nettó áramlás"></div>
+    <h3>Nem menetrendezett áramlás (fizikai − menetrendezett)</h3>
+    <div class="chart" id="flowDiff" role="img" aria-label="Nem menetrendezett áramlás óránként"></div>
+    <h3>Az utolsó 24 óra összevetése határonként</h3>
+    <div id="flowTable"></div>
+    <h3>Határkapacitás-kihasználtság (NTC)</h3>
+    <div id="ntcBox"></div>
+  </section>
+
+  <section class="card" id="cUnits" data-src="ENTSO-E Transparency Platform – termelés erőművi blokkonként (16.1.A)">
+    <h2>Blokkszintű termelés</h2>
+    <p class="hint">A 100 MW feletti egységek óránkénti teljesítménye. A szín a blokk saját, a megfigyelt időszakban mért legnagyobb teljesítményéhez viszonyított terhelés. Szürke cella: 0 MW, azaz a blokk nem termel.</p>
+    <div class="chart" id="unitHeat" role="img" aria-label="Blokkszintű termelés hőtérképe"></div>
+  </section>
+
+  <section class="card" id="cOut" data-src="ENTSO-E Transparency Platform – termelő egységek (15.1.A&B) és átviteli hálózati elemek (10.1.A&B) elérhetetlensége">
+    <h2>Kiesések és korlátozások</h2>
+    <p class="hint">A rendszerirányítók és az erőművek közzétett kiesési bejelentései. A sáv hossza a kiesés időtartama, a szöveg a rendelkezésre álló teljesítményt mutatja.</p>
+    <div class="chips" id="outChips"></div>
+    <div class="legend" id="outLeg"></div>
+    <h3>Termelő egységek</h3>
+    <div class="chart" id="outGen"></div>
+    <h3>Határkeresztező hálózati elemek</h3>
+    <div class="chart" id="outTx"></div>
+  </section>
+
+  <section class="card" id="cHupx" data-src="HUPX Inside Information Platform (REMIT bennfentes információk), iip.hupx.hu" style="display:none">
+    <h2>Kiesések a HUPX közlései szerint</h2>
+    <p class="hint">A magyar piaci szereplők REMIT szerint közzétett termelői kiesései a HUPX bennfentes információs platformjáról. Ez az ENTSO-E adatánál gyakran előbb és részletesebb szöveggel jelenik meg. A sáv hossza a kiesés időtartama, a szöveg a rendelkezésre álló teljesítményt mutatja. A nyitott végű kiesések 60 napig látszanak.</p>
+    <div class="chart" id="hxGantt"></div>
+    <h3>Legutóbbi közlemények</h3>
+    <div id="hxTable"></div>
+  </section>
+
+  <section class="card" id="cBal" data-src="ENTSO-E Transparency Platform – havi pénzügyi mérleg (17.1.I), aggregált szabályozási energia ajánlatok és aktivált mennyiségek (GL EB 12.3.E), aktivált szabályozási energia ára (17.1.F), eltérési ár (17.1.G) és mennyiség (17.1.H)">
+    <h2>Rendszeregyensúly <span class="zn"></span></h2>
+    <p class="hint">Az eltérési ár és a szabályozási energia megmutatja, mikor volt feszes a rendszer, függetlenül a day-ahead ártól.</p>
+    <div id="finBox">
+      <h3>Mennyibe kerül a kiegyenlítés? Havi pénzügyi mérleg</h3>
+      <div class="tiles" id="finTiles"></div>
+      <div class="legend" id="finLeg" style="margin-top:12px"></div>
+      <div class="chart" id="finChart" role="img" aria-label="A kiegyenlítés havi pénzügyi kiadásai és bevételei"></div>
+      <p class="note" id="finNote"></p>
+    </div>
+    <h3>Eltérési ár</h3>
+    <div class="legend" id="impLeg"></div>
+    <div class="chart" id="impChart" role="img" aria-label="Eltérési árak és a day-ahead ár"></div>
+    <h3>Aktivált szabályozási teljesítmény és a felajánlott ajánlatok</h3>
+    <div class="legend" id="balLeg"></div>
+    <div class="chart" id="afrrChart" role="img" aria-label="aFRR aktivált és felajánlott teljesítmény"></div>
+    <div class="chart" id="mfrrChart" role="img" aria-label="mFRR aktivált és felajánlott teljesítmény" style="margin-top:8px"></div>
+    <h3>Az aktivált szabályozási energia ára</h3>
+    <div class="legend" id="balPrLeg"></div>
+    <div class="chart" id="afrrPrice" role="img" aria-label="aFRR aktivált energia ára"></div>
+    <div class="chart" id="mfrrPrice" role="img" aria-label="mFRR aktivált energia ára" style="margin-top:8px"></div>
+    <h3>Eltérési mennyiség</h3>
+    <div class="chart" id="volChart" role="img" aria-label="Eltérési mennyiség"></div>
+    <p class="note" id="balNote"></p>
+  </section>
+
+  <section class="card" id="cSnsp" data-src="ENTSO-E Transparency Platform – termelés típusonként (16.1.B&C) és határkeresztező áramlás (12.1.G); a mutatók saját számítás">
+    <h2>Nem-szinkron részarány és importfüggés <span class="zn"></span></h2>
+    <p class="hint">A nem-szinkron részarány (SNSP) becslése: (nap + szél) / (fogyasztás + export). Minél nagyobb, annál kevesebb forgó tömeg tartja a rendszert, azaz annál kisebb a tehetetlenség. Az importfüggés a nettó import a fogyasztás százalékában.</p>
+    <div class="legend" id="snspLeg"></div>
+    <div class="chart" id="snspChart" role="img" aria-label="Nem-szinkron részarány és importfüggés"></div>
+    <p class="note">Az SNSP itt becslés, nem mérés: a háztartási és egyéb, az ENTSO-E-n nem közölt napelemek hiányoznak a termelési adatból, ezért a valós érték eltérhet a megjelenítettől. Nem üzemi korlát, hanem a helyzet jellemzője.</p>
+  </section>
+
+  <footer id="foot"></footer>
+  <p class="note" style="text-align:center;margin:6px 0 24px" id="ver">Oldalverzió: v2 · 2026-11-25 / 1</p>
+</main>
+
+<script>
+"use strict";
+const TZ = "Europe/Budapest";
+const BN = {AT:"Ausztria",SK:"Szlovákia",UA:"Ukrajna",RO:"Románia",RS:"Szerbia",HR:"Horvátország",SI:"Szlovénia"};
+const GRP = [
+  {k:"nuclear", n:"Atomenergia", c:"--c1"}, {k:"gas", n:"Földgáz", c:"--c2"}, {k:"wind", n:"Szél", c:"--c3"},
+  {k:"solar", n:"Nap", c:"--c4"}, {k:"bio", n:"Biomassza, hulladék", c:"--c5"}, {k:"hydro", n:"Víz", c:"--c6"},
+  {k:"other", n:"Egyéb", c:"--c7"}, {k:"coal", n:"Szén, lignit", c:"--c8"}
+];
+const GN = Object.fromEntries(GRP.map(g => [g.k, g.n]));
+const RAMP = ["#cde2fb","#b7d3f6","#9ec5f4","#86b6ef","#6da7ec","#5598e7","#3987e5","#2a78d6","#256abf","#1c5cab","#184f95","#104281","#0d366b"];
+
+const mkNum = (o) => { const f = new Intl.NumberFormat("hu-HU", o); return {format: v => f.format(v).replace(/^-/, "−")}; };
+const nf0 = mkNum({maximumFractionDigits:0});
+const nf1 = mkNum({minimumFractionDigits:1,maximumFractionDigits:1});
+const fTime = new Intl.DateTimeFormat("hu-HU",{timeZone:TZ,hour:"2-digit",minute:"2-digit",hour12:false});
+const fDate = new Intl.DateTimeFormat("hu-HU",{timeZone:TZ,month:"short",day:"numeric"});
+const fFull = new Intl.DateTimeFormat("hu-HU",{timeZone:TZ,year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false});
+const fWeek = new Intl.DateTimeFormat("hu-HU",{timeZone:TZ,weekday:"long"});
+const fParts = new Intl.DateTimeFormat("en-GB",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",hour12:false});
+const $ = (id) => document.getElementById(id);
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent){ const e = document.createElementNS(NS, tag); for (const k in (attrs||{})) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function signed(v, f){ f = f || nf0; const a = f.format(Math.abs(v)); return (v > 0 && a !== "0" ? "+" : v < 0 && a !== "0" ? "−" : "") + a; }
+function localParts(d){ const p = fParts.formatToParts(d), o = {}; p.forEach(x => o[x.type] = x.value); return {y:+o.year,m:+o.month,d:+o.day,h:(+o.hour)%24}; }
+function localDayKey(d){ const p = localParts(d); return p.y*10000 + p.m*100 + p.d; }
+function dayNum(k){ return Date.UTC(Math.floor(k / 10000), Math.floor(k / 100) % 100 - 1, k % 100) / 864e5; }
+const isDark = () => GF.isDark();
+function nice(min, max, n){
+  if (min === max){ max = min + 1; }
+  const span = max - min, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1,2,2.5,5,10].map(m => m*mag).find(s => s >= raw) || 10*mag;
+  const lo = Math.floor(min/step)*step, hi = Math.ceil(max/step)*step, t = [];
+  for (let v = lo; v <= hi + step/2; v += step) t.push(Math.round(v/step*1e6)/1e6*step);
+  return {lo, hi, ticks:t};
+}
+// Az ENTSO-E rövid blokkkódjainak magyar nevei. Új kódot ide kell felvenni; ami nincs a listában, az eredeti kóddal látszik.
+const UNIT_NAMES = {PA:"Paks", KF:"Kelenföld", KF_GT:"Kelenföld GT"};
+function unitLabel(raw){
+  const r = String(raw == null ? "" : raw).trim(), up = r.toUpperCase().replace(/[\s-]+/g, "_");
+  if (UNIT_NAMES[up]) return UNIT_NAMES[up];
+  const m = up.match(/^([A-Z]+(?:_[A-Z]+)*?)_?(\d+)$/);
+  if (m && UNIT_NAMES[m[1]]) return UNIT_NAMES[m[1]] + (m[1] === "PA" ? " " + m[2] + ". blokk" : " " + m[2]);
+  return r;
+}
+const has = (v) => v != null;
+const sumN = (...a) => { let s = null; a.forEach(v => { if (v != null) s = (s || 0) + v; }); return s; };
+function lastIdx(arr){ for (let i = arr.length - 1; i >= 0; i--) if (arr[i] != null) return i; return -1; }
+
+let E = null, D = null, M = null, NOW = new Date();     // E: a kiválasztott ország és időablak szerinti nézet
+let E0 = null, C0 = null;                                 // nyers adat: mérnöki (HU) és országok
+let flowSel = "ALL", outSpan = 14;
+const WINS = [[24, "24 óra"], [48, "48 óra"], [72, "3 nap"], [168, "7 nap"]];
+const SEL = {zone:"HU", win:48, zoom:null};
+const OWN_FIRST = ["HU", "AT", "SK", "RO", "RS", "HR", "SI"];   // a szomszédok elöl
+const HU_ONLY = ["cFlow", "cUnits", "cOut", "cHupx"];
+let HX = null;
+
+const getJson = (url, opt) => GF.getJson(url, opt);   // assets/gf.js: feltételes kérés (ETag), betöltésjelző
+async function load(){
+  const demo = new URLSearchParams(location.search).get("demo");
+  try{
+    const [e, d] = await Promise.all([
+      getJson(demo ? "demo-engineer.json" : "engineer.json"),
+      getJson(demo ? "demo-data.json" : "data.json").catch(() => null)
+    ]);
+    E0 = e; D = d;
+    HX = await getJson(demo ? "demo-hupx.json" : "hupx.json").catch(() => null);
+    C0 = await getJson(demo ? "demo-countries.json" : "countries.json").catch(() => null);
+  }catch(err){
+    $("snap").innerHTML = '<div class="err"><b>A mérnöki adat nem tölthető be.</b> (' + esc(err.message) + ')<br>Az <code>engineer.json</code> az adatgyűjtő első sikeres futása után jelenik meg. Ha a fájlt közvetlenül a gépedről nyitottad meg, indíts helyi szervert a mappában: <code>python3 -m http.server</code>.</div>';
+    document.querySelectorAll('main > section.card:not(#snap):not([id^="fq_"])').forEach(s => s.style.display = "none");
+    FQ.load();
+    return;
+  }
+  NOW = E0.demo ? new Date(E0.generated_utc) : new Date();
+  const q = new URLSearchParams(location.search);
+  if (q.get("z") && (q.get("z") === "HU" || (C0 && C0.zones && C0.zones[q.get("z")]))) SEL.zone = q.get("z");
+  if (WINS.some(w => w[0] === +q.get("w"))) SEL.win = +q.get("w");
+  refresh(); FQ.load();
+  let t; addEventListener("resize", () => { clearTimeout(t); t = setTimeout(renderCharts, 120); });
+  document.addEventListener("gf-theme", render);   // assets/gf.js: kézi témaváltó és rendszerbeállítás
+}
+
+// ---------------------------------------------------------------- nézet: ország és időablak
+function zoneList(){
+  const names = Object.assign({HU:"Magyarország"}, (C0 && C0.names) || {});
+  const have = (C0 && C0.zones) ? Object.keys(C0.zones).filter(z => (C0.zones[z].load || C0.zones[z].generation)) : [];
+  const rest = have.filter(z => OWN_FIRST.indexOf(z) < 0).sort((a, b) => (names[a] || a).localeCompare(names[b] || b, "hu"));
+  const first = OWN_FIRST.filter(z => z === "HU" || have.indexOf(z) >= 0);
+  return {names, list:first.concat(rest)};
+}
+function zoneName(z){ return zoneList().names[z || SEL.zone] || z || SEL.zone; }
+// minden, az idővel azonos hosszú számsor levágása az i0 indextől
+function sliceDeep(o, n, i0, i1){
+  if (Array.isArray(o)){
+    if (o.length === n && (n === 0 || o[0] === null || typeof o[0] !== "object")) return o.slice(i0, i1);
+    return o.map(v => sliceDeep(v, n, i0, i1));
+  }
+  if (o && typeof o === "object"){ const r = {}; for (const k in o) r[k] = (k === "errors" || k === "missing" || k === "finance") ? o[k] : sliceDeep(o[k], n, i0, i1); return r; }
+  return o;
+}
+function winStart(ts, win){
+  if (!win) return 0;
+  const t0 = NOW.getTime() - win * 3600e3; let i = 0;
+  while (i < ts.length - 1 && new Date(ts[i]).getTime() < t0) i++;
+  return i;
+}
+// A megjelenített szakasz [i0, i1): az időablak (órák a mostantól visszafelé), ezen belül az egérrel húzott nagyítás (SEL.zoom: [ms, ms]).
+function winRange(ts, win){
+  let i0 = winStart(ts, win), i1 = ts.length;
+  const z = SEL.zoom;
+  if (z){
+    let a = 0; while (a < ts.length - 1 && +new Date(ts[a]) < z[0]) a++;
+    let b = ts.length - 1; while (b > 0 && +new Date(ts[b]) > z[1]) b--;
+    if (b >= a){ i0 = Math.max(i0, a); i1 = b + 1; }
+  }
+  return [i0, i1];
+}
+function viewOf(zone, win){
+  let src;
+  if (zone === "HU") src = E0;
+  else {
+    const z = C0.zones[zone];
+    src = {generated_utc:C0.generated_utc, source:C0.source, demo:C0.demo, hourly_ts:C0.hourly_ts, flows:{}, load:z.load || {}, generation:z.generation || {},
+      solar_wind_forecast:z.solar_wind_forecast || {}, installed_mw:null, co2:C0.co2, units:[], outages_gen:[], outages_tx:[], imbalance:z.imbalance || {},
+      balancing:{}, net_import_mw:z.net_import_mw || null, modules:{}, errors:C0.errors, missing:C0.missing};
+  }
+  const n = src.hourly_ts.length, [i0, i1] = winRange(src.hourly_ts, win);
+  return sliceDeep(src, n, i0, i1);
+}
+function refresh(){
+  if (SEL.zone !== "HU" && !(C0 && C0.zones && C0.zones[SEL.zone])) SEL.zone = "HU";
+  E = viewOf(SEL.zone, SEL.win);
+  try{ const u = new URL(location.href); u.searchParams.set("z", SEL.zone); u.searchParams.set("w", SEL.win); history.replaceState(null, "", u); }catch(e){}
+  model(); render();
+}
+function controls(){
+  const zl = zoneList(), zb = $("zoneChips"), wb = $("winChips");
+  zb.innerHTML = ""; wb.innerHTML = "";
+  const mk = (box, label, on, fn) => {
+    const b = document.createElement("button"); b.className = "chip"; b.type = "button";
+    b.setAttribute("aria-pressed", on ? "true" : "false"); b.textContent = label; b.onclick = fn; box.appendChild(b);
+  };
+  const pick = (z) => { SEL.zone = z; flowSel = "ALL"; refresh(); };
+  const near = zl.list.filter(z => OWN_FIRST.indexOf(z) >= 0), far = zl.list.filter(z => OWN_FIRST.indexOf(z) < 0);
+  near.forEach(z => mk(zb, zl.names[z] || z, z === SEL.zone, () => pick(z)));
+  if (far.length){
+    const sel = document.createElement("select"); sel.className = "zsel"; sel.setAttribute("aria-label", "További országok és zónák");
+    const o0 = document.createElement("option"); o0.value = ""; o0.textContent = "További országok és zónák (" + far.length + ")…"; sel.appendChild(o0);
+    far.forEach(z => { const o = document.createElement("option"); o.value = z; o.textContent = zl.names[z] || z; sel.appendChild(o); });
+    if (far.indexOf(SEL.zone) >= 0){ sel.value = SEL.zone; sel.setAttribute("data-on", "1"); }
+    sel.onchange = () => { if (sel.value) pick(sel.value); };
+    zb.appendChild(sel);
+  }
+  WINS.forEach(([w, name]) => mk(wb, name, w === SEL.win && !SEL.zoom, () => { SEL.win = w; SEL.zoom = null; refresh(); }));
+  const zr = $("zoomRow"); zr.style.display = SEL.zoom ? "" : "none";
+  if (SEL.zoom){ const a = new Date(SEL.zoom[0]), b = new Date(SEL.zoom[1] + 3600e3); $("zoomTxt").textContent = fDate.format(a) + " " + fTime.format(a) + " – " + fDate.format(b) + " " + fTime.format(b); }
+  $("zoomReset").onclick = () => { SEL.zoom = null; refresh(); };
+  const hu = SEL.zone === "HU";
+  HU_ONLY.forEach(id => { $(id).style.display = hu ? "" : "none"; });
+  document.querySelectorAll(".zn").forEach(e => e.textContent = "– " + zl.names[SEL.zone]);
+  let note = "";
+  if (!C0) note = "A többi ország adata az adatgyűjtő első sikeres futása után jelenik meg.";
+  else if (!hu) note = "Ennél az országnál a nettó import a határokon mért fizikai áramlások különbsége (bejövő − kimenő). Az ENTSO-E termelési adata nem teljes (a kis erőművek és háztartási napelemek általában hiányoznak), ezért a termelés + import ritkán zárja pontosan a fogyasztást. A határonkénti áramlás, a blokkszintű termelés, a kiesések és az aFRR/mFRR csak Magyarországra készül.";
+  else note = "Magyarországnál a nettó import a határokon mért fizikai áramlás.";
+  try{
+    const H = (hu ? D : C0) || D || C0, hts = H && H.hourly_ts ? H.hourly_ts : [];
+    const have = hts.length > 1 ? Math.round((new Date(hts[hts.length - 1]) - new Date(hts[0])) / 3600e3) : 0, mxw = Math.max(...WINS.map(w => w[0]));
+    if (have && have < mxw) note += " Figyelem: az adatgyűjtés eddig csak kb. " + have + " órát tartalmaz, ezért a hosszabb ablakok ugyanazt mutatják; ez az adatgyűjtő következő (sikeres) futásaival bővül.";
+  }catch(e){}
+  $("ctlNote").textContent = note + " Az óránkénti grafikonokon egérrel húzd végig a kívánt szakaszt a nagyításhoz, dupla kattintással vissza.";
+}
+
+// ---------------------------------------------------------------- modell
+function model(){
+  const T = E.hourly_ts.map(s => new Date(s)), n = T.length;
+  const G = E.generation || {};
+  const gk = GRP.filter(g => G[g.k]).map(g => g.k);
+  const gen = new Array(n).fill(null), genFull = new Array(n).fill(false);
+  for (let i = 0; i < n; i++){
+    let s = null, c = 0;
+    gk.forEach(k => { const v = G[k][i]; if (v != null){ s = (s || 0) + v; c++; } });
+    gen[i] = s; genFull[i] = gk.length > 0 && c === gk.length;
+  }
+  const L = E.load || {}, la = L.actual || new Array(n).fill(null), lf = L.forecast || new Array(n).fill(null);
+  const SW = E.solar_wind_forecast || {};
+  const sol = G.solar || new Array(n).fill(null), wnd = G.wind || new Array(n).fill(null);
+  const sw = sol.map((v, i) => v == null ? null : v + (wnd[i] || 0));
+  const swf = (SW.solar || new Array(n).fill(null)).map((v, i) => v == null ? null : v + ((SW.wind || [])[i] || 0));
+  const res = la.map((v, i) => v == null || sw[i] == null ? null : v - sw[i]);
+  const resF = lf.map((v, i) => v == null || swf[i] == null ? null : v - swf[i]);
+  const err = la.map((v, i) => v == null || lf[i] == null ? null : v - lf[i]);
+  // nettó import a data.json-ból (csak teljes órák), időbélyeg szerint illesztve
+  const netMap = new Map();
+  if (D) D.hourly_ts.forEach((s, i) => { if (D.complete[i] && D.net_import_mw[i] != null) netMap.set(s, D.net_import_mw[i]); });
+  const isHU = SEL.zone === "HU";
+  const net = isHU ? E.hourly_ts.map(s => netMap.has(s) ? netMap.get(s) : null) : (E.net_import_mw || new Array(n).fill(null));
+  const f = (E.co2 || {}).factors || {};
+  const co2 = new Array(n).fill(null);
+  for (let i = 0; i < n; i++){
+    let e = 0, g = 0;
+    gk.forEach(k => { const v = G[k][i]; if (v != null && f[k] != null){ e += v * f[k]; g += v; } });
+    if (g > 0 && genFull[i]) co2[i] = e / g;
+  }
+  const snsp = new Array(n).fill(null), dep = new Array(n).fill(null);
+  for (let i = 0; i < n; i++){
+    if (net[i] == null || la[i] == null) continue;
+    dep[i] = Math.max(net[i], 0) / la[i] * 100;
+    if (sw[i] != null) snsp[i] = sw[i] / (la[i] + Math.max(-net[i], 0)) * 100;
+  }
+  let last = -1; for (let i = n - 1; i >= 0; i--) if (genFull[i] && la[i] != null){ last = i; break; }
+  let nowIdx = -1; T.forEach((t, i) => { if (t <= NOW) nowIdx = i; });
+  M = {T, n, G, gk, gen, genFull, la, lf, sol, wnd, sw, swf, res, resF, err, net, co2, snsp, dep, last, nowIdx, SW, isHU};
+}
+
+// ---------------------------------------------------------------- általános segédek
+function legend(id, items){
+  const h = items.map(it => {
+    const c = it.color, k = it.kind || "box";
+    let sv;
+    if (k === "hatch"){
+      const id = "lg" + it.label.replace(/\W/g, "") + it.ang;
+      sv = '<svg width="14" height="12"><defs><pattern id="' + id + '" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(' + it.ang + ')"><rect width="5" height="5" fill="' + css("--surface") + '"/><line x1="0" y1="0" x2="0" y2="5" stroke="' + c + '" stroke-width="2"/></pattern></defs><rect width="14" height="12" rx="2" fill="url(#' + id + ')" stroke="' + c + '" stroke-width=".8"/></svg>';
+    }
+    else if (k === "box") sv = '<svg width="12" height="12"><rect width="12" height="12" rx="3" fill="' + c + '"/></svg>';
+    else sv = '<svg width="24" height="12"><line x1="1" y1="6" x2="23" y2="6" stroke="' + c + '" stroke-width="' + (it.w || 2.4) + '"' + (k === "dash" ? ' stroke-dasharray="6 4"' : k === "dot" ? ' stroke-dasharray="2 3"' : '') + ' stroke-linecap="round"/></svg>';
+    return '<span>' + sv + esc(it.label) + '</span>';
+  }).join("");
+  $(id).innerHTML = h;
+}
+function row(color, k, v){ return '<div class="row"><span>' + (color ? '<i style="background:' + color + '"></i>' : '') + k + '</span><b class="num">' + v + '</b></div>'; }
+function noData(host, msg){ host.innerHTML = '<div class="nodata">' + msg + '</div>'; }
+
+// Egérrel húzott kijelölés = nagyítás az összes óránkénti grafikonra (SEL.zoom); dupla kattintás = vissza az időablakra.
+let DRAG = null;
+addEventListener("pointerup", () => {
+  if (!DRAG) return; const d = DRAG; DRAG = null; d.rect.setAttribute("visibility", "hidden");
+  if (d.ex == null || Math.abs(d.ex - d.sx) < 12) return;
+  const f = (x) => Math.max(0, Math.min(d.n - 1, Math.floor((x - d.x0) / (d.x1 - d.x0) * d.n)));
+  let i0 = f(Math.min(d.sx, d.ex)), i1 = f(Math.max(d.sx, d.ex));
+  if (i1 - i0 < 5){ const c = Math.round((i0 + i1) / 2); i0 = Math.max(0, c - 3); i1 = Math.min(d.n - 1, i0 + 5); }    // legalább 6 óra
+  SEL.zoom = [d.T[i0].getTime(), d.T[i1].getTime()]; refresh();
+});
+function dragZoomHourly(svg, W, x0, x1, y0, y1, n, T){
+  const rect = el("rect", {y:y1, height:y0 - y1, fill:css("--c1"), opacity:.18, visibility:"hidden", "pointer-events":"none"}, svg);
+  const px = (ev) => { const r = svg.getBoundingClientRect(); return Math.max(x0, Math.min(x1, (ev.clientX - r.left) / r.width * W)); };
+  svg.style.cursor = "crosshair";
+  svg.addEventListener("pointerdown", ev => { if (ev.pointerType !== "mouse" || ev.button !== 0) return; ev.preventDefault(); DRAG = {rect, sx:px(ev), ex:null, n, x0, x1, T}; });
+  svg.addEventListener("pointermove", ev => {
+    if (!DRAG || DRAG.rect !== rect) return; const x = px(ev); DRAG.ex = x;
+    rect.setAttribute("x", Math.min(DRAG.sx, x)); rect.setAttribute("width", Math.abs(x - DRAG.sx)); rect.setAttribute("visibility", Math.abs(x - DRAG.sx) > 6 ? "visible" : "hidden");
+  });
+  svg.addEventListener("dblclick", () => { if (SEL.zoom){ SEL.zoom = null; refresh(); } });
+}
+function hover(host, svg, W, H, x0, x1, n, info){
+  const tip = document.createElement("div"); tip.className = "tip"; host.appendChild(tip);
+  const guide = el("line", {y1:12, y2:H - 36, stroke:css("--ink2"), "stroke-width":1, "stroke-dasharray":"3 3", visibility:"hidden"}, svg);
+  const move = (ev) => {
+    const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) / r.width * W;
+    const i = Math.max(0, Math.min(n - 1, Math.floor((px - x0) / (x1 - x0) * n)));
+    const d = info(i);
+    if (!d){ tip.style.display = "none"; guide.setAttribute("visibility","hidden"); return; }
+    guide.setAttribute("x1", d.x); guide.setAttribute("x2", d.x); guide.setAttribute("visibility","visible");
+    tip.innerHTML = d.html; tip.style.display = "block";
+    const s = r.width / W, tw = tip.offsetWidth, left = d.x * s + 14;
+    tip.style.left = (left + tw > r.width ? Math.max(0, d.x * s - tw - 14) : left) + "px"; tip.style.top = "6px";
+  };
+  const hide = () => { tip.style.display = "none"; guide.setAttribute("visibility","hidden"); };
+  svg.addEventListener("pointermove", move); svg.addEventListener("pointerleave", hide); svg.addEventListener("pointerdown", move);
+}
+
+// Idősoros diagram: vonal / lépcső nélküli vonal, halmozott terület, oszlop, két sorozat közti sáv
+// cfg: {series:[{label,color,values,kind:"line"|"bar"|"area",dash,w,op,short}], stack, unit, zero, band:{a,b,color,label}, future, fmt, extra(i), height, endLabels}
+function chart(host, cfg){
+  host.innerHTML = "";
+  const T = M.T;
+  const W = Math.max(320, host.clientWidth), narrow = W < 520, H = cfg.height || (narrow ? 250 : 300);
+  const m = {l:56, r:12, t:24, b:36};
+  const S = cfg.series.filter(s => s.values && s.values.some(has));
+  if (!S.length){ noData(host, cfg.empty || "Ehhez nincs közölt adat."); return; }
+  // ha nincs előrejelzés, az üres jövőt levágjuk az időtengelyről
+  let n = M.n;
+  if (!cfg.future){ let ml = -1; S.forEach(s => { ml = Math.max(ml, lastIdx(s.values)); }); n = Math.min(M.n, ml + 2); }
+  // y tartomány
+  let lo = Infinity, hi = -Infinity;
+  const upd = v => { if (v != null){ if (v < lo) lo = v; if (v > hi) hi = v; } };
+  if (cfg.stack){
+    for (let i = 0; i < n; i++){
+      let t = null; S.forEach(s => { if (s.values[i] != null) t = (t || 0) + Math.max(0, s.values[i]); });
+      if (t != null && cfg.hatch && cfg.hatch.imp && cfg.hatch.imp[i] != null) t += cfg.hatch.imp[i];
+      upd(t);
+      if (cfg.hatch && cfg.hatch.exp && cfg.hatch.exp[i] != null) upd(-cfg.hatch.exp[i]);
+    }
+  } else S.forEach(s => s.values.forEach(upd));
+  if (cfg.band){ cfg.band.a.forEach(upd); cfg.band.b.forEach(upd); }
+  (cfg.overlay || []).forEach(s => s.values.forEach(upd));
+  if (cfg.zero !== false){ lo = Math.min(lo, 0); hi = Math.max(hi, 0); }
+  if (cfg.yMin != null) lo = Math.min(lo, cfg.yMin);
+  if (cfg.yMax != null) hi = Math.max(hi, cfg.yMax);
+  const ny = nice(lo, hi, 5);
+  GF.a11y(host, {xs:T.slice(0, n), series:S.map(s => ({label:s.label || "", values:s.values.slice(0, n)})), unit:cfg.unit || "MW", fmt:cfg.fmt});
+  const lstep = n > 120 ? 24 : n > 72 ? (narrow ? 24 : 12) : (narrow ? 12 : 6);
+  const x0 = m.l, x1 = W - m.r, y0 = H - m.b, y1 = m.t, band = (x1 - x0) / n, dayW = band * 24;
+  const X = i => x0 + (i + .5) * band, Y = v => y0 - (v - ny.lo) / (ny.hi - ny.lo) * (y0 - y1);
+  const svg = el("svg", {viewBox:"0 0 " + W + " " + H, width:W, height:H}, host);
+  const ink = css("--ink"), ink2 = css("--ink2"), grid = css("--grid"), muted = css("--muted"), surf = css("--surface");
+  // jövő árnyékolása
+  const nf = (NOW - T[0]) / 3600e3, xNow = x0 + nf * band, nowOk = nf >= 0 && nf <= n;
+  if (cfg.future && nowOk && xNow < x1){
+    el("rect", {x:xNow, y:y1, width:x1 - xNow, height:y0 - y1, fill:css("--neutral"), opacity:.5}, svg);
+  }
+  ny.ticks.forEach(t => {
+    el("line", {x1:x0, x2:x1, y1:Y(t), y2:Y(t), stroke: t === 0 ? muted : grid, "stroke-width": t === 0 ? 1.2 : 1}, svg);
+    const tx = el("text", {x:x0 - 8, y:Y(t) + 4, "text-anchor":"end", "font-size":12, fill:ink2}, svg); tx.textContent = nf0.format(t);
+  });
+  const un = el("text", {x:x0 - 8, y:y1 - 10, "text-anchor":"end", "font-size":11, fill:muted}, svg); un.textContent = cfg.unit || "MW";
+  // napok, órák
+  const nowDay = localDayKey(NOW); let lastKey = null, lastLabX = -1e9, lastLabW = 0;
+  T.slice(0, n).forEach((t, i) => {
+    const p = localParts(t), key = localDayKey(t);
+    if (key !== lastKey){
+      lastKey = key;
+      if (i > 0) el("line", {x1:X(i) - band/2, x2:X(i) - band/2, y1:y1, y2:y0, stroke:grid}, svg);
+      const dd = dayNum(key) - dayNum(nowDay);
+      const rel = dd === 0 ? "ma" : dd === 1 ? "holnap" : dd === -1 ? "tegnap" : fDate.format(t);
+      const dlx = X(i) - band/2 + 6;
+      const dl = el("text", {x:dlx, y:y1 - 9, "font-size":12, fill:ink2, "font-weight":650}, svg);
+      dl.textContent = dayW < 62 ? String(p.d) + "." : (narrow || dayW < 150) ? rel : rel + " · " + fWeek.format(t);
+      if (dlx < lastLabX + lastLabW + 6) dl.setAttribute("visibility", "hidden"); else { lastLabX = dlx; lastLabW = dl.textContent.length * 6.9; }
+    }
+    if (p.h % lstep === 0){
+      if (lstep < 24){
+        const lab = el("text", {x:X(i), y:y0 + 17, "text-anchor":"middle", "font-size":narrow ? 11 : 12, fill:ink2}, svg);
+        lab.textContent = String(p.h).padStart(2,"0") + ":00";
+      }
+      el("line", {x1:X(i), x2:X(i), y1:y0, y2:y0 + 4, stroke:muted}, svg);
+    }
+  });
+  // sáv két sorozat között (pl. nem menetrendezett áramlás)
+  const runs = (vals, fn) => { let cur = []; for (let i = 0; i < n; i++){ if (vals(i)){ cur.push(i); } else { if (cur.length) fn(cur); cur = []; } } if (cur.length) fn(cur); };
+  if (cfg.band){
+    const b = cfg.band;
+    runs(i => b.a[i] != null && b.b[i] != null, r => {
+      let d = "M" + X(r[0]).toFixed(1) + " " + Y(b.a[r[0]]).toFixed(1);
+      r.forEach(i => d += "L" + X(i).toFixed(1) + " " + Y(b.a[i]).toFixed(1));
+      for (let k = r.length - 1; k >= 0; k--) d += "L" + X(r[k]).toFixed(1) + " " + Y(b.b[r[k]]).toFixed(1);
+      el("path", {d:d + "Z", fill:b.color, opacity:.28}, svg);
+    });
+  }
+  // halmozott terület
+  if (cfg.stack){
+    const base = new Array(n).fill(0);
+    S.forEach(s => {
+      const top = s.values.map((v, i) => v == null ? null : base[i] + Math.max(0, v));
+      runs(i => top[i] != null, r => {
+        let d = "M" + X(r[0]).toFixed(1) + " " + Y(base[r[0]]).toFixed(1);
+        r.forEach(i => d += "L" + X(i).toFixed(1) + " " + Y(top[i]).toFixed(1));
+        for (let k = r.length - 1; k >= 0; k--) d += "L" + X(r[k]).toFixed(1) + " " + Y(base[r[k]]).toFixed(1);
+        el("path", {d:d + "Z", fill:s.color, stroke:surf, "stroke-width":1.2, "stroke-linejoin":"round"}, svg);
+      });
+      s.values.forEach((v, i) => { if (v != null) base[i] += Math.max(0, v); });
+    });
+  }
+  // sraffozott import (a termelés fölött) és export (a nulla alatt)
+  if (cfg.hatch){
+    const id = "hp" + (host.id || "x"), defs = el("defs", {}, svg);
+    [["Imp", 45], ["Exp", 135]].forEach(([k, ang]) => {
+      const pt = el("pattern", {id:id + k, patternUnits:"userSpaceOnUse", width:6, height:6, patternTransform:"rotate(" + ang + ")"}, defs);
+      el("rect", {width:6, height:6, fill:surf}, pt);
+      el("line", {x1:0, y1:0, x2:0, y2:6, stroke:k === "Imp" ? ink : ink2, "stroke-width":2.2}, pt);
+    });
+    const topArr = new Array(n).fill(null);
+    for (let i = 0; i < n; i++){ let t = null; S.forEach(s => { if (s.values[i] != null) t = (t || 0) + Math.max(0, s.values[i]); }); topArr[i] = t; }
+    const H_ = cfg.hatch;
+    runs(i => topArr[i] != null && H_.imp && H_.imp[i] != null && H_.imp[i] > 0, r => {
+      let d = "M" + X(r[0]).toFixed(1) + " " + Y(topArr[r[0]]).toFixed(1);
+      r.forEach(i => d += "L" + X(i).toFixed(1) + " " + Y(topArr[i] + H_.imp[i]).toFixed(1));
+      for (let k = r.length - 1; k >= 0; k--) d += "L" + X(r[k]).toFixed(1) + " " + Y(topArr[r[k]]).toFixed(1);
+      el("path", {d:d + "Z", fill:"url(#" + id + "Imp)", stroke:ink, "stroke-width":.8, "stroke-linejoin":"round"}, svg);
+    });
+    runs(i => H_.exp && H_.exp[i] != null && H_.exp[i] > 0, r => {
+      let d = "M" + X(r[0]).toFixed(1) + " " + Y(0).toFixed(1);
+      r.forEach(i => d += "L" + X(i).toFixed(1) + " " + Y(-H_.exp[i]).toFixed(1));
+      for (let k = r.length - 1; k >= 0; k--) d += "L" + X(r[k]).toFixed(1) + " " + Y(0).toFixed(1);
+      el("path", {d:d + "Z", fill:"url(#" + id + "Exp)", stroke:ink2, "stroke-width":.8, "stroke-linejoin":"round"}, svg);
+    });
+  }
+  // oszlopok
+  const bw = Math.max(2, band * .72);
+  S.filter(s => s.kind === "bar").forEach(s => s.values.forEach((v, i) => {
+    if (v == null) return;
+    const top = Math.min(Y(v), Y(0)), hh = Math.max(1, Math.abs(Y(v) - Y(0)));
+    el("rect", {x:X(i) - bw/2, y:top, width:bw, height:hh, rx:Math.min(3, bw/3), fill:s.color, opacity:s.op || 1}, svg);
+  }));
+  // vonalak
+  const ends = [];
+  S.filter(s => !cfg.stack && (s.kind || "line") === "line").forEach(s => {
+    let d = ""; let open = false;
+    s.values.forEach((v, i) => { if (v == null){ open = false; return; } d += (open ? "L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1); open = true; });
+    el("path", {d, fill:"none", stroke:s.color, "stroke-width":s.w || 2.2, "stroke-dasharray":s.dash || "none", "stroke-linejoin":"round", "stroke-linecap":"round", opacity:s.op || 1}, svg);
+    const li = lastIdx(s.values);
+    if (li >= 0 && s.short) ends.push({s, x:X(li), y:Y(s.values[li])});
+  });
+  (cfg.overlay || []).forEach(s => {
+    let d = "", open = false;
+    s.values.forEach((v, i) => { if (v == null || i >= n){ open = false; return; } d += (open ? "L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1); open = true; });
+    el("path", {d, fill:"none", stroke:surf, "stroke-width":(s.w || 2.4) + 2.4, "stroke-linejoin":"round", "stroke-linecap":"round", opacity:.85}, svg);
+    el("path", {d, fill:"none", stroke:s.color, "stroke-width":s.w || 2.4, "stroke-dasharray":s.dash || "none", "stroke-linejoin":"round", "stroke-linecap":"round"}, svg);
+  });
+  // közvetlen feliratok a vonalak utolsó pontján
+  if (!narrow && ends.length && ends.length <= 4){
+    ends.sort((a, b) => a.y - b.y);
+    for (let i = 1; i < ends.length; i++) if (Math.abs(ends[i].x - ends[i-1].x) < 70 && ends[i].y - ends[i-1].y < 14) ends[i].y = ends[i-1].y + 14;
+    ends.forEach(e => {
+      const right = e.x + 70 < x1;
+      const t = el("text", {x:right ? e.x + 7 : e.x - 7, y:e.y + 4, "text-anchor":right ? "start" : "end", "font-size":12, "font-weight":650, fill:ink, stroke:surf, "stroke-width":3, "paint-order":"stroke"}, svg);
+      t.textContent = e.s.short;
+    });
+  }
+  // most
+  if (nowOk){
+    el("line", {x1:xNow, x2:xNow, y1:y1, y2:y0, stroke:ink2, "stroke-width":1.2, "stroke-dasharray":"4 3"}, svg);
+    const mt = el("text", {x:xNow - 4, y:y1 + 13, "text-anchor":"end", "font-size":11.5, fill:ink2, stroke:surf, "stroke-width":3, "paint-order":"stroke"}, svg); mt.textContent = "most";
+  }
+  const fmt = cfg.fmt || (v => nf0.format(v));
+  hover(host, svg, W, H, x0, x1, n, i => {
+    const t = T[i], t1 = new Date(t.getTime() + 3600e3);
+    let rows = "", any = false, tot = null;
+    (cfg.stack ? S.slice().reverse() : S).forEach(s => {
+      const v = s.values[i]; if (v == null) return; any = true; if (cfg.stack) tot = (tot || 0) + v;
+      rows += row(s.color, esc(s.label), fmt(v) + " " + (cfg.unit || "MW"));
+    });
+    if (cfg.hatch && any){
+      const im = cfg.hatch.imp && cfg.hatch.imp[i], ex = cfg.hatch.exp && cfg.hatch.exp[i];
+      if (im > 0) rows += row("repeating-linear-gradient(45deg," + ink + " 0 2px," + surf + " 2px 4px)", "Import (nettó)", fmt(im) + " MW");
+      if (ex > 0) rows += row("repeating-linear-gradient(135deg," + ink2 + " 0 2px," + surf + " 2px 4px)", "Export (nettó)", fmt(ex) + " MW");
+    }
+    (cfg.overlay || []).forEach(s => { const v = s.values[i]; if (v != null){ any = true; rows += row(s.color, esc(s.label), fmt(v) + " " + (cfg.unit || "MW")); } });
+    if (cfg.band && cfg.band.a[i] != null && cfg.band.b[i] != null){ any = true; rows += row(cfg.band.color, esc(cfg.band.label), signed(cfg.band.a[i] - cfg.band.b[i]) + " " + (cfg.unit || "MW")); }
+    if (!any) return null;
+    if (cfg.stack && tot != null) rows += '<div class="row" style="border-top:1px solid var(--grid);margin-top:3px;padding-top:3px"><span>Összesen</span><b class="num">' + nf0.format(tot) + ' MW</b></div>';
+    const ex = cfg.extra ? cfg.extra(i) : "";
+    return {x:X(i), html:'<div class="t">' + fDate.format(t) + ' ' + fTime.format(t) + '–' + fTime.format(t1) + '</div>' + rows + ex};
+  });
+  if (!cfg.noZoom) dragZoomHourly(svg, W, x0, x1, y0, y1, n, T);
+}
+
+// ---------------------------------------------------------------- megjelenítés
+function render(){ banners(); meta(); controls(); snapshot(); legends(); chips(); renderCharts(); foot(); }
+function renderCharts(){
+  genSection(); loadSection(); resSection(); flowSection(); unitSection(); outSection(); hupxSection(); balSection(); snspSection(); FQ.render();
+}
+
+function banners(){
+  GF.banners($("banners"), {demo:E.demo, generatedUtc:E.generated_utc, now:NOW, what:"az adatgyűjtés"});
+}
+function meta(){
+  const mod = E.modules || {}, gaps = Object.keys(mod).filter(k => mod[k] === false).length + (E.errors || []).length;
+  const st = GF.state({demo:E.demo, generatedUtc:E.generated_utc, now:NOW, partial:gaps ? ["Néhány adatkör nem érkezett meg az ENTSO-E-től; részletek az oldal alján."] : []});
+  $("meta").className = "status";
+  $("meta").innerHTML = GF.stateTag(st) + '<span><b>Adatgyűjtés:</b> ' + fFull.format(new Date(E.generated_utc)) + ' (helyi idő)</span><span>Forrás: ' + esc(E.source) + ' (nem valós idejű)</span>';
+}
+
+function tile(k, n, s){ return '<div class="tile"><div class="k">' + k + '</div><div class="n num">' + n + '</div><div class="s">' + s + '</div></div>'; }
+function span(i){ const t = M.T[i]; return fDate.format(t) + " " + fTime.format(t) + "–" + fTime.format(new Date(t.getTime() + 3600e3)); }
+
+function snapshot(){
+  let i = -1;
+  for (let k = M.n - 1; k >= 0; k--) if (M.genFull[k] && M.la[k] != null && M.net[k] != null){ i = k; break; }
+  if (i < 0) i = M.last;
+  const c = $("snap");
+  if (i < 0){ c.innerHTML = '<h2>Pillanatkép</h2><div class="nodata">Nincs elég adat a pillanatképhez (fogyasztás és termelés egyaránt kell).</div>'; return; }
+  const G = M.G, sw = M.sw[i], gen = M.gen[i], load = M.la[i];
+  const t = [
+    tile("Fogyasztás", nf0.format(load) + " <small>MW</small>", span(i)),
+    tile(M.isHU ? "Hazai termelés" : "Termelés", nf0.format(gen) + " <small>MW</small>", "közölt blokkok és típusok összege"),
+    tile("Nettó import", M.net[i] == null ? "–" : signed(M.net[i]) + " <small>MW</small>", M.net[i] == null ? "nincs teljes határ-adat" : "a határokon mért fizikai áramlás, + import"),
+    M.isHU || M.net[i] == null ? "" : tile("Nem közölt rész", signed(load - gen - M.net[i]) + " <small>MW</small>", "fogyasztás − termelés − nettó import: a nem közölt (kis, háztartási) termelés és a mérési eltérés"),
+    tile("Nap és szél részaránya", sw == null ? "–" : nf0.format(sw / gen * 100) + " <small>%</small>", "a hazai termelésből"),
+    tile("CO₂-intenzitás", M.co2[i] == null ? "–" : nf0.format(M.co2[i]) + " <small>g/kWh</small>", "termelés-alapú becslés"),
+    tile("Nem-szinkron részarány", M.snsp[i] == null ? "–" : nf0.format(M.snsp[i]) + " <small>%</small>", "SNSP-becslés")
+  ];
+  c.innerHTML = '<h2>Pillanatkép <span class="zn">– ' + esc(zoneName()) + '</span></h2><p class="hint">Az utolsó óra, amelyre a fogyasztás, a termelés minden közölt típusa és a nettó import is megvan.</p><div class="tiles">' + t.join("") + '</div>';
+}
+
+function legends(){
+  legend("genLeg", GRP.filter(g => M.G[g.k]).map(g => ({label:g.n, color:css(g.c)})).concat(
+    M.net.some(has) ? [{label:"Import (nettó)", color:css("--ink"), kind:"hatch", ang:45}, {label:"Export (nettó)", color:css("--ink2"), kind:"hatch", ang:135}] : [],
+    M.la.some(has) ? [{label:"Fogyasztás", color:css("--ink"), kind:"line", w:2.4}] : []));
+  legend("loadLeg", [{label:"Tény", color:css("--ink"), kind:"line", w:2.6}, {label:"Day-ahead előrejelzés", color:css("--c1"), kind:"dash"}]);
+  legend("resLeg", [{label:"Fogyasztás", color:css("--ink"), kind:"line", w:2.2}, {label:"Nap + szél", color:css("--c4"), kind:"line", w:2.2}, {label:"Maradék terhelés", color:css("--c1"), kind:"line", w:2.8}, {label:"Maradék terhelés, előrejelzés", color:css("--c1"), kind:"dash"}]);
+  legend("swLeg", [{label:"Tény", color:css("--ink"), kind:"line", w:2.6}, {label:"Day-ahead előrejelzés", color:css("--c1"), kind:"dash"}]);
+  legend("flowLeg", [{label:"Fizikai (mért)", color:css("--ink"), kind:"line", w:2.6}, {label:"Menetrendezett (végleges)", color:css("--c1"), kind:"line", w:2.2}, {label:"Menetrendezett (day-ahead)", color:css("--c1"), kind:"dot"}, {label:"Nem menetrendezett", color:css("--c2")}]);
+  legend("outLeg", [{label:"Tervezett", color:css("--c1")}, {label:"Nem tervezett", color:css("--c8")}]);
+  legend("impLeg", [{label:"Eltérési ár, többlet (long)", color:css("--c1"), kind:"line"}, {label:"Eltérési ár, hiány (short)", color:css("--c2"), kind:"line"}, {label:"Day-ahead ár (zóna)", color:css("--ink"), kind:"dash", w:1.8}]);
+  legend("balLeg", M.isHU ? [{label:"Felfelé aktivált", color:css("--c2")}, {label:"Lefelé aktivált", color:css("--c1")}, {label:"Felfelé felajánlott", color:css("--c2"), kind:"dash"}, {label:"Lefelé felajánlott", color:css("--c1"), kind:"dash"}] : []);
+  legend("balPrLeg", M.isHU ? [{label:"Felfelé szabályozás ára", color:css("--c2"), kind:"line"}, {label:"Lefelé szabályozás ára", color:css("--c1"), kind:"line"}] : []);
+  legend("snspLeg", [{label:"Nem-szinkron részarány", color:css("--c3"), kind:"line", w:2.6}, {label:"Importfüggés", color:css("--c1"), kind:"line", w:2.2}]);
+}
+
+// ---- termelési mix
+function genSection(){
+  const host = $("genChart");
+  const S = GRP.filter(g => M.G[g.k]).map(g => ({label:g.n, color:css(g.c), values:M.G[g.k]}));
+  const imp = M.net.map(v => v == null ? null : Math.max(v, 0)), exp = M.net.map(v => v == null ? null : Math.max(-v, 0));
+  chart(host, {series:S, stack:true, empty:"A termelési mix nem érhető el az ENTSO-E-n.",
+    hatch: M.net.some(has) ? {imp, exp} : null,
+    overlay: M.la.some(has) ? [{label:"Fogyasztás", color:css("--ink"), values:M.la, w:2.4}] : []});
+  // összetétel táblázat
+  const i = M.last, box = $("genTable");
+  if (i < 0 || !S.length){ noData(box, "Nincs elég adat."); }
+  else {
+    const inst = E.installed_mw || {};
+    let h = '<table><thead><tr><th>Típus</th><th class="r">MW</th><th class="r">Részarány</th><th class="r hide-sm">Beépített, MW</th><th class="r hide-sm">Kihasználtság</th><th class="hide-sm"></th></tr></thead><tbody>';
+    const rows = GRP.filter(g => M.G[g.k] && M.G[g.k][i] != null).sort((a, b) => M.G[b.k][i] - M.G[a.k][i]);
+    rows.forEach(g => {
+      const v = M.G[g.k][i], sh = v / M.gen[i] * 100, ic = inst[g.k], cf = ic ? v / ic * 100 : null;
+      h += '<tr><td class="nm"><i style="background:' + css(g.c) + '"></i>' + g.n + '</td><td class="r num">' + nf0.format(v) + '</td><td class="r num">' + nf1.format(sh) + ' %</td>' +
+        '<td class="r num hide-sm">' + (ic ? nf0.format(ic) : "–") + '</td><td class="r num hide-sm">' + (cf == null ? "–" : nf0.format(cf) + " %") + '</td>' +
+        '<td class="hide-sm" style="width:22%"><div class="mini"><b style="width:' + Math.min(100, sh) + '%;background:' + css(g.c) + '"></b></div></td></tr>';
+    });
+    box.innerHTML = h + '</tbody></table><p class="note">' + span(i) + '. A beépített teljesítmény az ENTSO-E legutóbbi közölt éves adata; a kihasználtság ehhez viszonyított pillanatnyi terhelés. A háztartási napelemek nagy része nem szerepel a közölt adatokban.</p>';
+  }
+  // CO2
+  const cs = [{label:"CO₂-intenzitás, " + zoneName(), color:css("--c3"), values:M.co2, w:2.6}];
+  if (!M.isHU){
+    const hu = co2Of(E0.generation || {}, (E0.co2 || {}).factors || {}, E0.hourly_ts.length), mp = new Map(E0.hourly_ts.map((t, i) => [new Date(t).getTime(), hu[i]]));
+    cs.push({label:"Magyarország (összevetés)", color:css("--ink2"), values:M.T.map(t => mp.has(t.getTime()) ? mp.get(t.getTime()) : null), w:2, dash:"6 4"});
+  }
+  chart($("co2Chart"), {series:cs, unit:"g/kWh", empty:"A CO₂-intenzitáshoz nincs elég termelési adat."});
+  legend("co2Leg", cs.length > 1 ? cs.map((c, i) => ({label:c.label, color:c.color, kind:i ? "dash" : "line", w:2.6})) : []);
+  co2Rank();
+  $("co2Note").textContent = "Termelés-alapú, életciklus-szemléletű becslés: a termelés típusonkénti arányát szorozzuk az IPCC AR5 WG3 Annex III medián-tényezőivel (atom 12, gáz 490, szén 820, nap 48, szél 11, biomassza és hulladék 230, víz 24 g/kWh; egyéb: 700, becslés). Az import szén-dioxid-tartalma nincs benne, ezért ez nem a fogyasztás szén-dioxid-lábnyoma.";
+}
+
+// ---- CO2: óránkénti és ablak-átlag, bármely országra
+function co2Of(G, f, n){
+  const keys = GRP.map(g => g.k).filter(k => G[k]), out = new Array(n).fill(null);
+  if (!keys.length) return out;
+  for (let i = 0; i < n; i++){
+    let e = 0, g = 0, full = true;
+    keys.forEach(k => { const v = G[k][i]; if (v == null || f[k] == null) full = false; else { e += v * f[k]; g += v; } });
+    if (full && g > 0) out[i] = e / g;
+  }
+  return out;
+}
+function co2Mean(G, f, i0, n){
+  const keys = GRP.map(g => g.k).filter(k => G[k]);
+  let e = 0, g = 0, hours = 0;
+  if (!keys.length) return null;
+  for (let i = i0; i < n; i++){
+    let ee = 0, gg = 0, full = true;
+    keys.forEach(k => { const v = G[k][i]; if (v == null || f[k] == null) full = false; else { ee += v * f[k]; gg += v; } });
+    if (full && gg > 0){ e += ee; g += gg; hours++; }
+  }
+  return g > 0 ? {v:e / g, hours} : null;
+}
+function co2Rank(){
+  const host = $("co2Rank"), note = $("co2RankNote"), zl = zoneList(), f = (E0.co2 || {}).factors || {};
+  const items = [];
+  zl.list.forEach(z => {
+    const src = z === "HU" ? E0 : (C0.zones[z] ? {hourly_ts:C0.hourly_ts, generation:C0.zones[z].generation || {}} : null);
+    if (!src || !src.generation) return;
+    const [i0, i1] = winRange(src.hourly_ts, SEL.win), r = co2Mean(src.generation, f, i0, i1);
+    if (r) items.push({z, name:zl.names[z] || z, v:r.v, hours:r.hours});
+  });
+  host.innerHTML = "";
+  if (items.length < 2){ noData(host, "Az országok összevetéséhez az országadatok (countries.json) kellenek."); note.textContent = ""; return; }
+  items.sort((a, b) => a.v - b.v);
+  const W = Math.max(320, host.clientWidth), narrow = W < 520, labW = narrow ? 128 : 170, rh = 24, H = items.length * rh + 12;
+  const shortN = (nm) => narrow ? nm.replace("Németország–Luxemburg", "Németo.–Lux.").replace("Észak-Olaszország", "Észak-Olasz.").replace("Spanyolország", "Spanyolo.").replace("Franciaország", "Franciao.") : nm;
+  const svg = el("svg", {viewBox:"0 0 " + W + " " + H, width:W, height:H}, host);
+  const mx = Math.max(...items.map(x => x.v)) * 1.12, bw = W - labW - 64;
+  const ink = css("--ink"), ink2 = css("--ink2"), grid = css("--grid");
+  items.forEach((it, k) => {
+    const y = 6 + k * rh, sel = it.z === SEL.zone, w = Math.max(2, it.v / mx * bw);
+    const t = el("text", {x:labW - 8, y:y + 14, "text-anchor":"end", "font-size":12.5, fill:sel ? ink : ink2, "font-weight":sel ? 700 : 500}, svg); t.textContent = shortN(it.name);
+    el("rect", {x:labW, y:y + 2, width:w, height:rh - 8, rx:4, fill:sel ? css("--c3") : css("--c1"), opacity:sel ? 1 : .5}, svg);
+    const v = el("text", {x:labW + w + 6, y:y + 14, "font-size":12.5, fill:ink, "font-weight":sel ? 700 : 500}, svg); v.textContent = nf0.format(it.v);
+    const tt = el("title", {}, svg); tt.textContent = it.name + ": " + nf0.format(it.v) + " g/kWh (" + it.hours + " teljes óra alapján)";
+  });
+  el("line", {x1:labW, x2:labW, y1:2, y2:H - 4, stroke:grid}, svg);
+  const un = el("text", {x:W - 4, y:H - 2, "text-anchor":"end", "font-size":11, fill:css("--muted")}, svg); un.textContent = "g/kWh";
+  note.textContent = "Az átlag a kiválasztott időablak azon óráiból készül, amelyekre az adott országnál a termelés minden közölt típusa megvan, a termelés szerint súlyozva (a kisebb szolgáltatói lefedettségű országoknál pontatlanabb lehet). A tényezők mindenhol ugyanazok, az országok közti különbség csak a termelési mixből ered; a villamosenergia-kereskedelem (import) hatása nincs benne.";
+}
+
+// ---- fogyasztás
+function loadSection(){
+  const S = [{label:"Tény", color:css("--ink"), values:M.la, w:2.6, short:"tény"}, {label:"Day-ahead előrejelzés", color:css("--c1"), values:M.lf, w:2.2, dash:"6 4", short:"előrejelzés"}];
+  chart($("loadChart"), {series:S, future:true, zero:false, empty:"A fogyasztás nem érhető el az ENTSO-E-n.",
+    extra: i => M.err[i] == null ? "" : '<div class="sub">Hiba (tény − előrejelzés): ' + signed(M.err[i]) + ' MW</div>'});
+  chart($("loadErr"), {series:[{label:"Tény − előrejelzés", color:css("--c2"), values:M.err, kind:"bar"}], height:190, empty:"Hiba csak akkor számolható, ha a tény és az előrejelzés is megvan."});
+  const e = M.err.filter(has), box = $("loadTiles");
+  if (!e.length){ box.innerHTML = ""; return; }
+  const mae = e.reduce((s, v) => s + Math.abs(v), 0) / e.length, bias = e.reduce((s, v) => s + v, 0) / e.length;
+  const mx = e.reduce((a, v) => Math.abs(v) > Math.abs(a) ? v : a, 0), mi = M.err.indexOf(mx);
+  const avg = M.la.filter(has).reduce((s, v) => s + v, 0) / M.la.filter(has).length;
+  box.innerHTML = tile("Átlagos abszolút hiba", nf0.format(mae) + " <small>MW</small>", nf1.format(mae / avg * 100) + " % az átlagos terheléshez képest") +
+    tile("Átlagos eltolódás", signed(bias) + " <small>MW</small>", bias > 0 ? "a tény átlagosan magasabb" : "a tény átlagosan alacsonyabb") +
+    tile("Legnagyobb hiba", signed(mx) + " <small>MW</small>", span(mi));
+}
+
+// ---- maradék terhelés
+function resSection(){
+  const S = [
+    {label:"Fogyasztás", color:css("--ink"), values:M.la, w:2.2, short:"fogyasztás"},
+    {label:"Nap + szél", color:css("--c4"), values:M.sw, w:2.2, short:"nap+szél"},
+    {label:"Maradék terhelés", color:css("--c1"), values:M.res, w:2.8, short:"maradék"},
+    {label:"Maradék terhelés, előrejelzés", color:css("--c1"), values:M.resF, w:2, dash:"6 4"}
+  ];
+  chart($("resChart"), {series:S, future:true, empty:"Maradék terheléshez fogyasztás és nap/szél termelés kell.",
+    extra: i => i > 0 && M.res[i] != null && M.res[i-1] != null ? '<div class="sub">Változás az előző órához: ' + signed(M.res[i] - M.res[i-1]) + ' MW/h</div>' : ""});
+  const ramp = (arr) => { let best = null, bi = -1; for (let i = 1; i < arr.length; i++){ if (arr[i] == null || arr[i-1] == null) continue; const d = arr[i] - arr[i-1]; if (best == null || d > best){ best = d; bi = i; } } return {v:best, i:bi}; };
+  const rA = ramp(M.res), rF = ramp(M.resF.map((v, i) => i <= M.nowIdx ? null : v));
+  const idxMin = (() => { let b = null, bi = -1; M.res.forEach((v, i) => { if (v != null && (b == null || v < b)){ b = v; bi = i; } }); return {v:b, i:bi}; })();
+  const t = [];
+  if (rA.v != null) t.push(tile("Legnagyobb óránkénti emelkedés (tény)", signed(rA.v) + " <small>MW/h</small>", span(rA.i)));
+  if (rF.v != null) t.push(tile("Várt legnagyobb emelkedés (előrejelzés)", signed(rF.v) + " <small>MW/h</small>", span(rF.i)));
+  if (idxMin.v != null) t.push(tile("Legkisebb maradék terhelés", nf0.format(idxMin.v) + " <small>MW</small>", span(idxMin.i)));
+  if (D && D.prices && D.prices.zones.HU){
+    const hp = D.prices.zones.HU, ts = D.prices.ts.map(s => new Date(s));
+    const step = ts.length > 1 ? ts[1] - ts[0] : 3600e3, byDay = {};
+    ts.forEach((tt, i) => { if (hp[i] != null && hp[i] < 0){ const k = localDayKey(tt); byDay[k] = (byDay[k] || 0) + step / 3600e3; } });
+    const today = localDayKey(NOW), tom = localDayKey(new Date(NOW.getTime() + 24 * 3600e3));
+    t.push(tile("Negatív árú órák ma / holnap", nf1.format(byDay[today] || 0) + " / " + nf1.format(byDay[tom] || 0) + " <small>óra</small>", "day-ahead, Magyarország"));
+  }
+  $("resTiles").innerHTML = t.join("");
+  chart($("solChart"), {series:[{label:"Nap, tény", color:css("--ink"), values:M.sol, w:2.6, short:"tény"}, {label:"Nap, előrejelzés", color:css("--c1"), values:(M.SW.solar||[]), w:2.2, dash:"6 4", short:"előrejelzés"}], future:true, height:230, empty:"A napelemes termelés vagy előrejelzése nem érhető el.",
+    extra: i => M.sol[i] != null && (M.SW.solar||[])[i] != null ? '<div class="sub">Hiba: ' + signed(M.sol[i] - M.SW.solar[i]) + ' MW</div>' : ""});
+  chart($("windChart"), {series:[{label:"Szél, tény", color:css("--ink"), values:M.wnd, w:2.6, short:"tény"}, {label:"Szél, előrejelzés", color:css("--c1"), values:(M.SW.wind||[]), w:2.2, dash:"6 4", short:"előrejelzés"}], future:true, height:200, empty:"A széltermelés vagy előrejelzése nem érhető el."});
+}
+
+// ---- határkeresztező áramlás
+function chips(){
+  const F = E.flows || {}, box = $("flowChips"); box.innerHTML = "";
+  const codes = Object.keys(F).filter(c => F[c].phys_net && F[c].sched_net);
+  if (codes.length) [["ALL", "Összes határ"], ...codes.map(c => [c, BN[c] || c])].forEach(([c, name]) => {
+    const b = document.createElement("button"); b.className = "chip"; b.type = "button";
+    b.setAttribute("aria-pressed", c === flowSel ? "true" : "false"); b.textContent = name;
+    b.onclick = () => { flowSel = c; chips(); flowSection(); };
+    box.appendChild(b);
+  });
+  const ob = $("outChips"); ob.innerHTML = "";
+  [[14, "Következő 14 nap"], [45, "Következő 45 nap"]].forEach(([d, name]) => {
+    const b = document.createElement("button"); b.className = "chip"; b.type = "button";
+    b.setAttribute("aria-pressed", d === outSpan ? "true" : "false"); b.textContent = name;
+    b.onclick = () => { outSpan = d; chips(); outSection(); };
+    ob.appendChild(b);
+  });
+}
+function flowSeries(code){
+  const F = E.flows || {}, n = M.n;
+  const codes = code === "ALL" ? Object.keys(F).filter(c => F[c].phys_net && F[c].sched_net) : [code];
+  const phys = new Array(n).fill(null), sch = new Array(n).fill(null), da = new Array(n).fill(null);
+  for (let i = 0; i < n; i++){
+    let ok = codes.length > 0, p = 0, s = 0, d = 0, dOk = codes.length > 0;
+    codes.forEach(c => {
+      const f = F[c], pv = f.phys_net && f.phys_net[i], sv = f.sched_net && f.sched_net[i], dv = f.sched_da_net && f.sched_da_net[i];
+      if (pv == null || sv == null) ok = false; else { p += pv; s += sv; }
+      if (dv == null) dOk = false; else d += dv;
+    });
+    if (ok){ phys[i] = p; sch[i] = s; }
+    if (dOk) da[i] = d;
+  }
+  return {phys, sch, da, codes};
+}
+function flowSection(){
+  const F = E.flows || {};
+  if (!Object.keys(F).length){ noData($("flowChart"), "A menetrendezett áramlás nem érhető el az ENTSO-E-n."); noData($("flowDiff"), "Nincs adat."); $("flowTable").innerHTML = ""; ntcSection(); return; }
+  const fs = flowSeries(flowSel);
+  chart($("flowChart"), {
+    series:[
+      {label:"Fizikai (mért)", color:css("--ink"), values:fs.phys, w:2.6, short:"fizikai"},
+      {label:"Menetrendezett (végleges)", color:css("--c1"), values:fs.sch, w:2.2, short:"menetrend"},
+      {label:"Menetrendezett (day-ahead)", color:css("--c1"), values:fs.da, w:2.2, dash:"2 4"}
+    ],
+    band:{a:fs.phys, b:fs.sch, color:css("--c2"), label:"Nem menetrendezett"},
+    future:true, zero:true, empty:"Ehhez a határhoz nincs egyszerre fizikai és menetrendezett adat."
+  });
+  chart($("flowDiff"), {series:[{label:"Nem menetrendezett", color:css("--c2"), values:fs.phys.map((v, i) => v == null || fs.sch[i] == null ? null : v - fs.sch[i]), kind:"bar"}], height:190, empty:"Nincs egyszerre fizikai és menetrendezett adat."});
+  // táblázat az utolsó 24 teljes órából
+  const rows = [];
+  Object.keys(F).forEach(c => {
+    const f = F[c]; if (!f.phys_net || !f.sched_net) return;
+    const ix = []; for (let i = M.n - 1; i >= 0 && ix.length < 24; i--) if (f.phys_net[i] != null && f.sched_net[i] != null) ix.push(i);
+    if (!ix.length) return;
+    const avg = a => ix.reduce((s, i) => s + a(i), 0) / ix.length;
+    const diff = avg(i => f.phys_net[i] - f.sched_net[i]);
+    const mx = ix.reduce((a, i) => Math.max(a, Math.abs(f.phys_net[i] - f.sched_net[i])), 0);
+    rows.push({c, ph:avg(i => f.phys_net[i]), sc:avg(i => f.sched_net[i]), diff, mx, n:ix.length});
+  });
+  rows.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+  if (!rows.length){ $("flowTable").innerHTML = '<div class="nodata">Nincs olyan határ, amelyre egyszerre van fizikai és menetrendezett adat.</div>'; }
+  else {
+    let h = '<table><thead><tr><th>Határ</th><th class="r">Fizikai, MW</th><th class="r">Menetrend, MW</th><th class="r">Különbség, MW</th><th class="r hide-sm">Legnagyobb eltérés, MW</th></tr></thead><tbody>';
+    rows.forEach(r => h += '<tr><td class="nm">' + esc(BN[r.c] || r.c) + '</td><td class="r num">' + signed(r.ph) + '</td><td class="r num">' + signed(r.sc) + '</td><td class="r num"><b>' + signed(r.diff) + '</b></td><td class="r num hide-sm">' + nf0.format(r.mx) + '</td></tr>');
+    $("flowTable").innerHTML = h + '</tbody></table><p class="note">Átlag az utolsó, legfeljebb 24 olyan órából, amelyre a határnál mindkét adat megvan. Pozitív különbség: a tényleges import nagyobb (vagy az export kisebb), mint amit a menetrend szerint megrendeltek.</p>';
+  }
+  ntcSection();
+}
+function ntcSection(){
+  const F = E.flows || {}, box = $("ntcBox");
+  const withN = Object.keys(F).filter(c => F[c].ntc_in || F[c].ntc_out);
+  const without = Object.keys(F).filter(c => !(F[c].ntc_in || F[c].ntc_out));
+  let h = "";
+  if (withN.length){
+    h += '<table><thead><tr><th>Irány</th><th class="r">NTC, MW</th><th class="r">Menetrend, MW</th><th class="r">Kihasználtság</th><th class="hide-sm"></th></tr></thead><tbody>';
+    withN.forEach(c => [["in", c + " → HU"], ["out", "HU → " + c]].forEach(([d, label]) => {
+      const nt = F[c]["ntc_" + d]; if (!nt) return;
+      let i = -1; for (let k = M.n - 1; k >= 0; k--) if (nt[k] != null && F[c].sched_net && F[c].sched_net[k] != null){ i = k; break; }
+      if (i < 0) return;
+      const sn = F[c].sched_net[i], sc = d === "in" ? Math.max(sn, 0) : Math.max(-sn, 0), u = nt[i] > 0 ? sc / nt[i] * 100 : null;
+      h += '<tr><td class="nm">' + esc(label) + '</td><td class="r num">' + nf0.format(nt[i]) + '</td><td class="r num">' + nf0.format(sc) + '</td><td class="r num"><b>' + (u == null ? "–" : nf0.format(u) + " %") + '</b></td><td class="hide-sm" style="width:26%"><div class="mini"><b style="width:' + Math.min(100, u || 0) + '%"></b></div></td></tr>';
+    }));
+    h += '</tbody></table>';
+  }
+  if (without.length){
+    h += '<p class="note">' + without.map(c => esc(BN[c] || c)).join(", ") + ': nincs határonkénti nap előtti NTC-érték. A Core régió határain a nap előtti kapacitást a flow-based módszer határozza meg, ennek részletei a JAO publikációs felületén érhetők el, nem az ENTSO-E határonkénti NTC-adatai között.</p>';
+  }
+  if (!h) h = '<div class="nodata">Határonkénti kapacitásadat nem érhető el.</div>';
+  box.innerHTML = h;
+}
+
+// ---- blokkszintű hőtérkép
+function unitSection(){
+  const host = $("unitHeat"); host.innerHTML = "";
+  const U = E.units || [];
+  if (!U.length){ noData(host, "Blokkszintű termelési adat nem érhető el az ENTSO-E-n."); return; }
+  const order = GRP.map(g => g.k), us = U.slice().sort((a, b) => order.indexOf(a.group) - order.indexOf(b.group) || unitLabel(a.name).localeCompare(unitLabel(b.name), "hu"));
+  let n = 0; us.forEach(u => { n = Math.max(n, lastIdx(u.mw) + 2); }); n = Math.min(n, M.n);
+  const W = Math.max(320, host.clientWidth), narrow = W < 520, labW = narrow ? 126 : 190, rh = narrow ? 24 : 26, top = 30;
+  const H = top + us.length * rh + 28, x0 = labW, x1 = W - 8, cw = (x1 - x0) / n;
+  const svg = el("svg", {viewBox:"0 0 " + W + " " + H, width:W, height:H}, host);
+  const ink = css("--ink"), ink2 = css("--ink2"), muted = css("--muted"), grid = css("--grid"), dark = isDark();
+  const color = f => { const k = dark ? 1 - f : f, idx = Math.max(0, Math.min(RAMP.length - 1, Math.round(k * (RAMP.length - 1)))); return RAMP[idx]; };
+  const lstep = narrow ? 12 : 6; let lastKey = null;
+  M.T.slice(0, n).forEach((t, i) => {
+    const p = localParts(t), key = localDayKey(t), x = x0 + i * cw;
+    if (key !== lastKey){ lastKey = key; const dl = el("text", {x:x + 2, y:12, "font-size":12, fill:ink2, "font-weight":650}, svg); dl.textContent = fDate.format(t); if (i > 0) el("line", {x1:x, x2:x, y1:18, y2:H - 26, stroke:grid}, svg); }
+    if (p.h % lstep === 0){ const lab = el("text", {x:x + cw/2, y:H - 10, "text-anchor":"middle", "font-size":11, fill:ink2}, svg); lab.textContent = String(p.h).padStart(2,"0"); }
+  });
+  us.forEach((u, r) => {
+    const y = top + r * rh, vals = u.mw, mx = Math.max(...vals.filter(has), 1);
+    const li = lastIdx(vals);
+    const gname = (GRP.find(g => g.k === u.group) || {}).c;
+    el("rect", {x:0, y:y + 5, width:4, height:rh - 10, rx:2, fill:gname ? css(gname) : muted}, svg);
+    const lab = el("text", {x:10, y:y + rh/2 + 4, "font-size":narrow ? 11 : 12.5, fill:ink}, svg);
+    const ul = unitLabel(u.name); lab.textContent = ul.length > (narrow ? 18 : 24) ? ul.slice(0, narrow ? 17 : 23) + "…" : ul;
+    if (!narrow && li >= 0){ const vt = el("text", {x:labW - 6, y:y + rh/2 + 4, "text-anchor":"end", "font-size":12, fill:ink2}, svg); vt.textContent = nf0.format(vals[li]) + " MW"; }
+    vals.forEach((v, i) => {
+      if (v == null) return;
+      el("rect", {x:x0 + i * cw + .5, y:y + 2, width:Math.max(1, cw - 1), height:rh - 4, rx:2, fill: v <= 0 ? css("--neutral") : color(Math.min(1, v / mx))}, svg);
+    });
+  });
+  { const nfh = (NOW - M.T[0]) / 3600e3; if (nfh >= 0 && nfh <= n){ const x = x0 + nfh * cw; el("line", {x1:x, x2:x, y1:18, y2:H - 26, stroke:ink2, "stroke-width":1.2, "stroke-dasharray":"4 3"}, svg); } }
+  // hover
+  const tip = document.createElement("div"); tip.className = "tip"; host.appendChild(tip);
+  const mv = ev => {
+    const r = svg.getBoundingClientRect(), sx = W / r.width, px = (ev.clientX - r.left) * sx, py = (ev.clientY - r.top) * sx;
+    const i = Math.floor((px - x0) / cw), k = Math.floor((py - top) / rh);
+    if (i < 0 || i >= n || k < 0 || k >= us.length || us[k].mw[i] == null){ tip.style.display = "none"; return; }
+    const u = us[k], v = u.mw[i], mx = Math.max(...u.mw.filter(has), 1);
+    tip.innerHTML = '<div class="t">' + esc(unitLabel(u.name)) + (unitLabel(u.name) !== u.name ? ' <span style="font-weight:400;color:var(--muted)">(' + esc(u.name) + ')</span>' : '') + '</div><div class="sub" style="margin:0 0 3px">' + span(i) + '</div>' + row(null, "Teljesítmény", nf0.format(v) + " MW") + row(null, "A megfigyelt maximum százaléka", nf0.format(v / mx * 100) + " %") + (u.type ? '<div class="sub">' + esc(u.type) + '</div>' : "");
+    tip.style.display = "block";
+    const s = 1 / sx, tw = tip.offsetWidth, left = px * s + 14;
+    tip.style.left = (left + tw > r.width ? Math.max(0, px * s - tw - 14) : left) + "px"; tip.style.top = Math.max(0, py * s - 10) + "px";
+  };
+  svg.addEventListener("pointermove", mv); svg.addEventListener("pointerdown", mv); svg.addEventListener("pointerleave", () => tip.style.display = "none");
+}
+
+// ---- kiesések (Gantt)
+function gantt(host, items, emptyMsg){
+  host.innerHTML = "";
+  const t0 = NOW.getTime() - 2 * 86400e3, t1 = NOW.getTime() + outSpan * 86400e3;
+  const list = items.filter(o => new Date(o.end).getTime() >= t0 && new Date(o.start).getTime() <= t1);
+  if (!list.length){ noData(host, emptyMsg); return; }
+  const W = Math.max(320, host.clientWidth), narrow = W < 520, rh = 38, top = 28, x0 = 8, x1 = W - 8;
+  const H = top + list.length * rh + 6;
+  const svg = el("svg", {viewBox:"0 0 " + W + " " + H, width:W, height:H}, host);
+  const ink = css("--ink"), ink2 = css("--ink2"), muted = css("--muted"), grid = css("--grid");
+  const X = t => x0 + (Math.max(t0, Math.min(t1, t)) - t0) / (t1 - t0) * (x1 - x0);
+  const days = Math.round((t1 - t0) / 86400e3), stepD = days > 30 ? 7 : days > 16 ? 2 : 1;
+  for (let d = 0; d <= days; d++){
+    const t = new Date(t0 + d * 86400e3); const p = localParts(t);
+    if (d % stepD === 0){
+      const x = X(t.getTime()); el("line", {x1:x, x2:x, y1:18, y2:H, stroke:grid}, svg);
+      if (x < x1 - 34){ const lab = el("text", {x:x + 2, y:12, "font-size":11, fill:ink2}, svg); lab.textContent = fDate.format(t); }
+    }
+  }
+  list.forEach((o, r) => {
+    const y = top + r * rh, s = new Date(o.start).getTime(), e = new Date(o.end).getTime();
+    const col = o.planned ? css("--c1") : css("--c8");
+    const av = o.avail_mw, nom = o.nominal_mw;
+    const txt = (o.name ? unitLabel(o.name) : ((BN[o.border] || o.border) + ": " + o.from + " → " + o.to)) + " · " + (av == null ? "?" : nf0.format(av)) + (nom ? " / " + nf0.format(nom) : "") + " MW" + (o.planned ? "" : " · nem tervezett");
+    const lab = el("text", {x:x0 + 2, y:y + 12, "font-size":narrow ? 11.5 : 12.5, fill:ink, stroke:css("--surface"), "stroke-width":3, "paint-order":"stroke"}, svg); lab.textContent = txt.length > (narrow ? 44 : 90) ? txt.slice(0, narrow ? 43 : 89) + "…" : txt;
+    const bx = X(s), bw = Math.max(3, X(e) - bx);
+    el("rect", {x:bx, y:y + 18, width:bw, height:11, rx:3, fill:col}, svg);
+    const tt = el("title", {}, svg); tt.textContent = txt + " | " + fFull.format(new Date(s)) + " – " + fFull.format(new Date(e));
+  });
+  if (NOW.getTime() >= t0 && NOW.getTime() <= t1){ const x = X(NOW.getTime()); el("line", {x1:x, x2:x, y1:18, y2:H, stroke:ink2, "stroke-width":1.2, "stroke-dasharray":"4 3"}, svg); const mt = el("text", {x:x + 4, y:H - 2, "font-size":11, fill:ink2}, svg); mt.textContent = "most"; }
+}
+function outSection(){
+  const G = (E.outages_gen || []).slice().sort((a, b) => (a.planned - b.planned) || a.start.localeCompare(b.start));
+  const X = (E.outages_tx || []).slice().sort((a, b) => (a.planned - b.planned) || a.start.localeCompare(b.start));
+  gantt($("outGen"), G, "Az ENTSO-E nem közölt termelő-kiesést erre az időszakra.");
+  gantt($("outTx"), X, "Az ENTSO-E nem közölt határkeresztező hálózati kiesést erre az időszakra.");
+}
+
+function hupxSection(){
+  const card = $("cHupx");
+  if (!HX || !HX.items || !HX.items.length){ card.style.display = "none"; return; }
+  if (SEL.zone === "HU") card.style.display = "";
+  const lim = NOW.getTime() + 60 * 86400e3;
+  const L = HX.items.map(o => Object.assign({}, o, {end:o.open_end || !o.end ? new Date(Math.min(lim, new Date(o.start).getTime() + 60 * 86400e3)).toISOString() : o.end,
+    name:o.name + (o.participant ? " (" + o.participant + ")" : "")})).sort((a, b) => (a.planned - b.planned) || a.start.localeCompare(b.start));
+  gantt($("hxGantt"), L, "A HUPX nem közölt villamosenergia-kiesést erre az időszakra.");
+  const R = HX.items.slice().sort((a, b) => String(b.published).localeCompare(String(a.published))).slice(0, 12);
+  $("hxTable").innerHTML = '<div class="tbl"><table><thead><tr><th>Közzétéve</th><th>Egység</th><th>Típus</th><th class="r">Elérhető / névleges, MW</th><th>Időszak</th><th>Ok</th></tr></thead><tbody>' +
+    R.map(o => '<tr><td>' + (o.published ? fDate.format(new Date(o.published)) + " " + fTime.format(new Date(o.published)) : "–") + '</td><td>' + esc(o.name) + (o.participant ? '<br><span style="color:var(--ink2);font-size:12.5px">' + esc(o.participant) + '</span>' : "") + '</td><td>' + (o.planned ? "tervezett" : "nem tervezett") + '</td><td class="r num">' +
+      (o.avail_mw == null ? "?" : nf0.format(o.avail_mw)) + (o.nominal_mw ? " / " + nf0.format(o.nominal_mw) : "") + '</td><td>' + fDate.format(new Date(o.start)) + " – " + (o.open_end || !o.end ? "nyitott" : fDate.format(new Date(o.end))) + '</td><td>' + esc(o.reason_hu || o.reason || "") + '</td></tr>').join("") + '</tbody></table></div>';
+}
+
+// ---- rendszeregyensúly
+function balSection(){
+  const I = E.imbalance || {}, B = E.balancing || {}, n = M.n;
+  const da = new Array(n).fill(null);
+  if (D && D.prices && D.prices.zones[SEL.zone]){
+    const ts = D.prices.ts, hp = D.prices.zones[SEL.zone], acc = {};
+    ts.forEach((s, i) => { if (hp[i] == null) return; const t = new Date(s).getTime(), k = Math.floor(t / 3600e3) * 3600e3; (acc[k] = acc[k] || []).push(hp[i]); });
+    M.T.forEach((t, i) => { const a = acc[t.getTime()]; if (a) da[i] = a.reduce((s, v) => s + v, 0) / a.length; });
+  }
+  chart($("impChart"), {series:[
+    {label:"Többlet (long)", color:css("--c1"), values:I.long || [], w:2.2, short:"long"},
+    {label:"Hiány (short)", color:css("--c2"), values:I.short || [], w:2.2, short:"short"},
+    {label:"Day-ahead ár (" + SEL.zone + ")", color:css("--ink"), values:da, w:1.8, dash:"6 4"}
+  ], unit:"€/MWh", zero:false, fmt:v => nf1.format(v), empty:"Az eltérési árak nem érhetők el az ENTSO-E-n.", future:true});
+  const mk = (id, key, label) => {
+    if (!M.isHU){ noData($(id), label + ": az aktivált szabályozási teljesítményt csak Magyarországra gyűjtjük."); return; }
+    const g = k => B[key + "_" + k] || [];
+    const neg = a => a.map(v => v == null ? null : -v);
+    chart($(id), {series:[
+      {label:label + ", felfelé aktivált", color:css("--c2"), values:g("up"), kind:"bar"},
+      {label:label + ", lefelé aktivált", color:css("--c1"), values:neg(g("down")), kind:"bar"},
+      {label:label + ", felfelé felajánlott", color:css("--c2"), values:g("up_offered"), w:1.6, dash:"5 4", op:.75},
+      {label:label + ", lefelé felajánlott", color:css("--c1"), values:neg(g("down_offered")), w:1.6, dash:"5 4", op:.75}
+    ], height:210, empty:label + ": az ENTSO-E erre az időszakra nem közölt aktivált teljesítményt (GL EB 12.3.E aggregált ajánlatok).",
+      extra:i => '<div class="sub">A „le” irány negatívként látszik. Órás átlag, MW.</div>'});
+  };
+  mk("afrrChart", "afrr", "aFRR");
+  mk("mfrrChart", "mfrr", "mFRR");
+  const mp = (id, key, label) => {
+    if (!M.isHU){ noData($(id), label + ": az árakat csak Magyarországra gyűjtjük."); return; }
+    chart($(id), {series:[
+      {label:label + ", felfelé", color:css("--c2"), values:B[key + "_price_up"] || [], w:2.2, short:"fel"},
+      {label:label + ", lefelé", color:css("--c1"), values:B[key + "_price_down"] || [], w:2.2, short:"le"}
+    ], unit:"€/MWh", zero:true, height:210, fmt:v => nf1.format(v), empty:label + ": az aktivált energia ára nem érhető el (17.1.F)."});
+  };
+  mp("afrrPrice", "afrr", "aFRR");
+  mp("mfrrPrice", "mfrr", "mFRR");
+  finSection();
+  chart($("volChart"), {series:[{label:"Eltérési mennyiség", color:css("--c7"), values:I.volume || [], w:2.2}], height:200, empty:"Az eltérési mennyiség nem érhető el."});
+  $("balNote").textContent = "Az eltérési mennyiség előjele az ENTSO-E közlését követi; az irány megítéléséhez az aktivált szabályozási teljesítményt érdemes nézni: ha több a felfelé, a rendszer hiányban volt. Az aFRR az automatikus, az mFRR a kézi frekvenciahelyreállító tartalék. Az aktivált és a felajánlott teljesítmény az ENTSO-E aggregált szabályozási energia ajánlatai (GL EB 12.3.E; a régi 17.1.E közlést ez váltotta ki), óránkénti átlagban; a felajánlott érték az összes benyújtott ajánlat teljesítménye, az aktivált az ebből ténylegesen igénybe vett rész. Az árak az aktivált szabályozási energia (17.1.F) közölt árai.";
+}
+
+// ---- havi pénzügyi mérleg (ENTSO-E 17.1.I)
+// Az ENTSO-E az A01 ("up") és A02 ("down") irányjelöléssel két értéket közöl havonta. A Manual of Procedures szerint ezek a
+// TSO kiadása (tartalék-beszerzés + aktivált szabályozási energia) és a TSO nettó bevétele az eltérések elszámolásából.
+// A megfeleltetés (A01 = kiadás, A02 = bevétel) a közlés irányjelölésén alapul; ha a platform felirata mást mutat, itt cserélhető.
+const FIN_MAP = {exp:"up", inc:"down"};
+function moneyUnit(cur){ return cur === "HUF" ? {div:1e9, u:"mrd Ft", dec:2} : cur === "EUR" ? {div:1e6, u:"M€", dec:1} : {div:1e6, u:"M " + (cur || ""), dec:1}; }
+function finSection(){
+  const box = $("finBox"), F = (E0 && E0.finance) || null;
+  box.style.display = M.isHU ? "" : "none";
+  if (!M.isHU) return;
+  const host = $("finChart"); host.innerHTML = "";
+  if (!F || !F.months || !F.months.length){
+    $("finTiles").innerHTML = ""; $("finLeg").innerHTML = ""; $("finNote").textContent = "";
+    noData(host, "A havi pénzügyi mérleg (ENTSO-E 17.1.I) még nem érhető el. A közlési határidő legkésőbb a hónapot követő harmadik hónap utolsó napja, ezért a legutóbbi hónapok hiányozhatnak."); return;
+  }
+  const mu = moneyUnit(F.currency), ms = F.months, ex = F[FIN_MAP.exp].map(v => v == null ? null : v / mu.div), inc = F[FIN_MAP.inc].map(v => v == null ? null : v / mu.div);
+  const net = ex.map((v, i) => v == null || inc[i] == null ? null : v - inc[i]);
+  const f2 = v => mkNum({minimumFractionDigits:mu.dec, maximumFractionDigits:mu.dec}).format(v);
+  const mn = (m) => { const [y, mo] = m.split("-"); return ["jan.", "febr.", "márc.", "ápr.", "máj.", "jún.", "júl.", "aug.", "szept.", "okt.", "nov.", "dec."][+mo - 1] + " " + y; };
+  const last = (() => { for (let i = ms.length - 1; i >= 0; i--) if (ex[i] != null && inc[i] != null) return i; return -1; })();
+  const n12 = ms.map((_, i) => i).filter(i => i > last - 12 && i <= last && ex[i] != null && inc[i] != null);
+  const sum = a => n12.reduce((s, i) => s + a[i], 0);
+  const t = [];
+  if (last >= 0){
+    t.push(tile("A legutóbbi hónap kiadása (" + mn(ms[last]) + ")", f2(ex[last]) + " <small>" + mu.u + "</small>", "tartalék-beszerzés és aktivált energia"));
+    t.push(tile("Ugyanekkor a nettó bevétel", f2(inc[last]) + " <small>" + mu.u + "</small>", "az eltérések elszámolásából"));
+    t.push(tile("Nettó költség a hónapban", signed(net[last], mkNum({minimumFractionDigits:mu.dec, maximumFractionDigits:mu.dec})) + " <small>" + mu.u + "</small>", "kiadás − bevétel"));
+    if (n12.length === 12) t.push(tile("Az utolsó 12 hónap nettó költsége", f2(sum(net)) + " <small>" + mu.u + "</small>", "kiadás " + f2(sum(ex)) + ", bevétel " + f2(sum(inc)) + " " + mu.u));
+  }
+  $("finTiles").innerHTML = t.join("");
+  legend("finLeg", [{label:"Kiadás (a TSO költsége)", color:css("--c2")}, {label:"Nettó bevétel (eltérés-elszámolás)", color:css("--c1")}, {label:"Nettó költség (kiadás − bevétel)", color:css("--ink"), kind:"line", w:2.4}]);
+  monthBars(host, ms.map(mn), [
+    {label:"Kiadás", color:css("--c2"), values:ex, kind:"bar"}, {label:"Nettó bevétel", color:css("--c1"), values:inc, kind:"bar"},
+    {label:"Nettó költség", color:css("--ink"), values:net, kind:"line"}], mu.u, f2);
+  $("finNote").textContent = "Forrás: ENTSO-E 17.1.I (havi, a magyar szabályozási zónára, a közölt pénznemben: " + (F.currency || "–") + "). A kiadás a tartalékok beszerzésének és az aktivált szabályozási energiának a költsége; a nettó bevétel az eltérések elszámolásából keletkezik. A közlési határidő legfeljebb a hónapot követő három hónap, ezért az utolsó hónapok hiányozhatnak, és az előzetes értékek később módosulhatnak. A nettó költség saját számítás: kiadás mínusz nettó bevétel.";
+}
+function monthBars(host, labels, series, unit, fmt){
+  const W = Math.max(320, host.clientWidth), narrow = W < 520, H = narrow ? 250 : 300, m = {l:54, r:12, t:22, b:narrow ? 52 : 44};
+  const n = labels.length, x0 = m.l, x1 = W - m.r, y0 = H - m.b, y1 = m.t, band = (x1 - x0) / n;
+  let lo = 0, hi = 0; series.forEach(s => s.values.forEach(v => { if (v != null){ lo = Math.min(lo, v); hi = Math.max(hi, v); } }));
+  const ny = nice(lo, hi, 5), Y = v => y0 - (v - ny.lo) / (ny.hi - ny.lo) * (y0 - y1), X = i => x0 + (i + .5) * band;
+  const tstep = ny.ticks.length > 1 ? ny.ticks[1] - ny.ticks[0] : 1, tickF = tstep >= 1 ? nf0 : tstep >= .1 ? nf1 : mkNum({minimumFractionDigits:2, maximumFractionDigits:2});
+  const svg = el("svg", {viewBox:"0 0 " + W + " " + H, width:W, height:H}, host);
+  const ink2 = css("--ink2"), grid = css("--grid"), muted = css("--muted");
+  ny.ticks.forEach(t => {
+    el("line", {x1:x0, x2:x1, y1:Y(t), y2:Y(t), stroke:t === 0 ? muted : grid, "stroke-width":t === 0 ? 1.2 : 1}, svg);
+    const tx = el("text", {x:x0 - 8, y:Y(t) + 4, "text-anchor":"end", "font-size":12, fill:ink2}, svg); tx.textContent = tickF.format(t);
+  });
+  const un = el("text", {x:x0 - 8, y:y1 - 9, "text-anchor":"end", "font-size":11, fill:muted}, svg); un.textContent = unit;
+  const bars = series.filter(s => s.kind === "bar"), gw = Math.max(3, band * .78), bw = gw / bars.length;
+  const step = narrow ? 3 : n > 18 ? 2 : 1;
+  labels.forEach((lab, i) => {
+    if (i % step === (n - 1) % step){
+      const t = el("text", {x:X(i), y:y0 + 16, "text-anchor":"end", "font-size":11.5, fill:ink2, transform:"rotate(-40 " + X(i) + " " + (y0 + 16) + ")"}, svg); t.textContent = lab;
+    }
+    bars.forEach((s, k) => {
+      const v = s.values[i]; if (v == null) return;
+      const x = X(i) - gw / 2 + k * bw, top = Math.min(Y(v), Y(0)), hh = Math.max(1, Math.abs(Y(v) - Y(0)));
+      el("rect", {x:x + 1, y:top, width:Math.max(2, bw - 2), height:hh, rx:Math.min(3, bw / 3), fill:s.color}, svg);
+    });
+  });
+  series.filter(s => s.kind === "line").forEach(s => {
+    let d = "", open = false;
+    s.values.forEach((v, i) => { if (v == null){ open = false; return; } d += (open ? "L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1); open = true; });
+    el("path", {d, fill:"none", stroke:s.color, "stroke-width":2.4, "stroke-linejoin":"round", "stroke-linecap":"round"}, svg);
+    s.values.forEach((v, i) => { if (v != null) el("circle", {cx:X(i), cy:Y(v), r:2.6, fill:s.color, stroke:css("--surface"), "stroke-width":1.2}, svg); });
+  });
+  hover(host, svg, W, H, x0, x1, n, i => {
+    let rows = ""; series.forEach(s => { const v = s.values[i]; if (v != null) rows += row(s.color, esc(s.label), fmt(v) + " " + unit); });
+    return rows ? {x:X(i), html:'<div class="t">' + esc(labels[i]) + '</div>' + rows} : null;
+  });
+}
+
+// ---- SNSP és importfüggés
+function snspSection(){
+  chart($("snspChart"), {series:[
+    {label:"Nem-szinkron részarány", color:css("--c3"), values:M.snsp, w:2.6, short:"SNSP"},
+    {label:"Importfüggés", color:css("--c1"), values:M.dep, w:2.2, short:"import"}
+  ], unit:"%", fmt:v => nf0.format(v), empty:"Az SNSP-hez fogyasztás, nap/szél termelés és a határ-áramlások (data.json) is kell.", future:false, yMax:100});
+}
+
+function foot(){
+  const mod = E.modules || {};
+  const names = {flows:"határ-menetrend", sched:"menetrendezett áramlás", ntc:"NTC", load:"fogyasztás", generation:"termelés típusonként", solar_wind_forecast:"nap/szél előrejelzés", units:"blokkszintű termelés", outages_gen:"termelő-kiesések", outages_tx:"hálózati kiesések", imbalance:"eltérési ár és mennyiség", balancing:"szabályozási energia"};
+  const miss = Object.keys(names).filter(k => mod[k] === false).map(k => names[k]);
+  const errs = (E.errors || []).map(esc);
+  const mis = (E.missing || []).map(esc);
+  $("foot").innerHTML =
+    '<p><b>Hogyan olvasd.</b> Az adatok az ENTSO-E Transparency Platformról származnak, órás átlagban (kivétel a hálózati frekvencia, amely az Energy-Charts másodperces adataiból készült összesítés). A rendszerirányítók közlése után kerülnek ki, ezért az oldal nem valós idejű, és a legfrissebb órák adatkörönként eltérően késnek. A halvány háttér a még nem közölt időszak, ahol csak előrejelzés lehet.</p>' +
+    '<p>A „tény” és az „előrejelzés” közti eltérés, a fizikai és a menetrendezett áramlás különbsége, valamint a rámpa az ENTSO-E közölt adataiból számolt származtatott érték, nem hivatalos rendszerirányítói mutató.</p>' +
+    (miss.length ? '<p>Az ENTSO-E erre nem közölt adatot (most): ' + miss.join(", ") + '.</p>' : '') +
+    (mis.length || errs.length ? '<details><summary>Részletek az adatgyűjtésről (' + (mis.length + errs.length) + ')</summary><p>' + (errs.length ? 'Hibák: ' + errs.join("; ") + '. ' : '') + (mis.length ? 'Nem közölt adat: ' + mis.join("; ") + '.' : '') + '</p></details>' : '') +
+    '<p>Adatforrás: ENTSO-E Transparency Platform. CO₂-tényezők: ' + esc(((E.co2 || {}).source) || "–") + '. Hálózati frekvencia: Energy-Charts.info (Fraunhofer ISE), CC BY 4.0.</p>';
+}
+
+// ================================================================ Hálózati frekvencia (Energy-Charts, frequency.json)
+const FQ = (() => {
+  const nf2 = mkNum({minimumFractionDigits:2,maximumFractionDigits:2});
+  const nf3 = mkNum({minimumFractionDigits:3,maximumFractionDigits:3});
+  const nf2h = (v) => v.toFixed(2).replace(".", ",");
+  const fDayY = new Intl.DateTimeFormat("hu-HU",{timeZone:"UTC",year:"numeric",month:"short",day:"numeric"});
+  const has = (v) => v != null && !Number.isNaN(v);
+  const lastIdx = (arr) => { for (let i = arr.length - 1; i >= 0; i--) if (has(arr[i])) return i; return -1; };
+  const ud = (s) => new Date(s + "T00:00:00Z");
+  const addDays = (s, k) => new Date(ud(s).getTime() + k * 864e5).toISOString().slice(0, 10);
+  const dayLabel = (s) => fDayY.format(ud(s));
+  const MONTHS = ["január","február","március","április","május","június","július","augusztus","szeptember","október","november","december"];
+  let Q = null;
+
+  // ---------------------------------------------------------------- általános rajzoló elemek
+function legend(id, items){
+  $(id).innerHTML = items.map(it => {
+    const c = it.color, k = it.kind || "box";
+    const sv = k === "box" ? '<svg width="12" height="12"><rect width="12" height="12" rx="3" fill="' + c + '"/></svg>'
+      : '<svg width="24" height="12"><line x1="1" y1="6" x2="23" y2="6" stroke="' + c + '" stroke-width="' + (it.w || 2.4) + '"' + (k === "dash" ? ' stroke-dasharray="6 4"' : '') + ' stroke-linecap="round"/></svg>';
+    return '<span>' + sv + esc(it.label) + '</span>';
+  }).join("");
+}
+function row(color, k, v){ return '<div class="row"><span>' + (color ? '<i style="background:' + color + '"></i>' : '') + k + '</span><b class="num">' + v + '</b></div>'; }
+function noData(host, msg){ host.innerHTML = '<div class="nodata">' + msg + '</div>'; }
+function tile(k, n, s){ return '<div class="tile"><div class="k">' + k + '</div><div class="n num">' + n + '</div><div class="s">' + s + '</div></div>'; }
+
+function hoverIdx(host, svg, W, H_, x0, x1, n, info){
+  const tip = document.createElement("div"); tip.className = "tip"; host.appendChild(tip);
+  const guide = el("line", {y1:12, y2:H_ - 36, stroke:css("--ink2"), "stroke-width":1, "stroke-dasharray":"3 3", visibility:"hidden"}, svg);
+  const move = (ev) => {
+    const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) / r.width * W;
+    const i = Math.max(0, Math.min(n - 1, Math.floor((px - x0) / (x1 - x0) * n)));
+    const d = info(i);
+    if (!d){ tip.style.display = "none"; guide.setAttribute("visibility","hidden"); return; }
+    guide.setAttribute("x1", d.x); guide.setAttribute("x2", d.x); guide.setAttribute("visibility","visible");
+    tip.innerHTML = d.html; tip.style.display = "block";
+    const s = r.width / W, tw = tip.offsetWidth, left = d.x * s + 14;
+    tip.style.left = (left + tw > r.width ? Math.max(0, d.x * s - tw - 14) : left) + "px"; tip.style.top = "6px";
+  };
+  const hide = () => { tip.style.display = "none"; guide.setAttribute("visibility","hidden"); };
+  svg.addEventListener("pointermove", move); svg.addEventListener("pointerleave", hide); svg.addEventListener("pointerdown", move);
+}
+
+// A tengelyfeliratok tizedesjegye a lépésközhöz igazodik (0,5-ös lépésnél nem kerekít egészre).
+function autoFmt(ny){ const st = ny.ticks.length > 1 ? Math.abs(ny.ticks[1] - ny.ticks[0]) : 1, d = st >= 1 ? 0 : st >= 0.1 ? 1 : 2; return mkNum({minimumFractionDigits:d, maximumFractionDigits:d}).format; }
+
+// Általános diagram n darab egyenközű ponton.
+// cfg: {n, series:[{label,color,values,kind:"line"|"bar",dash,w,short,fmt}], stack, unit, fmt, ticks:[{i,label,bold}], title(i), yMin,yMax, zero, height, empty}
+function dchart(host, cfg){
+  host.innerHTML = "";
+  const n = cfg.n, W = Math.max(320, host.clientWidth), narrow = W < 520, Ht = cfg.height || (narrow ? 240 : 290);
+  const S = cfg.series.filter(s => s.values && s.values.some(has));
+  if (!S.length){ noData(host, cfg.empty || "Ehhez nincs közölt adat."); return; }
+  const m = {l:58, r:14, t:22, b:34};
+  let lo = Infinity, hi = -Infinity;
+  const upd = v => { if (has(v)){ if (v < lo) lo = v; if (v > hi) hi = v; } };
+  if (cfg.stack){
+    for (let i = 0; i < n; i++){ let p = 0, q = 0, any = false; S.forEach(s => { const v = s.values[i]; if (has(v)){ any = true; if (v >= 0) p += v; else q += v; } }); if (any){ upd(p); upd(q); } }
+  } else S.forEach(s => s.values.forEach(upd));
+  if (cfg.zero !== false){ lo = Math.min(lo, 0); hi = Math.max(hi, 0); }
+  if (cfg.yMin != null) lo = Math.min(lo, cfg.yMin);
+  if (cfg.yMax != null) hi = Math.max(hi, cfg.yMax);
+  const ny = nice(lo, hi, 5);
+  GF.a11y(host, {xs:Array.from({length:n}, (_, i) => cfg.title ? cfg.title(i) : String(i + 1)), series:S.map(s => ({label:s.label || "", values:s.values.slice(0, n)})), unit:cfg.unit || "", fmt:cfg.fmt});
+  const axf = cfg.axfmt || autoFmt(ny);
+  const x0 = m.l, x1 = W - m.r, y0 = Ht - m.b, y1 = m.t, band = (x1 - x0) / n;
+  const X = i => x0 + (i + .5) * band, Y = v => y0 - (v - ny.lo) / (ny.hi - ny.lo) * (y0 - y1);
+  const svg = el("svg", {viewBox:"0 0 " + W + " " + Ht, width:W, height:Ht}, host);
+  const ink = css("--ink"), ink2 = css("--ink2"), grid = css("--grid"), muted = css("--muted"), surf = css("--surface");
+  ny.ticks.forEach(t => {
+    el("line", {x1:x0, x2:x1, y1:Y(t), y2:Y(t), stroke: t === 0 ? muted : grid, "stroke-width": t === 0 ? 1.2 : 1}, svg);
+    const tx = el("text", {x:x0 - 8, y:Y(t) + 4, "text-anchor":"end", "font-size":12, fill:ink2}, svg); tx.textContent = axf(t);
+  });
+  const un = el("text", {x:x0 - 8, y:y1 - 9, "text-anchor":"end", "font-size":11, fill:muted}, svg); un.textContent = cfg.unit || "";
+  (cfg.ticks || []).forEach(t => {
+    if (t.bold) el("line", {x1:X(t.i) - band/2, x2:X(t.i) - band/2, y1:y1, y2:y0, stroke:grid}, svg);
+    const lab = el("text", {x:X(t.i) - (t.bold ? band/2 - 3 : 0), y:y0 + 17, "text-anchor":t.bold ? "start" : "middle", "font-size":narrow ? 11 : 12, fill:t.bold ? ink2 : muted, "font-weight":t.bold ? 650 : 400}, svg);
+    lab.textContent = t.label;
+  });
+  const bw = Math.max(1.5, band * .78);
+  if (cfg.stack){
+    for (let i = 0; i < n; i++){
+      let p = 0, q = 0;
+      S.forEach(s => {
+        const v = s.values[i]; if (!has(v) || v === 0) return;
+        const a = v >= 0 ? p : q, b = a + v;
+        el("rect", {x:X(i) - bw/2, y:Math.min(Y(a), Y(b)), width:bw, height:Math.max(.6, Math.abs(Y(a) - Y(b))), fill:s.color, stroke:band > 4 ? surf : "none", "stroke-width":.8}, svg);
+        if (v >= 0) p = b; else q = b;
+      });
+    }
+  }
+  S.filter(s => !cfg.stack && s.kind === "bar").forEach(s => s.values.forEach((v, i) => {
+    if (!has(v)) return;
+    el("rect", {x:X(i) - bw/2, y:Math.min(Y(v), Y(0)), width:bw, height:Math.max(1, Math.abs(Y(v) - Y(0))), rx:Math.min(2, bw/3), fill:s.color}, svg);
+  }));
+  const ends = [];
+  S.filter(s => !cfg.stack && (s.kind || "line") === "line").forEach(s => {
+    let d = "", open = false;
+    s.values.forEach((v, i) => { if (!has(v)){ open = false; return; } d += (open ? "L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1); open = true; });
+    el("path", {d, fill:"none", stroke:s.color, "stroke-width":s.w || 2.2, "stroke-dasharray":s.dash || "none", "stroke-linejoin":"round", "stroke-linecap":"round"}, svg);
+    const li = lastIdx(s.values);
+    if (li >= 0 && s.short) ends.push({s, x:X(li), y:Y(s.values[li])});
+  });
+  if (!narrow && ends.length && ends.length <= 4){
+    ends.sort((a, b) => a.y - b.y);
+    for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i-1].y < 14) ends[i].y = ends[i-1].y + 14;
+    ends.forEach(e => {
+      const t = el("text", {x:Math.min(e.x + 6, x1 - 2), y:e.y + 4, "text-anchor":e.x + 60 < x1 ? "start" : "end", "font-size":12, "font-weight":650, fill:ink, stroke:surf, "stroke-width":3, "paint-order":"stroke"}, svg);
+      t.textContent = e.s.short;
+    });
+  }
+  const fmt = cfg.fmt || (v => nf0.format(v));
+  hoverIdx(host, svg, W, Ht, x0, x1, n, i => {
+    let rows = "", any = false, tot = null;
+    (cfg.stack ? S.slice().reverse() : S).forEach(s => {
+      const v = s.values[i]; if (!has(v)) return; any = true; if (cfg.stack) tot = (tot || 0) + v;
+      rows += row(s.color, esc(s.label), (s.fmt || fmt)(v) + (cfg.unit ? " " + cfg.unit : ""));
+    });
+    if (!any) return null;
+    if (cfg.stack && tot != null && S.length > 1) rows += '<div class="row" style="border-top:1px solid var(--grid);margin-top:3px;padding-top:3px"><span>Összesen</span><b class="num">' + fmt(tot) + (cfg.unit ? " " + cfg.unit : "") + '</b></div>';
+    return {x:X(i), html:'<div class="t">' + esc(cfg.title(i)) + '</div>' + rows};
+  });
+}
+// havi jelek egy dátumsorhoz
+function dateTicks(dates, narrow){
+  const out = [], step = narrow ? 3 : (dates.length > 250 ? 2 : 1);
+  let k = 0;
+  dates.forEach((d, i) => {
+    if (d.slice(8) !== "01") return;
+    const mo = +d.slice(5, 7);
+    if (mo === 1) out.push({i, label:d.slice(0, 4), bold:true});
+    else if (k++ % step === 0) out.push({i, label:MONTHS[mo - 1].slice(0, 3) + "."});
+  });
+  return out;
+}
+
+
+  let fqWin = 60;
+  const days = () => Object.keys(Q.daily).sort();
+  function nowSection(){
+  const host = $("fq_cNow"), M = Q.minute, ds_ = days(), last = Q.daily[ds_[ds_.length - 1]];
+  let tiles = "", state = "";
+  if (M){
+    const li = lastIdx(M.mean);
+    if (li >= 0){
+      const f = M.mean[li], dev = (f - 50) * 1000, ab = Math.abs(dev);
+      const mins = M.min.filter(has), maxs = M.max.filter(has);
+      tiles += tile("Frekvencia (percátlag)", nf3.format(f) + ' <small>Hz</small>', fFull.format(new Date(Date.parse(M.t0) + li * 60000)));
+      tiles += tile("Eltérés 50 Hz-től", signed(dev, nf0) + ' <small>mHz</small>', ab <= 50 ? "a ±50 mHz-es normál sávban" : ab <= 200 ? "a normál sávon kívül" : "a ±200 mHz-es határon túl");
+      tiles += tile("24 órás legkisebb", nf3.format(Math.min(...mins)) + ' <small>Hz</small>', "másodperces érték");
+      tiles += tile("24 órás legnagyobb", nf3.format(Math.max(...maxs)) + ' <small>Hz</small>', "másodperces érték");
+    }
+  }
+  tiles += tile("A legutóbbi nap szórása", nf1.format(last.std) + ' <small>mHz</small>', dayLabel(ds_[ds_.length - 1]) + (last.cov < 0.95 ? " (a nap még nem teljes)" : ""));
+  tiles += tile("±50 mHz-en kívül", nf1.format(last.out50) + ' <small>%</small>', "ugyanezen a napon");
+  tiles += tile("Legnagyobb df/dt", nf1.format(last.dfdt) + ' <small>mHz/s</small>', "10 s-os átlagok között");
+  host.innerHTML = '<h2>Hálózati frekvencia</h2><p class="hint">A kontinentális európai szinkronterület frekvenciája, amelyhez a magyar rendszer csatlakozik; egész szinkronterületen azonos, ezért kontinentális állapotot mutat, nem magyart. Forrás: Energy-Charts (Fraunhofer ISE), másodperces felbontás; az oldal összesítéseket tárol.</p><div class="tiles">' + tiles + '</div>';
+}
+
+function minSection(){
+  const M = Q.minute, card = $("fq_cMin");
+  if (!M){ card.style.display = "none"; return; }
+  card.style.display = "";
+  const n = M.mean.length, t0 = Date.parse(M.t0) / 1000, narrow = $("fq_minChart").clientWidth < 520, ticks = [];
+  for (let i = 0; i < n; i++){
+    const ts = t0 + i * 60;
+    if (ts % 3600 !== 0) continue;
+    const lab = new Intl.DateTimeFormat("hu-HU", {timeZone:TZ, hour:"2-digit", hour12:false}).format(new Date(ts * 1000));
+    if (+lab % (narrow ? 6 : 3) === 0) ticks.push({i, label:lab + ":00", bold:+lab === 0});
+  }
+  const flat = (v) => new Array(n).fill(v);
+  const ser = [
+    {label:"Percátlag", color:css("--c1"), values:M.mean, w:2.4},
+    {label:"Percminimum", color:css("--c2"), values:M.min, w:1.1},
+    {label:"Percmaximum", color:css("--c4"), values:M.max, w:1.1},
+    {label:"50,00 Hz", color:css("--muted"), values:flat(50), dash:"6 4", w:1.2},
+    {label:"+50 mHz", color:css("--muted"), values:flat(50.05), dash:"2 4", w:1},
+    {label:"−50 mHz", color:css("--muted"), values:flat(49.95), dash:"2 4", w:1}
+  ];
+  legend("fq_minLegend", [{label:"Percátlag", color:css("--c1")}, {label:"Percminimum", color:css("--c2")}, {label:"Percmaximum", color:css("--c4")}, {label:"50,00 Hz és ±50 mHz", color:css("--muted"), kind:"dash", w:1.4}].map(x => ({...x, kind:x.kind || "line"})));
+  dchart($("fq_minChart"), {n, series:ser, unit:"Hz", zero:false, yMin:49.9, yMax:50.1, height:310, axfmt:nf2h, fmt:nf3.format, ticks,
+    title:i => fFull.format(new Date((t0 + i * 60) * 1000))});
+}
+
+const FQWIN = [["14 nap", 14], ["30 nap", 30], ["60 nap", 60], ["180 nap", 180], ["1 év", 365], ["Mind", 99999]];
+function fqWinChips(){
+  const host = $("fq_win"), tot = days().length;
+  host.innerHTML = FQWIN.filter(([l, k], i) => k <= 99999 && (k === 99999 || k < tot + 14)).map(([l, k]) => '<button class="chip" type="button" data-k="' + k + '" aria-pressed="' + (fqWin === k) + '">' + l + '</button>').join("") + '<span class="winlabel" style="align-self:center;font-size:13px;color:var(--ink2)">Az elérhető adat: ' + tot + ' nap' + (tot < 365 ? ' (a gyűjtés naponta bővül)' : '') + '</span>';
+  host.querySelectorAll("[data-k]").forEach(b => b.addEventListener("click", () => { fqWin = +b.dataset.k; dailySection(); histSection(); }));
+}
+function dailySection(){
+  fqWinChips();
+  const ds_ = days().slice(-fqWin), a = ds_[0], b = ds_[ds_.length - 1], dates = [];
+  for (let d = a; d <= b; d = addDays(d, 1)) dates.push(d);
+  const get = (f) => dates.map(d => Q.daily[d] ? Q.daily[d][f] : null);
+  const narrow = $("fq_stdChart").clientWidth < 520, ticks = dateTicks(dates, narrow), n = dates.length, title = i => dayLabel(dates[i]) + (Q.daily[dates[i]] && Q.daily[dates[i]].cov < 0.95 ? " (nem teljes nap)" : "");
+  dchart($("fq_stdChart"), {n, ticks, title, unit:"mHz", fmt:nf1.format, height:240, series:[{label:"Szórás", color:css("--c1"), values:get("std"), kind:"bar"}]});
+  dchart($("fq_outChart"), {n, ticks, title, unit:"%", fmt:nf1.format, height:240, series:[{label:"±50 mHz-en kívül", color:css("--c2"), values:get("out50"), kind:"bar"}]});
+  const flat = (v) => new Array(n).fill(v);
+  legend("fq_mmLegend", [{label:"Legnagyobb", color:css("--c4"), kind:"line"}, {label:"Legkisebb", color:css("--c2"), kind:"line"}, {label:"50,00 Hz", color:css("--muted"), kind:"dash", w:1.4}]);
+  dchart($("fq_mmChart"), {n, ticks, title, unit:"Hz", zero:false, yMin:49.9, yMax:50.1, height:280, axfmt:nf2h, fmt:nf3.format, series:[
+    {label:"Legnagyobb", color:css("--c4"), values:get("max"), w:1.8}, {label:"Legkisebb", color:css("--c2"), values:get("min"), w:1.8},
+    {label:"50,00 Hz", color:css("--muted"), values:flat(50), dash:"6 4", w:1.2}]});
+}
+
+function histSection(){
+  const ds_ = days(), L = Q.hist_labels, nb = L.length, hn = Math.min(fqWin, ds_.length), hlab = "Utolsó " + hn + " nap";
+  const sum = new Array(nb).fill(0);
+  ds_.slice(-hn).forEach(d => Q.daily[d].hist.forEach((c, i) => sum[i] += c));
+  const tot = sum.reduce((a, b) => a + b, 0), lastH = Q.daily[ds_[ds_.length - 1]].hist, lt = lastH.reduce((a, b) => a + b, 0);
+  const pct = sum.map(c => tot ? c / tot * 100 : null), lp = lastH.map(c => lt ? c / lt * 100 : null);
+  const ticks = [];
+  for (let i = 1; i < nb - 1; i++){ const mhz = (i - 21) * 10; if (mhz % 50 === 0) ticks.push({i, label:(mhz > 0 ? "+" : mhz < 0 ? "−" : "") + Math.abs(mhz), bold:mhz === 0}); }
+  legend("fq_histLegend", [{label:hlab, color:css("--c1")}, {label:"Legutóbbi nap (" + dayLabel(ds_[ds_.length - 1]) + ")", color:css("--c2"), kind:"line"}]);
+  dchart($("fq_histChart"), {n:nb, unit:"%", fmt:nf2.format, height:280, ticks,
+    title:i => "Eltérés: " + L[i] + " mHz",
+    series:[{label:hlab, color:css("--c1"), values:pct, kind:"bar"}, {label:"Legutóbbi nap", color:css("--c2"), values:lp, w:2}]});
+  // az eltérés nagysága szerinti arányok: a 10 mHz-es sávok összegzése
+  let html = '<table><thead><tr><th>Eltérés 50 Hz-től</th><th class="r">Az idő %-ában</th><th class="r hide-sm">Percben naponta (átlag)</th></tr></thead><tbody>';
+  [50, 100, 150, 200].forEach(T => {
+    let c = 0; sum.forEach((v, i) => { if (i >= 21 + T / 10 || i <= 20 - T / 10) c += v; });
+    const share = tot ? c / tot : 0;
+    html += '<tr><td class="nm">több mint ±' + T + ' mHz</td><td class="r num">' + (share * 100 < 0.1 ? nf2.format(share * 100) : nf1.format(share * 100)) + '</td><td class="r num hide-sm">' + nf1.format(share * 1440) + '</td></tr>';
+  });
+  $("fq_tailTable").innerHTML = html + '</tbody></table><p class="note">A normál sáv ±50 mHz; a kontinentális európai szinkronterületen a frekvenciatartó tartalék (FCR) a ±200 mHz-es eltérésnél aktiválódik teljesen. A pontos küszöbértékeket a rendszerirányítási uniós rendelet (SO GL) rögzíti.</p>';
+}
+
+function eventsSection(){
+  const host = $("fq_cEvents"), ds_ = days();
+  const rows = ds_.map(d => { const x = Q.daily[d], lo = 50 - x.min, hi = x.max - 50; return {d, x, dev:Math.max(lo, hi), low:lo >= hi}; }).sort((a, b) => b.dev - a.dev).slice(0, 8);
+  let html = '<h2>A legnagyobb kilengések</h2><p class="hint">Azok a napok, amelyeken a frekvencia a legtávolabb került az 50 Hz-től. A mély beesés általában egy nagy termelőegység vagy összeköttetés kiesésére utal, a hirtelen emelkedés a termelés vagy a fogyasztás hirtelen megszűnésére. Az okot a rendszerüzemeltetők jelentései és a kiesési adatok (lásd feljebb) tudják megmutatni.</p><div class="tbl"><table><thead><tr><th>Nap (UTC)</th><th class="r">Szélsőérték, Hz</th><th class="r">Eltérés, mHz</th><th>Időpont (budapesti)</th><th class="r hide-sm">Legnagyobb df/dt, mHz/s</th></tr></thead><tbody>';
+  rows.forEach(r => {
+    const f = r.low ? r.x.min : r.x.max, ts = r.low ? r.x.min_ts : r.x.max_ts;
+    html += '<tr><td class="nm">' + dayLabel(r.d) + '</td><td class="r num">' + nf3.format(f) + '</td><td class="r num"><b>' + signed((f - 50) * 1000, nf0) + '</b></td><td>' + fFull.format(new Date(ts)) + (r.low ? ", beesés" : ", emelkedés") + '</td><td class="r num hide-sm">' + nf1.format(r.x.dfdt) + '</td></tr>';
+  });
+  host.innerHTML = html + '</tbody></table></div><p class="note">A df/dt a 10 másodperces átlagok közötti legnagyobb változás. Minél kisebb a rendszer tehetetlensége (kevesebb forgó tömeg, több inverteres termelés), adott teljesítményhiánynál annál nagyobb a változási sebesség.</p>';
+}
+
+
+
+  function render(){
+    if (!Q){ ["fq_cMin","fq_cDaily","fq_cHist","fq_cEvents"].forEach(id => $(id).style.display = "none"); return; }
+    ["fq_cMin","fq_cDaily","fq_cHist","fq_cEvents"].forEach(id => $(id).style.display = "");
+    nowSection(); minSection(); dailySection(); histSection(); eventsSection();
+  }
+  async function load(){
+    const demo = new URLSearchParams(location.search).get("demo");
+    try {
+      const j = await getJson(demo ? "demo-frequency.json" : "frequency.json");
+      Q = j && j.daily && Object.keys(j.daily).length ? j : null;
+    } catch (e) { Q = null; }
+    if (!Q) $("fq_cNow").innerHTML = '<h2>Hálózati frekvencia</h2><div class="nodata">A frekvenciaadat még nem érhető el. A <code>frequency.json</code> az adatfrissítő workflow következő sikeres futásakor jelenik meg, a visszamenőleges napok néhány óra alatt töltődnek fel.</div>';
+    render();
+  }
+  return {load, render};
+})();
+
+load();
+</script>
+<script>
+// ---------- grafikonok és térképek mentése képként (PNG). Csak egérrel fölé víve (érintőképernyőn halványan) látszik.
+(function(){
+  const NS = "http://www.w3.org/2000/svg", rs = getComputedStyle(document.documentElement);
+  const vars = (s) => s.replace(/var\((--[\w-]+)\)/g, (m, n) => rs.getPropertyValue(n).trim() || m);
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  function legendItems(card){
+    const out = [];
+    card.querySelectorAll(".legend > *").forEach(it => {
+      const txt = it.textContent.trim().replace(/\s+/g, " "); if (!txt) return;
+      let col = null; const sw = it.querySelector("i,rect,line,path,polygon");
+      if (sw){ const cs = getComputedStyle(sw), tg = sw.tagName.toLowerCase(), ok = (c) => c && /^(rgb|#)/.test(c) && c !== "rgba(0, 0, 0, 0)"; col = tg === "i" ? cs.backgroundColor : tg === "line" ? cs.stroke : (ok(cs.fill) ? cs.fill : (ok(cs.stroke) ? cs.stroke : null)); }
+      out.push({txt, col});
+    });
+    return out;
+  }
+  async function save(host){
+    const svg = host.querySelector("svg:not(.xbi)"); if (!svg) return;
+    const card = host.closest(".card") || document.body, vb = svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width ? svg.viewBox.baseVal : null;
+    const W0 = vb ? vb.width : svg.getBoundingClientRect().width, H0 = vb ? vb.height : svg.getBoundingClientRect().height;
+    const bodyCs = getComputedStyle(document.body), ff = bodyCs.fontFamily, surf = rs.getPropertyValue("--surface").trim() || "#fff", ink = rs.getPropertyValue("--ink").trim() || "#000", ink2 = rs.getPropertyValue("--ink2").trim() || "#555";
+    const OUT_W = Math.max(640, Math.round(W0)), sc = OUT_W / W0, ch = H0 * sc;
+    const h2 = card.querySelector("h2"), h3 = (() => { let e = host.previousElementSibling; while (e){ if (/^H3$/.test(e.tagName)) return e; e = e.previousElementSibling; } return null; })();
+    const title = (h2 ? h2.textContent.replace(/\s+/g, " ").trim() : document.title) + (h3 ? " – " + h3.textContent.trim() : "");
+    const src = (card.getAttribute("data-src") || "").trim(), leg = legendItems(card);
+    // jelmagyarázat sorokba tördelve
+    let lx = 16, ly = 0, rows = 1; const items = [];
+    leg.forEach(l => { const w = 22 + l.txt.length * 6.6 + 14; if (lx + w > OUT_W - 16 && lx > 16){ lx = 16; rows++; } items.push({...l, x:lx, row:rows - 1}); lx += w; });
+    const headH = 44, legH = leg.length ? rows * 20 + 8 : 0, footH = src ? 40 : 14, H = headH + ch + legH + footH;
+    const clone = svg.cloneNode(true); clone.removeAttribute("style"); clone.setAttribute("width", OUT_W); clone.setAttribute("height", ch); clone.setAttribute("x", 0); clone.setAttribute("y", headH);
+    if (!clone.getAttribute("viewBox")) clone.setAttribute("viewBox", "0 0 " + W0 + " " + H0);
+    clone.querySelectorAll(".mz").forEach(e => e.remove());
+    let s = '<svg xmlns="' + NS + '" width="' + OUT_W + '" height="' + H + '" viewBox="0 0 ' + OUT_W + ' ' + H + '" font-family="' + esc(ff.replace(/"/g, "'")) + '"><rect width="100%" height="100%" fill="' + esc(surf) + '"/>' +
+      '<text x="16" y="28" font-size="17" font-weight="700" fill="' + esc(ink) + '">' + esc(title) + '</text>' + new XMLSerializer().serializeToString(clone);
+    items.forEach(l => { const y = headH + ch + 8 + l.row * 20; if (l.col) s += '<rect x="' + l.x + '" y="' + (y + 2) + '" width="12" height="12" rx="3" fill="' + esc(l.col) + '"/>'; s += '<text x="' + (l.x + (l.col ? 18 : 0)) + '" y="' + (y + 13) + '" font-size="12.5" fill="' + esc(ink2) + '">' + esc(l.txt) + '</text>'; });
+    if (src){ const t = "Forrás: " + src, fy = H - 22; const mid = t.length > 120 ? t.lastIndexOf(" ", 120) : -1; s += '<text x="16" y="' + fy + '" font-size="11.5" fill="' + esc(ink2) + '">' + esc(mid > 0 ? t.slice(0, mid) : t) + '</text>' + (mid > 0 ? '<text x="16" y="' + (fy + 14) + '" font-size="11.5" fill="' + esc(ink2) + '">' + esc(t.slice(mid + 1)) + '</text>' : ""); }
+    s += '<text x="' + (OUT_W - 16) + '" y="' + (H - 6) + '" text-anchor="end" font-size="10.5" fill="' + esc(ink2) + '" opacity=".7">GridFlow Analytics</text></svg>';
+    s = vars(s);
+    const img = new Image(); img.decoding = "sync";
+    await new Promise((ok, no) => { img.onload = ok; img.onerror = no; img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(s); }).catch(() => null);
+    const cv = document.createElement("canvas"), k = 2; cv.width = OUT_W * k; cv.height = H * k; const g = cv.getContext("2d"); g.scale(k, k); g.fillStyle = surf; g.fillRect(0, 0, OUT_W, H);
+    try{ g.drawImage(img, 0, 0, OUT_W, H); }catch(e){ return; }
+    const name = (title.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "grafikon") + ".png";
+    cv.toBlob(b => { if (!b) return; const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }, "image/png");
+  }
+  function attach(host){
+    if (host.querySelector(":scope > .xb")) return;
+    if (!host.querySelector("svg")) return;
+    if (getComputedStyle(host).position === "static") host.style.position = "relative";
+    const b = document.createElement("button"); b.type = "button"; b.className = "xb"; b.title = "Mentés képként (PNG)"; b.setAttribute("aria-label", "Mentés képként (PNG)");
+    b.innerHTML = '<svg class="xbi" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1.5v8M3.6 6.3 7 9.7l3.4-3.4M2 12h10"/></svg>';
+    b.addEventListener("click", ev => { ev.stopPropagation(); save(host); });
+    host.appendChild(b);
+  }
+  function scan(){ document.querySelectorAll(".chart, .mapwrap").forEach(attach); }
+  const st = document.createElement("style");
+  st.textContent = ".xb{position:absolute;top:4px;right:4px;z-index:4;width:28px;height:28px;border:1px solid var(--grid);background:var(--surface);color:var(--ink2);border-radius:8px;padding:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .15s}" +
+    ".chart:hover>.xb,.mapwrap:hover>.xb,.xb:focus-visible{opacity:.92}@media (hover:none){.xb{opacity:.5;width:26px;height:26px}}.xb:hover{color:var(--ink)}" +
+    ".mz{position:absolute;top:8px;left:8px;display:flex;gap:4px;z-index:3}.mz button{width:30px;height:30px;border:1px solid var(--grid);background:var(--surface);color:var(--ink);border-radius:8px;font-size:17px;line-height:1;cursor:pointer;opacity:.9;padding:0}.mz button:hover{opacity:1}";
+  document.head.appendChild(st);
+  let t = 0; new MutationObserver(() => { clearTimeout(t); t = setTimeout(scan, 120); }).observe(document.body, {childList:true, subtree:true});
+  scan();
+})();
+</script>
+
+</body>
+</html>

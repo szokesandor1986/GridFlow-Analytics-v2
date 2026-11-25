@@ -1,0 +1,73 @@
+/* GridFlow Analytics – közös stílus. Minden oldal ezt tölti be, az oldalspecifikus szabályok az oldal <style> blokkjában vannak. */
+:root{color-scheme:light dark; --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#66645f; --grid:#e1e0d9; --neutral:#f0efec; --c1:#2a78d6; --c2:#eb6834; --c3:#1baf7a; --c4:#eda100; --c5:#e87ba4; --c6:#008300; --c7:#6250d6; --c8:#e34948; --warn-bg:#fff4d6; --warn-ink:#5a4200; --demo-bg:#c62828; --demo-ink:#ffffff; --focus:#1a5fb4;}
+:root[data-theme="light"]{color-scheme:light}
+:root[data-theme="dark"]{color-scheme:dark; --page:#0d0d0d; --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --muted:#acaaa3; --grid:#2c2c2a; --neutral:#383835; --c1:#3987e5; --c2:#d95926; --c3:#199e70; --c4:#c98500; --c5:#d55181; --c6:#0ca30c; --c7:#9085e9; --c8:#e66767; --warn-bg:#3a2f0a; --warn-ink:#f3d98a; --demo-bg:#e66767; --demo-ink:#0d0d0d; --focus:#6aa5ee;}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--page:#0d0d0d; --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --muted:#acaaa3; --grid:#2c2c2a; --neutral:#383835; --c1:#3987e5; --c2:#d95926; --c3:#199e70; --c4:#c98500; --c5:#d55181; --c6:#0ca30c; --c7:#9085e9; --c8:#e66767; --warn-bg:#3a2f0a; --warn-ink:#f3d98a; --demo-bg:#e66767; --demo-ink:#0d0d0d; --focus:#6aa5ee;}}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--page);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+.num{font-variant-numeric:tabular-nums}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 48px}
+header h1{font-size:clamp(22px,3.4vw,30px);line-height:1.2;margin:0 0 6px;letter-spacing:-.01em}
+.banner{margin:0 0 16px;padding:10px 14px;border-radius:10px;font-weight:600}
+.banner.demo{background:var(--demo-bg);color:var(--demo-ink);text-align:center;letter-spacing:.02em}
+.banner.warn{background:var(--warn-bg);color:var(--warn-ink);font-weight:500}
+.card{background:var(--surface);border:1px solid var(--grid);border-radius:14px;padding:18px;margin-top:16px;scroll-margin-top:12px}
+.card h2{font-size:17px;margin:0 0 4px}
+th{font-weight:600;color:var(--ink2);text-align:left;font-size:12.5px;padding:0 8px 8px;border-bottom:1px solid var(--grid);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+th.r,td.r{text-align:right}
+td.nm{font-weight:600;white-space:nowrap}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin:0 0 10px;color:var(--ink2);font-size:13px}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.tip .t{font-weight:650;margin-bottom:3px}
+.tip .row span:first-child{display:inline-flex;align-items:center;gap:6px}
+.tip i{display:inline-block;width:10px;height:10px;border-radius:3px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--grid);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:13.5px;cursor:pointer}
+.chip[aria-pressed="false"]{color:var(--ink2)}
+footer{margin-top:22px;color:var(--ink2);font-size:13px}
+nav.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+nav.tabs a{padding:7px 14px;border-radius:999px;border:1px solid var(--grid);color:var(--ink2);text-decoration:none;font-size:14px;background:var(--surface)}
+nav.tabs a[aria-current="page"]{color:var(--ink);border-color:var(--ink2);font-weight:650}
+.card[data-src]::after{content:"Forrás: " attr(data-src);display:block;margin-top:14px;padding-top:8px;border-top:1px solid var(--grid);color:var(--muted);font-size:12px;line-height:1.4}
+text{font-family:inherit}
+.card .hint{margin:0 0 14px;color:var(--ink2);font-size:14px;max-width:90ch}
+.chip i{display:inline-block;width:10px;height:10px;border-radius:3px}
+.chip[aria-pressed="true"]{border-color:var(--ink2);font-weight:650}
+.tip{position:absolute;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--grid);border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.35;box-shadow:0 4px 18px rgba(0,0,0,.16);z-index:3;display:none;min-width:150px;max-width:300px}
+.tip .row{display:flex;align-items:center;gap:10px;justify-content:space-between}
+footer p{margin:0 0 8px;max-width:95ch}
+header p.sub{margin:0;color:var(--ink2);max-width:75ch}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td{padding:8px;border-bottom:1px solid var(--grid);vertical-align:middle}
+
+/* ---- hozzáférhetőség és közös elemek (v2) ---- */
+.skip{position:absolute;left:8px;top:-60px;z-index:100;background:var(--ink);color:var(--page);padding:10px 14px;border-radius:8px;font-weight:650;text-decoration:none}
+.skip:focus{top:8px}
+main:focus{outline:none}
+:where(a,button,summary,select,input,textarea,[tabindex]):focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:4px}
+nav.tabs{align-items:center}
+nav.tabs a:hover{border-color:var(--ink2)}
+.themebtn{margin-left:auto;padding:7px 12px;border-radius:999px;border:1px solid var(--grid);background:var(--surface);color:var(--ink2);font:inherit;font-size:13.5px;cursor:pointer}
+.themebtn:hover{border-color:var(--ink2);color:var(--ink)}
+.loading{margin:0 0 14px;padding:10px 14px;border:1px dashed var(--grid);border-radius:10px;color:var(--ink2);font-size:14px}
+.state{display:inline-flex;align-items:center;gap:6px;font-weight:650;color:var(--ink);border:1px solid var(--grid);border-radius:999px;padding:1px 10px;background:var(--surface)}
+.state.demo{border-color:var(--demo-bg)}.state.stale,.state.partial{border-color:var(--warn-ink)}
+.banner b{font-weight:750}
+.tview{margin-top:8px;font-size:13.5px}
+.tview summary{cursor:pointer;color:var(--ink2);padding:4px 0}
+.tview .tscroll{max-height:340px;overflow:auto;border:1px solid var(--grid);border-radius:8px;margin-top:6px}
+.tview table{font-size:13px}.tview th[scope=row]{font-weight:500;color:var(--ink2);text-align:left;white-space:nowrap;padding:5px 8px;border-bottom:1px solid var(--grid)}
+.tview thead th{position:sticky;top:0;background:var(--surface);padding-top:6px}
+.tview td{padding:5px 8px}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+@media (forced-colors:active){.chip[aria-pressed="true"],nav.tabs a[aria-current="page"]{outline:2px solid CanvasText}}
+
+/* állapotsor */
+.status{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:10px;color:var(--muted);font-size:13px}
+.status b{color:var(--ink2);font-weight:600}
+.status .lag{color:var(--ink2)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}

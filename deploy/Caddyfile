@@ -1,0 +1,9 @@
+# A __SITE__ helyére az install.sh ":80"-at (HTTP) vagy a megadott tartományt írja.
+# Tartománynál a Caddy magától kér és újít Let's Encrypt tanúsítványt (a 80-as és 443-as port legyen nyitva).
+__SITE__ {
+	root * /var/www/hu-aramlas
+	encode gzip
+	file_server
+	@data path /data.json /engineer.json /europe.json /history.json /gas.json /frequency.json /demo-gas.json /demo-frequency.json /demo-data.json /demo-engineer.json /demo-europe.json /demo-history.json
+	header @data Cache-Control "no-store"
+}
