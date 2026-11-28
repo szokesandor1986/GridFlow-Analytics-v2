@@ -1,0 +1,61 @@
+name: Historikus adattár napi frissítése
+
+# Naponta egyszer: az utolsó 14 nap újralekérése minden zónára (az ENTSO-E utólag javít), a folyó év partícióinak és az
+# összesítőknek az újraszámolása, mentés a data ágra, közzététel indítása.
+# A visszatöltést (a teljes korábbi időszakot) a "Historikus adattár visszatöltése" workflow végzi, kézzel indítva.
+# Ha még nincs hist/ a data ágon, a futás nem csinál semmit (előbb a visszatöltést kell lefuttatni).
+on:
+  schedule:
+    - cron: "41 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: hist
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Függőségek
+        run: pip install -r requirements.txt
+      - name: Teszt (kitalált klienssel, hálózat nélkül)
+        run: python -I tests/test_hist.py
+      - name: Korábbi adatok betöltése (data ág)
+        run: bash scripts/load_data.sh hist
+      - name: Van-e visszatöltött tár?
+        id: have
+        run: |
+          if [ -f hist/manifest.json ]; then echo "yes=1" >> "$GITHUB_OUTPUT"; else echo "A hist/ még nincs a data ágon: előbb futtasd a Historikus adattár visszatöltése workflow-t."; fi
+      - name: Frissítés az ENTSO-E-ről (utolsó 14 nap)
+        if: steps.have.outputs.yes == '1'
+        env:
+          ENTSOE_TOKEN: ${{ secrets.ENTSOE_TOKEN }}
+        run: python backfill.py --root hist --update-days 14 --workers 8 --budget 2400
+      - name: Feldolgozás
+        if: steps.have.outputs.yes == '1'
+        run: |
+          Y=$(date -u +%Y)
+          python aggregate.py --root hist --derive-years "$Y,$((Y-1))"
+      - name: Mentés a data ágra
+        if: steps.have.outputs.yes == '1'
+        env:
+          DATA_MSG: hist/ napi frissítés
+          DATA_SQUASH: "1"
+        run: bash scripts/save_data.sh hist
+      - name: Közzététel indítása
+        if: steps.have.outputs.yes == '1'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run update.yml --ref main

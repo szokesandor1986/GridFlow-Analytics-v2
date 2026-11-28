@@ -50,10 +50,14 @@ jobs:
           python -I tests/test_hupx.py
           python -I tests/test_jao.py
           python -I tests/test_weather.py
+          python -I tests/test_publish.py
+          python -I tests/test_site.py
+          node tests/test_gfhist.js
 
-      # A gáz- és a hosszú távú adat a "data" ágon él (a gyűjtő workflow-k oda mentenek); ha még nincs, a main példánya marad.
+      # A gáz-, a havi és a többéves óránkénti adat a "data" ágon él (a gyűjtő workflow-k oda mentenek); ha még nincs, a main példánya marad.
+      # A hist/ mappa a historikus adattár (óránkénti és összesített); nélküle a Historikus adatok oldal a havi history.json-ra esik vissza.
       - name: Tárolt adatok betöltése (data ág)
-        run: bash scripts/load_data.sh history.json gas.json
+        run: bash scripts/load_data.sh history.json gas.json hist
 
       - name: Adatgyűjtés az ENTSO-E-ről
         env:
@@ -61,9 +65,21 @@ jobs:
         run: |
           mkdir -p dist
           python collector.py --out dist/data.json
-          cp index.html muszaki.html europa.html foldgaz.html idojaras.html europe-geo.json hu-geo.json demo-data.json demo-engineer.json demo-europe.json demo-countries.json demo-history.json demo-gas.json demo-frequency.json demo-hupx.json demo-weather.json dist/
+          # oldalak: a hét főmenüpont és a Rendszerkép részletes nézetei (hatarok, muszaki, europa, idojaras, foldgaz)
+          cp index.html elemzesek.html rendszerkep.html historikus.html nemzetkozi.html modszertan.html rolunk.html dist/
+          cp hatarok.html muszaki.html europa.html foldgaz.html idojaras.html europe-geo.json hu-geo.json dist/
+          cp demo-data.json demo-engineer.json demo-europe.json demo-countries.json demo-history.json demo-gas.json demo-frequency.json demo-hupx.json demo-weather.json dist/
           cp -r assets dist/assets
+          cp -r demo-hist demo-elemzesek dist/
           cp history.json gas.json dist/ 2>/dev/null || true
+          cp -r hist dist/hist 2>/dev/null || true
+
+      # Elemzések (publikációk): a havi history.json lezárt hónapjaiból, statikus HTML-ként. Ha a history.json még nincs meg
+      # vagy a generálás hibázik, a közzététel akkor is megtörténik (a Kezdőlap és az Elemzések oldal ilyenkor üzenetet mutat).
+      - name: Elemzések építése
+        continue-on-error: true
+        run: |
+          if [ -f history.json ]; then python publish.py --history history.json --out dist/elemzesek; else echo "Nincs history.json: az elemzések még nem épülnek."; fi
 
       # Hálózati frekvencia (Energy-Charts, kulcs nélkül). Az előző állapotot (napi összesítések) az élő oldalról
       # töltjük le, így nem kell a repóba commitolni. Hiba esetén a közzététel akkor is megtörténik.

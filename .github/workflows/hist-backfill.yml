@@ -1,0 +1,133 @@
+name: Historikus adattár visszatöltése
+
+# Évekre visszamenő, ÓRÁNKÉNTI adatok (és a magyar negyedórás adat) letöltése az ENTSO-E-ről a hist/ tárba.
+# Csak kézzel indítható: Actions -> Historikus adattár visszatöltése -> Run workflow.
+# Az első futás tölti le a teljes időszakot (zónánként egy gép, párhuzamosan); ami nem sikerül, azt egy újabb indítás pótolja,
+# mert a tervező (prepare) csak a hiányzó vagy hiányos zóna-éveket adja a következő futásnak.
+#
+#   1. prepare: tesztek + a hiányzó zóna-évek listája,
+#   2. collect: zónánként külön gépen letöltés (matrix); a részeredmény artifactként mentődik,
+#   3. merge:   a részeredmények összefésülése a data ágon lévő hist/ mappába, feldolgozás (aggregate.py), mentés.
+# Az eredmény a repó "data" ágára kerül (hist/), nem a main-re; mentés után a workflow elindítja az Adatfrissítést (közzététel).
+on:
+  workflow_dispatch:
+    inputs:
+      from_year:
+        description: "Ettől az évtől töltsön (alapérték: 2019)"
+        default: "2019"
+      zones:
+        description: "Zónák vesszővel (üres: mind a 10: HU,AT,SK,RO,RS,HR,SI,UA,DE_LU,CZ)"
+        default: ""
+      q_years:
+        description: "A magyar negyedórás adat hány legutóbbi évre készüljön (0: nincs)"
+        default: "2"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: hist
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      jobs: ${{ steps.plan.outputs.jobs }}
+      count: ${{ steps.plan.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Függőségek
+        run: pip install -r requirements.txt
+      - name: Teszt (kitalált klienssel, hálózat nélkül)
+        run: python -I tests/test_hist.py
+      - name: Korábbi adatok betöltése (data ág)
+        run: bash scripts/load_data.sh hist
+      - name: Mely zóna-évek hiányoznak?
+        id: plan
+        env:
+          ZONES: ${{ inputs.zones }}
+          FROM: ${{ inputs.from_year }}
+        run: |
+          z=""; if [ -n "$ZONES" ]; then z="--zones $ZONES"; fi
+          jobs=$(python backfill.py --plan --root hist --from-year "${FROM:-2019}" $z | python -c "import json,sys; print(json.dumps([j for j in json.load(sys.stdin) if j['years']]))")
+          echo "Munkák: $jobs"
+          echo "jobs=$jobs" >> "$GITHUB_OUTPUT"
+          echo "count=$(python -c "import json,sys; print(len(json.loads(sys.argv[1])))" "$jobs")" >> "$GITHUB_OUTPUT"
+
+  collect:
+    needs: prepare
+    if: needs.prepare.outputs.count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.prepare.outputs.jobs) }}
+    name: ${{ matrix.zone }} (${{ matrix.years }})
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Függőségek
+        run: pip install -r requirements.txt
+      # A lépés hibája vagy időtúllépése nem állítja le a részeredmény mentését.
+      - name: Adatgyűjtés az ENTSO-E-ről
+        continue-on-error: true
+        timeout-minutes: 55
+        env:
+          ENTSOE_TOKEN: ${{ secrets.ENTSOE_TOKEN }}
+          QY: ${{ inputs.q_years }}
+        run: python backfill.py --root hist-part --zones "${{ matrix.zone }}" --years "${{ matrix.years }}" --q-years "${QY:-2}" --workers 8 --budget 3000
+      - name: Részeredmény mentése
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hist-part-${{ matrix.zone }}
+          path: hist-part
+          if-no-files-found: warn
+          retention-days: 3
+
+  merge:
+    needs: [prepare, collect]
+    if: always() && needs.prepare.result == 'success' && needs.prepare.outputs.count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Függőségek
+        run: pip install -r requirements.txt
+      - name: Részeredmények letöltése
+        uses: actions/download-artifact@v4
+        with:
+          pattern: hist-part-*
+          path: parts
+          merge-multiple: true
+      - name: Korábbi adatok betöltése (data ág)
+        run: bash scripts/load_data.sh hist
+      - name: Összefésülés
+        run: python backfill.py --root hist --merge-parts parts
+      - name: Feldolgozás (származtatott adatok, összesítők, manifest)
+        run: python aggregate.py --root hist
+      - name: Mentés a data ágra
+        env:
+          DATA_MSG: hist/ visszatöltés
+          DATA_SQUASH: "1"
+        run: bash scripts/save_data.sh hist
+      - name: Közzététel indítása
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run update.yml --ref main
