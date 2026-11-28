@@ -52,6 +52,8 @@ jobs:
           python -I tests/test_weather.py
           python -I tests/test_publish.py
           python -I tests/test_site.py
+          python -I tests/test_plants.py
+          node tests/test_gfplants.js
           node tests/test_gfhist.js
 
       # A gáz-, a havi és a többéves óránkénti adat a "data" ágon él (a gyűjtő workflow-k oda mentenek); ha még nincs, a main példánya marad.
@@ -65,8 +67,8 @@ jobs:
         run: |
           mkdir -p dist
           # oldalak: a hét főmenüpont és a Rendszerkép részletes nézetei (hatarok, muszaki, europa, idojaras, foldgaz)
-          cp index.html elemzesek.html rendszerkep.html historikus.html nemzetkozi.html modszertan.html rolunk.html dist/
-          cp hatarok.html muszaki.html europa.html foldgaz.html idojaras.html europe-geo.json hu-geo.json dist/
+          cp index.html elemzesek.html rendszerkep.html historikus.html nemzetkozi.html modszertan.html rolunk.html eromuvek.html dist/
+          cp hatarok.html muszaki.html europa.html foldgaz.html idojaras.html europe-geo.json hu-geo.json plants.json dist/
           cp demo-data.json demo-engineer.json demo-europe.json demo-countries.json demo-history.json demo-gas.json demo-frequency.json demo-hupx.json demo-weather.json dist/
           cp -r assets dist/assets
           cp -r demo-elemzesek dist/ 2>/dev/null || true
