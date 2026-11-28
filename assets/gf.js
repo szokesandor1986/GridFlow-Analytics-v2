@@ -15,13 +15,61 @@
   GF.isDark = function () { var t = GF.theme(); return t === "auto" ? !!(mq && mq.matches) : t === "dark"; };
   function fire() { document.dispatchEvent(new Event("gf-theme")); }
   if (mq) (mq.addEventListener ? mq.addEventListener.bind(mq, "change") : mq.addListener.bind(mq))(function () { if (GF.theme() === "auto") fire(); });
-  var THEME_TXT = { auto: "Téma: automatikus", light: "Téma: világos", dark: "Téma: sötét" };
-  function themeButton() {
-    var nav = document.querySelector("nav.tabs"); if (!nav || nav.querySelector(".themebtn")) return;
+  var THEME_TXT = { auto: "Téma: auto", light: "Téma: világos", dark: "Téma: sötét" };
+  function themeButton(host) {
+    if (!host || host.querySelector(".themebtn")) return;
     var b = document.createElement("button"); b.type = "button"; b.className = "themebtn";
-    function label() { var t = GF.theme(); b.textContent = THEME_TXT[t]; b.setAttribute("aria-label", "Megjelenés váltása (automatikus, világos, sötét). Jelenleg: " + THEME_TXT[t].replace("Téma: ", "")); }
+    function label() { var t = GF.theme(); b.textContent = THEME_TXT[t]; b.setAttribute("aria-label", "Megjelenés váltása (automatikus, világos, sötét). Jelenleg: " + ({ auto: "automatikus", light: "világos", dark: "sötét" })[t]); }
     b.addEventListener("click", function () { var n = { auto: "light", light: "dark", dark: "auto" }[GF.theme()]; applyTheme(n === "auto" ? null : n); keep(n === "auto" ? null : n); label(); fire(); });
-    label(); nav.appendChild(b);
+    label(); host.appendChild(b);
+  }
+
+  // ---------------------------------------------------------------- oldalváz: fejléc, főmenü, almenü, lábléc
+  // A <body data-section="..." data-page="..." data-root="../"> attribútumaiból épül; az útvonalak relatívak (alkönyvtárban is működnek).
+  var MENU = [
+    { id: "kezdolap", href: "index.html", t: "Kezdőlap" },
+    { id: "elemzesek", href: "elemzesek.html", t: "Elemzések" },
+    { id: "rendszerkep", href: "rendszerkep.html", t: "Rendszerkép" },
+    { id: "historikus", href: "historikus.html", t: "Historikus adatok" },
+    { id: "nemzetkozi", href: "nemzetkozi.html", t: "Nemzetközi összehasonlítás" },
+    { id: "modszertan", href: "modszertan.html", t: "Módszertan" },
+    { id: "rolunk", href: "rolunk.html", t: "Rólunk" }
+  ];
+  var SUB = [
+    { href: "rendszerkep.html", t: "Áttekintés" }, { href: "hatarok.html", t: "Határok és árak" }, { href: "muszaki.html", t: "Rendszerállapot" },
+    { href: "europa.html", t: "Európai piac" }, { href: "idojaras.html", t: "Időjárás" }, { href: "foldgaz.html", t: "Földgáz" }
+  ];
+  GF.SLOGAN = "Safety first. Power always.";
+  GF.menu = MENU;
+  function shell() {
+    var body = document.body, main = document.querySelector("main"); if (!main || body.querySelector("header.site")) return;
+    var root = body.getAttribute("data-root") || "", sec = body.getAttribute("data-section") || "", page = body.getAttribute("data-page") || "";
+    var h = document.createElement("header"); h.className = "site";
+    var items = MENU.map(function (m) {
+      return '<li><a href="' + root + m.href + '"' + (m.id === sec ? ' aria-current="' + (page && page !== m.href ? "true" : "page") + '"' : "") + ">" + GF.esc(m.t) + "</a></li>";
+    }).join("");
+    h.innerHTML = '<div class="gfbar"><a class="brand" href="' + root + 'index.html" aria-label="GridFlow Analytics – kezdőlap">' +
+      '<svg class="logo" viewBox="0 0 32 32" width="30" height="30" aria-hidden="true" focusable="false"><rect x="1" y="1" width="30" height="30" rx="7" fill="none" stroke="currentColor" stroke-width="2"/>' +
+      '<path d="M5 20h6l3-9 4 13 3-8h6" fill="none" stroke="var(--turq)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+      '<span class="bt"><span class="bn">GridFlow Analytics</span><span class="bs">' + GF.SLOGAN + "</span></span></a>" +
+      '<button type="button" class="menu-toggle" aria-expanded="false" aria-controls="gf-menu">Menü</button>' +
+      '<nav class="mainnav" id="gf-menu" aria-label="Főmenü"><ul>' + items + "</ul></nav><span class=\"gftools\"></span></div>";
+    body.insertBefore(h, main);
+    var tg = h.querySelector(".menu-toggle"), menu = h.querySelector("#gf-menu");
+    tg.addEventListener("click", function () { var o = tg.getAttribute("aria-expanded") === "true"; tg.setAttribute("aria-expanded", String(!o)); menu.classList.toggle("open", !o); });
+    menu.addEventListener("keydown", function (e) { if (e.key === "Escape") { tg.setAttribute("aria-expanded", "false"); menu.classList.remove("open"); tg.focus(); } });
+    themeButton(h.querySelector(".gftools"));
+    if (sec === "rendszerkep") {
+      var sub = document.createElement("nav"); sub.className = "tabs subnav"; sub.setAttribute("aria-label", "Rendszerkép nézetei");
+      sub.innerHTML = SUB.map(function (m) { return '<a href="' + root + m.href + '"' + (m.href === page ? ' aria-current="page"' : "") + ">" + GF.esc(m.t) + "</a>"; }).join("");
+      main.insertBefore(sub, main.firstChild);
+    }
+    if (!body.querySelector("footer.site")) {
+      var f = document.createElement("footer"); f.className = "site";
+      f.innerHTML = '<div class="gfin"><p><b>GridFlow Analytics</b> – független, nem hivatalos, nem kereskedelmi elemzések a magyar villamosenergia-rendszerről. <i>' + GF.SLOGAN + "</i></p>" +
+        '<p>Adatforrások: ENTSO-E Transparency Platform, Energy-Charts (Fraunhofer ISE, CC BY 4.0), Open-Meteo (CC BY 4.0), GIE AGSI+ és ALSI, ENTSOG, HUPX. Az adatok tájékoztató jellegűek, nem valós idejűek; a minőségi címkék és a számítások leírása a <a href="' + root + 'modszertan.html">Módszertanban</a> található.</p></div>';
+      body.appendChild(f);
+    }
   }
 
   // ---------------------------------------------------------------- szerkezet, ugrólink, betöltésjelző
@@ -30,12 +78,11 @@
   function scaffold() {
     var main = document.querySelector("main"); if (!main) return;
     if (!main.id) main.id = "main"; main.setAttribute("tabindex", "-1");
-    var a = document.createElement("a"); a.className = "skip"; a.href = "#" + main.id; a.textContent = "Ugrás a tartalomra";
-    document.body.insertBefore(a, document.body.firstChild);
-    themeButton();
-    if (pending > 0 || !seen) {
+    if (!document.querySelector("a.skip")) { var a = document.createElement("a"); a.className = "skip"; a.href = "#" + main.id; a.textContent = "Ugrás a tartalomra"; document.body.insertBefore(a, document.body.firstChild); }
+    shell();
+    if (!document.body.hasAttribute("data-static") && (pending > 0 || !seen)) {      // data-static: az oldal nem tölt adatot (Módszertan, Rólunk), nincs betöltésjelző
       loadingEl = document.createElement("div"); loadingEl.className = "loading"; loadingEl.setAttribute("role", "status"); loadingEl.textContent = "Adatok betöltése…";
-      var nav = main.querySelector("nav.tabs"); if (nav && nav.nextSibling) main.insertBefore(loadingEl, nav.nextSibling); else main.insertBefore(loadingEl, main.firstChild);
+      var nav = main.querySelector("nav.subnav"); if (nav && nav.nextSibling) main.insertBefore(loadingEl, nav.nextSibling); else main.insertBefore(loadingEl, main.firstChild);
       setTimeout(function () { if (pending === 0) GF.loaded(); }, 6000);   // biztonsági lezárás, ha semmi sem kért adatot
     }
   }
@@ -59,6 +106,22 @@
   function fmtNum(v) { return nfd.format(v).replace(/^-/, "−"); }
   var tz = "Europe/Budapest";
   var fStamp = new Intl.DateTimeFormat("hu-HU", { timeZone: tz, year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
+  GF.nf = function (v, d) { if (v == null || Number.isNaN(v)) return "–"; return new Intl.NumberFormat("hu-HU", { minimumFractionDigits: d || 0, maximumFractionDigits: d == null ? 2 : d }).format(v).replace(/^-/, "−"); };
+  // Adatminőségi címke: jel + szöveg (nem csak szín). A magyarázat a Módszertan "minőség" pontján van.
+  var Q = {
+    final: ["●", "Végleges", "Az ENTSO-E közlése, 90 napnál régebbi: a GridFlow konvenciója szerint végleges."],
+    prelim: ["◐", "Előzetes", "Az ENTSO-E közlése az utolsó 90 napból: később még módosulhat."],
+    est: ["≈", "Becsült", "Becsült tényezőt vagy feltevést tartalmazó számítás."],
+    calc: ["ƒ", "Számított", "A GridFlow számolta közölt adatokból; a képlet a Módszertanban van."],
+    miss: ["○", "Hiányzó", "Nincs közölt adat; az érték üres, nem nulla."]
+  };
+  // Minőségi címke. plain=true: nem hivatkozás (másik hivatkozáson, pl. kártyán belül nem lehet beágyazott link).
+  GF.q = function (kind, root, plain) {
+    var q = Q[kind] || Q.miss, inner = '<span aria-hidden="true">' + q[0] + "</span> " + q[1];
+    if (plain) return '<span class="q q-' + kind + '" title="' + GF.esc(q[2]) + '">' + inner + "</span>";
+    return '<a class="q q-' + kind + '" href="' + (root || document.body.getAttribute("data-root") || "") + 'modszertan.html#minoseg" title="' + GF.esc(q[2]) + '">' + inner + "</a>";
+  };
+  GF.QUALITY = Q;
   GF.stamp = function (d) { return fStamp.format(d instanceof Date ? d : new Date(d)); };
 
   // ---------------------------------------------------------------- adatállapot (valós / demo / elavult / hiányos)

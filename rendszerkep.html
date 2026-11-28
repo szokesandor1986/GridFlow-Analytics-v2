@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rendszerkép – a magyar villamosenergia-rendszer jelenlegi állapota | GridFlow Analytics</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="A magyar villamosenergia-rendszer jelenlegi képe hét szakaszban: termelés és fogyasztás, termelési mix, határkeresztező áramlások, árak, frekvencia, erőművi rendelkezésre állás, esti rámpa.">
+<link rel="stylesheet" href="assets/gf.css">
+<script src="assets/gf.js"></script>
+<script src="assets/gfpub.js" defer></script>
+</head>
+<body data-section="rendszerkep" data-page="rendszerkep.html">
+<noscript><nav class="nsnav" aria-label="Főmenü"><a href="index.html">Kezdőlap</a><a href="elemzesek.html">Elemzések</a><a href="rendszerkep.html">Rendszerkép</a><a href="historikus.html">Historikus adatok</a><a href="nemzetkozi.html">Nemzetközi összehasonlítás</a><a href="modszertan.html">Módszertan</a><a href="rolunk.html">Rólunk</a></nav></noscript>
+<main>
+  <div id="banners"></div>
+  <header>
+    <h1>Rendszerkép</h1>
+    <p class="sub">A magyar villamosenergia-rendszer jelenlegi állapota hét szakaszban. Minden szakasz a legfrissebb közölt értékeket mutatja, alatta a részletes ábrákra vezetnek a hivatkozások. A közlés késik, ezért az „utolsó adat” nem a pillanatnyi állapot, és az oldal nem valós idejű.</p>
+    <div class="meta" id="meta"></div>
+    <nav class="hubjump" aria-label="Ugrás a szakaszokhoz">
+      <a href="#szA">A Termelés és fogyasztás</a><a href="#szB">B Mix és megújulók</a><a href="#szC">C Határkeresztező áramlások</a><a href="#szD">D Árak</a><a href="#szE">E Frekvencia</a><a href="#szF">F Rendelkezésre állás</a><a href="#szG">G Esti rámpa</a>
+    </nav>
+  </header>
+
+  <div class="hubs">
+    <section class="card hub" id="szA" aria-labelledby="hA" data-src="ENTSO-E Transparency Platform – tényleges fogyasztás (6.1.A), előrejelzés (6.1.B), termelés típusonként (16.1.B&C)">
+      <h2 id="hA"><span class="letter" aria-hidden="true">A</span>Termelés és fogyasztás</h2>
+      <p class="hint">Mennyi villamos energiát fogyasztott az ország, és mennyi termelést jelentettek az erőművek. A fogyasztás előrejelzéstől való eltérése mutatja, mennyire volt tervezhető az óra.</p>
+      <div class="kpis" id="kA"></div>
+      <ul class="hublinks">
+        <li><a href="muszaki.html#cGen">Termelés típusonként</a> – óránkénti, halmozott ábra</li>
+        <li><a href="muszaki.html#cLoad">Fogyasztás</a> – tény és előrejelzés, eltérés</li>
+        <li><a href="historikus.html">Historikus adatok</a> – termelés és fogyasztás több évre</li>
+      </ul>
+    </section>
+
+    <section class="card hub" id="szB" aria-labelledby="hB" data-src="ENTSO-E Transparency Platform – termelés típusonként; CO₂-tényezők: IPCC AR5 WG3 Annex III; a számítás a GridFlow saját munkája">
+      <h2 id="hB"><span class="letter" aria-hidden="true">B</span>Termelési mix és megújulók</h2>
+      <p class="hint">A jelentett termelés összetétele. A CO₂-intenzitás életciklus-szemléletű becslés a termelés összetételéből, az import nincs benne.</p>
+      <div class="kpis" id="kB"></div>
+      <ul class="hublinks">
+        <li><a href="muszaki.html#cGen">Termelési mix</a> – típusonkénti termelés</li>
+        <li><a href="europa.html#cMix">Mix európai összevetésben</a></li>
+        <li><a href="idojaras.html">Időjárás</a> – nap, szél, hőmérséklet</li>
+        <li><a href="elemzesek/termelesi-mix.html" data-pub="termelesi-mix">Elemzés: a termelési mix átalakulása</a></li>
+      </ul>
+    </section>
+
+    <section class="card hub" id="szC" aria-labelledby="hC" data-src="ENTSO-E Transparency Platform – fizikai határkeresztező áramlás (12.1.G); a nettó import a GridFlow számítása">
+      <h2 id="hC"><span class="letter" aria-hidden="true">C</span>Határkeresztező áramlások</h2>
+      <p class="hint">Fizikai áramlás a határokon, pozitív érték: import. A kereskedelmi menetrend és a fizikai áramlás eltérhet egymástól.</p>
+      <div class="kpis" id="kC"></div>
+      <ul class="hublinks">
+        <li><a href="hatarok.html">Határok</a> – áramlások és kapacitások határonként</li>
+        <li><a href="muszaki.html#cFlow">Fizikai és menetrendezett áramlás</a></li>
+        <li><a href="europa.html#cFmap">Áramlások az európai térképen</a></li>
+        <li><a href="elemzesek/importfuggoseg.html" data-pub="importfuggoseg">Elemzés: importfüggőség</a></li>
+      </ul>
+    </section>
+
+    <section class="card hub" id="szD" aria-labelledby="hD" data-src="ENTSO-E Transparency Platform – day-ahead árak (12.1.D); a HUPX-piaccal azonos elszámolási zóna, de a két forrás nem azonos adatkészlet">
+      <h2 id="hD"><span class="letter" aria-hidden="true">D</span>Árak</h2>
+      <p class="hint">A magyar ajánlati zóna day-ahead ára. Az ajánlati zóna nem azonos az országgal, ezért a szomszédos zónák összevetése a Nemzetközi összehasonlításban külön szerepel.</p>
+      <div class="kpis" id="kD"></div>
+      <ul class="hublinks">
+        <li><a href="hatarok.html">Zónaárak a határoknál</a></li>
+        <li><a href="europa.html#cZone">Zónaárak Európában</a></li>
+        <li><a href="nemzetkozi.html">Nemzetközi összehasonlítás</a></li>
+        <li><a href="elemzesek/negativ-arak.html" data-pub="negativ-arak">Elemzés: negatív HUPX-árak</a></li>
+      </ul>
+    </section>
+
+    <section class="card hub" id="szE" aria-labelledby="hE" data-src="Energy-Charts.info (Fraunhofer ISE), CC BY 4.0 – hálózati frekvencia, másodperces mérésből percre és napra összesítve">
+      <h2 id="hE"><span class="letter" aria-hidden="true">E</span>Stabilitás és frekvencia</h2>
+      <p class="hint">A kontinentális európai szinkronterület hálózati frekvenciája. A névleges érték 50 Hz; a tartós eltérés a termelés és a fogyasztás egyensúlyának zavarát jelzi.</p>
+      <div class="kpis" id="kE"></div>
+      <ul class="hublinks">
+        <li><a href="muszaki.html#fq_cMin">Hálózati frekvencia</a> – perces és napi bontás</li>
+        <li><a href="muszaki.html#cSnsp">Nem-szinkron részarány</a></li>
+        <li><a href="muszaki.html#cBal">Szabályozás és rendszeregyensúly</a></li>
+      </ul>
+    </section>
+
+    <section class="card hub" id="szF" aria-labelledby="hF" data-src="ENTSO-E Transparency Platform – termelőegységek nem rendelkezésre állása (15.1.A&B); a MW-összegzés a GridFlow számítása">
+      <h2 id="hF"><span class="letter" aria-hidden="true">F</span>Erőművi rendelkezésre állás</h2>
+      <p class="hint">A közzétett kiesések és karbantartások a jelenlegi időpontban. A bejelentések módosulhatnak, a tervezett és a nem tervezett kiesést külön számoljuk.</p>
+      <div class="kpis" id="kF"></div>
+      <ul class="hublinks">
+        <li><a href="muszaki.html#cOut">Kiesések és karbantartások</a> – idővonal</li>
+        <li><a href="muszaki.html#cUnits">Blokkszintű termelés</a></li>
+        <li><a href="elemzesek/kiesesek-es-importigeny.html" data-pub="kiesesek-es-importigeny">Elemzés: kiesések és importigény</a></li>
+      </ul>
+    </section>
+
+    <section class="card hub" id="szG" aria-labelledby="hG" data-src="ENTSO-E Transparency Platform – fogyasztás, nap- és szélerőművi termelés; a maradék terhelés a GridFlow számítása">
+      <h2 id="hG"><span class="letter" aria-hidden="true">G</span>Terhelési folyamatok és esti rámpa</h2>
+      <p class="hint">Maradék terhelés = fogyasztás mínusz a jelentett nap- és szélerőművi termelés. Délben a napenergia lenyomja, este a napenergia kiesésével gyorsan emelkedik.</p>
+      <div class="kpis" id="kG"></div>
+      <ul class="hublinks">
+        <li><a href="muszaki.html#cRes">Maradék terhelés</a> – tény és előrejelzés</li>
+        <li><a href="europa.html#cDuck">Napenergia és esti rámpa Európában</a></li>
+        <li><a href="elemzesek/napenergia-es-esti-rampa.html" data-pub="napenergia-es-esti-rampa">Elemzés: napenergia és esti rámpa</a></li>
+      </ul>
+    </section>
+  </div>
+
+  <section class="card plain sec" aria-labelledby="h-rel">
+    <h2 id="h-rel">Kapcsolódó nézetek</h2>
+    <ul class="hublinks">
+      <li><a href="foldgaz.html">Földgáz</a> – tárolói töltöttség, LNG és határkeresztező gázáramlás</li>
+      <li><a href="idojaras.html">Időjárás</a> – hőmérséklet, napsugárzás és szél a termeléshez és a fogyasztáshoz</li>
+      <li><a href="nemzetkozi.html">Nemzetközi összehasonlítás</a> – kilenc szomszédos és közeli ország azonos definíciókkal</li>
+      <li><a href="modszertan.html#minoseg">Adatminőségi címkék</a> – végleges, előzetes, számított, becsült, hiányzó</li>
+    </ul>
+  </section>
+</main>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var demo = new URLSearchParams(location.search).has("demo");
+  var GROUPS = ["nuclear", "gas", "coal", "solar", "wind", "bio", "hydro", "other"];
+  var j = function (u) { return GF.getJson(u).catch(function () { return null; }); };
+  var NO = '<span class="nodata">nincs adat</span>';
+
+  // ---- segédek
+  function kpi(k, v, u, s, d) {
+    return '<div class="kpi"><div class="k">' + GF.esc(k) + '</div><div class="n">' +
+      (v == null || Number.isNaN(v) ? NO : GF.esc(GF.nf(v, d || 0)) + "<small>" + GF.esc(u) + "</small>") + '</div><div class="s">' + (v == null || Number.isNaN(v) ? "" : s) + "</div></div>";
+  }
+  function lastIdx(n, ok) { for (var i = n - 1; i >= 0; i--) if (ok(i)) return i; return -1; }
+  var lt = function (ts) { return GF.esc(GF.stamp(ts)); };
+  var fparts = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Budapest", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23" });
+  function local(ts) {   // Budapesti helyi dátum és óra
+    var o = {}; fparts.formatToParts(new Date(ts)).forEach(function (p) { o[p.type] = p.value; });
+    return { day: o.year + "-" + o.month + "-" + o.day, hour: +o.hour };
+  }
+  function sum(arr, idx) { var t = 0; for (var i = 0; i < arr.length; i++) { var v = arr[i][idx]; if (v == null) return null; t += v; } return t; }
+
+  // ---- A, B, G: engineer.json
+  function genAt(E, i) {   // jelentett csoportok összege és a csoportonkénti értékek, csak ha minden jelentett csoport megvan
+    var keys = GROUPS.filter(function (g) { return E.generation && E.generation[g]; });
+    if (keys.length < 5) return null;
+    var t = 0;
+    for (var k = 0; k < keys.length; k++) { var v = E.generation[keys[k]][i]; if (v == null) return null; t += v; }
+    return { total: t, keys: keys };
+  }
+  function secAB(E) {
+    var a = [], b = [], q = " " + GF.q("prelim"), c = " " + GF.q("calc");
+    if (!E || !E.hourly_ts || !E.load) {
+      $("kA").innerHTML = kpi("Fogyasztás", null, "MW") + kpi("Termelés", null, "MW") + kpi("Eltérés az előrejelzéstől", null, "MW");
+      $("kB").innerHTML = kpi("Napenergia részaránya", null, "%") + kpi("Szélerőművi termelés", null, "MW") + kpi("CO₂-intenzitás", null, "g/kWh");
+      return;
+    }
+    var n = E.hourly_ts.length, la = E.load.actual || [], lf = E.load.forecast || [];
+    var li = lastIdx(n, function (i) { return la[i] != null; });
+    a.push(kpi("Fogyasztás", li < 0 ? null : la[li], "MW", li < 0 ? "" : lt(E.hourly_ts[li]) + q));
+    var gi = lastIdx(n, function (i) { return genAt(E, i) != null; }), g = gi < 0 ? null : genAt(E, gi);
+    a.push(kpi("Termelés (jelentett csoportok)", g ? g.total : null, "MW", g ? lt(E.hourly_ts[gi]) + q : ""));
+    var ei = lastIdx(n, function (i) { return la[i] != null && lf[i] != null; });
+    a.push(kpi("Eltérés az előrejelzéstől", ei < 0 ? null : la[ei] - lf[ei], "MW", ei < 0 ? "" : lt(E.hourly_ts[ei]) + c + " · pozitív: több a tervezettnél"));
+    $("kA").innerHTML = a.join("");
+
+    var sol = g ? E.generation.solar && E.generation.solar[gi] : null, win = g && E.generation.wind ? E.generation.wind[gi] : null;
+    b.push(kpi("Napenergia részaránya", g && sol != null && g.total > 0 ? 100 * sol / g.total : null, "%", g ? lt(E.hourly_ts[gi]) + c : "", 1));
+    b.push(kpi("Szélerőművi termelés", win, "MW", g ? lt(E.hourly_ts[gi]) + q : ""));
+    var f = (E.co2 || {}).factors, co2 = null;
+    if (g && f) { var e = 0, ok = true; g.keys.forEach(function (k) { if (f[k] == null) ok = false; else e += E.generation[k][gi] * f[k]; }); if (ok && g.total > 0) co2 = e / g.total; }
+    b.push(kpi("CO₂-intenzitás (termelés-alapú)", co2, "g/kWh", g ? lt(E.hourly_ts[gi]) + " " + GF.q("est") : ""));
+    $("kB").innerHTML = b.join("");
+  }
+  function secG(E) {
+    var q = " " + GF.q("calc"), out = [];
+    if (!E || !E.hourly_ts || !E.load || !E.generation || !E.generation.solar || !E.generation.wind) {
+      $("kG").innerHTML = kpi("Maradék terhelés", null, "MW") + kpi("Déli minimum", null, "MW") + kpi("Esti maximum", null, "MW"); return;
+    }
+    var T = E.hourly_ts, n = T.length, la = E.load.actual || [], s = E.generation.solar, w = E.generation.wind;
+    var res = new Array(n);
+    for (var i = 0; i < n; i++) res[i] = la[i] == null || s[i] == null || w[i] == null ? null : la[i] - s[i] - w[i];
+    var ri = lastIdx(n, function (i) { return res[i] != null; });
+    out.push(kpi("Maradék terhelés", ri < 0 ? null : res[ri], "MW", ri < 0 ? "" : lt(T[ri]) + q));
+    // a legutóbbi (majdnem) teljes helyi nap: legalább 22 óra érték
+    var byDay = {}, loc = T.map(local);
+    for (i = 0; i < n; i++) { var d = loc[i].day; (byDay[d] = byDay[d] || []).push(i); }
+    var days = Object.keys(byDay).sort(), day = null;
+    for (var k = days.length - 1; k >= 0; k--) { var c = byDay[days[k]].filter(function (x) { return res[x] != null; }).length; if (c >= 22) { day = days[k]; break; } }
+    function ext(h0, h1, fn) {
+      if (day == null) return null; var v = [];
+      byDay[day].forEach(function (x) { if (res[x] != null && loc[x].hour >= h0 && loc[x].hour <= h1) v.push(res[x]); });
+      return v.length >= h1 - h0 ? fn.apply(null, v) : null;   // legfeljebb egy hiányzó óra az ablakban
+    }
+    var dayTxt = day == null ? "" : " · " + day.replace(/-/g, ".") + ".";
+    var mn = ext(10, 15, Math.min), mx = ext(17, 21, Math.max);
+    out.push(kpi("Déli minimum (10–15 óra)", mn, "MW", "legutóbbi teljes nap" + dayTxt + q));
+    out.push(kpi("Esti maximum (17–21 óra)", mx, "MW", "legutóbbi teljes nap" + dayTxt + q));
+    $("kG").innerHTML = out.join("");
+  }
+
+  // ---- C, D: data.json
+  function secCD(D) {
+    var q = " " + GF.q("prelim"), c = " " + GF.q("calc");
+    if (!D || !D.hourly_ts) {
+      $("kC").innerHTML = kpi("Nettó import", null, "MW") + kpi("Legnagyobb határáramlás", null, "MW");
+      $("kD").innerHTML = kpi("Day-ahead ár most", null, "€/MWh") + kpi("A mai nap átlaga", null, "€/MWh") + kpi("A mai nap legalacsonyabb ára", null, "€/MWh"); return;
+    }
+    var ni = D.last_complete_ts ? D.hourly_ts.indexOf(D.last_complete_ts) : -1, cs = [];
+    cs.push(kpi("Nettó import (fizikai áramlás)", ni < 0 ? null : D.net_import_mw[ni], "MW", ni < 0 ? "" : lt(D.last_complete_ts) + c + " · pozitív: import"));
+    var best = null;
+    if (ni >= 0) (D.borders || []).forEach(function (b) {
+      var im = b.import_mw && b.import_mw[ni], ex = b.export_mw && b.export_mw[ni];
+      if (im == null || ex == null) return;
+      var net = im - ex; if (best == null || Math.abs(net) > Math.abs(best.net)) best = { net: net, name: b.name || b.code };
+    });
+    cs.push(kpi("Legnagyobb nettó áramlás" + (best ? ": " + best.name : ""), best ? Math.abs(best.net) : null, "MW", best ? lt(D.last_complete_ts) + q + " · " + (best.net >= 0 ? "import" : "export") : ""));
+    $("kC").innerHTML = cs.join("");
+
+    var P = D.prices && D.prices.zones && D.prices.zones.HU, ds = [];
+    if (!P || !D.prices.ts || !D.prices.ts.length) { $("kD").innerHTML = kpi("Day-ahead ár most", null, "€/MWh") + kpi("A mai nap átlaga", null, "€/MWh") + kpi("A mai nap legalacsonyabb ára", null, "€/MWh"); return; }
+    var ts = D.prices.ts, ref = D.generated_utc, pi = -1;
+    for (var i = ts.length - 1; i >= 0; i--) if (ts[i] <= ref && P[i] != null) { pi = i; break; }
+    ds.push(kpi("Day-ahead ár most (Magyarország)", pi < 0 ? null : P[pi], "€/MWh", pi < 0 ? "" : lt(ts[pi]) + q, 1));
+    var today = local(ref).day, idx = [];
+    for (i = 0; i < ts.length; i++) if (local(ts[i]).day === today) idx.push(i);
+    var step = ts.length > 1 ? (new Date(ts[1]) - new Date(ts[0])) / 1000 : 3600, expected = Math.round(86400 / step);
+    var vals = idx.map(function (x) { return P[x]; }).filter(function (v) { return v != null; });
+    var full = vals.length >= 0.95 * expected;   // időátlaghoz szinte teljes nap kell (az átállási napokon 23 vagy 25 óra van)
+    var avg = full ? vals.reduce(function (a, b) { return a + b; }, 0) / vals.length : null;
+    ds.push(kpi("A mai nap időátlag-ára", avg, "€/MWh", full ? today.replace(/-/g, ".") + "." + q : "", 1));
+    ds.push(kpi("A mai nap legalacsonyabb ára", full ? Math.min.apply(null, vals) : null, "€/MWh", full ? today.replace(/-/g, ".") + "." + q + (Math.min.apply(null, vals) < 0 ? " · negatív ár" : "") : "", 1));
+    $("kD").innerHTML = ds.join("");
+  }
+
+  // ---- E: frequency.json
+  function secE(F) {
+    var es = [], c = " " + GF.q("calc");
+    var m = F && F.minute, daily = F && F.daily, mi = -1;
+    if (m && m.mean && m.t0) mi = lastIdx(m.mean.length, function (i) { return m.mean[i] != null; });
+    var mt = mi < 0 ? null : new Date(+new Date(m.t0) + mi * (m.step || 60) * 1000);
+    es.push(kpi("Frekvencia (utolsó perc átlaga)", mi < 0 ? null : m.mean[mi], "Hz", mt ? lt(mt) + c : "", 3));
+    var keys = daily ? Object.keys(daily).sort() : [], dk = null;
+    for (var i = keys.length - 1; i >= 0; i--) { var d = daily[keys[i]]; if (d && d.min != null && d.max != null && d.cov >= 0.9) { dk = keys[i]; break; } }
+    var dd = dk ? daily[dk] : null, ds = dk ? dk.replace(/-/g, ".") + ". · lefedettség " + GF.nf(100 * dd.cov, 0) + " %" + c : "";
+    es.push(kpi("Legutóbbi nap legalacsonyabb értéke", dd ? dd.min : null, "Hz", ds, 3));
+    es.push(kpi("Legutóbbi nap legmagasabb értéke", dd ? dd.max : null, "Hz", ds, 3));
+    $("kE").innerHTML = es.join("");
+  }
+
+  // ---- F: outages_gen
+  function secF(E) {
+    var fs = [], q = " " + GF.q("prelim"), c = " " + GF.q("calc");
+    if (!E || !Array.isArray(E.outages_gen) || !E.generated_utc) {
+      $("kF").innerHTML = kpi("Érvényes kiesések", null, "db") + kpi("Nem rendelkezésre álló kapacitás", null, "MW") + kpi("Tervezett kiesés a következő 7 napban", null, "db"); return;
+    }
+    var now = +new Date(E.generated_utc), wk = now + 7 * 864e5, act = [], soon = 0, bad = false;
+    E.outages_gen.forEach(function (o) {
+      var s = +new Date(o.start), e = +new Date(o.end);
+      if (s <= now && now < e) act.push(o);
+      else if (s > now && s <= wk && o.planned) soon++;
+    });
+    var mw = 0; act.forEach(function (o) { if (o.nominal_mw == null || o.avail_mw == null) bad = true; else mw += o.nominal_mw - o.avail_mw; });
+    var pl = act.filter(function (o) { return o.planned; }).length;
+    fs.push(kpi("Érvényes kiesések", act.length, "db", "ebből tervezett: " + pl + ", nem tervezett: " + (act.length - pl) + q));
+    fs.push(kpi("Nem rendelkezésre álló kapacitás", bad ? null : mw, "MW", bad ? "" : "a névleges és a bejelentett rendelkezésre álló különbsége" + c));
+    fs.push(kpi("Tervezett kiesés kezdődik a következő 7 napban", soon, "db", "bejelentés alapján" + q));
+    $("kF").innerHTML = fs.join("");
+  }
+
+  function links(demoMode) {
+    var a = document.querySelectorAll("a[data-pub]"), dir = window.GFPub ? GFPub.dir(demoMode) : (demoMode ? "demo-elemzesek/" : "elemzesek/");
+    for (var i = 0; i < a.length; i++) a[i].href = dir + a[i].getAttribute("data-pub") + ".html";
+  }
+
+  function start() {
+    links(demo);
+    Promise.all([j(demo ? "demo-engineer.json" : "engineer.json"), j(demo ? "demo-data.json" : "data.json"), j(demo ? "demo-frequency.json" : "frequency.json")]).then(function (r) {
+      var E = r[0], D = r[1], F = r[2], miss = [];
+      GF.loaded();
+      if (!E) miss.push("termelési és fogyasztási adatok (engineer.json)");
+      if (!D) miss.push("határkeresztező áramlások és árak (data.json)");
+      if (!F) miss.push("hálózati frekvencia (frequency.json)");
+      var ref = (E && E.generated_utc) || (D && D.generated_utc) || (F && F.generated_utc);
+      var st = GF.banners($("banners"), { demo: demo || !!((E && E.demo) || (D && D.demo) || (F && F.demo)), generatedUtc: ref, staleHours: 3, missing: miss, what: "a rendszerkép adatai", demoText: "A kitalált minta csak az oldal működését mutatja." });
+      $("meta").innerHTML = GF.stateTag(st) + (ref ? "<span>Adatok generálva: " + GF.esc(GF.stamp(ref)) + "</span>" : "");
+      secAB(E); secCD(D); secE(F); secF(E); secG(E);
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Módszertan – adatforrások, képletek, minőségi címkék és korlátok | GridFlow Analytics</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="A GridFlow Analytics módszertana: adatforrások, az adatminőségi címkék jelentése, az időkezelés és az összesítés szabályai, a számított mutatók képletei, a publikációk készítése és az ismert korlátok.">
+<link rel="stylesheet" href="assets/gf.css">
+<script src="assets/gf.js"></script>
+<style>
+.doc{max-width:960px}
+.doc h2{font-size:22px;margin:0 0 8px}
+.doc h3{font-size:16px;margin:18px 0 6px;color:var(--ink)}
+.doc p,.doc li{font-size:15.5px;line-height:1.6;color:var(--ink2);max-width:80ch}
+.doc p{margin:8px 0}
+.doc ul,.doc ol{margin:8px 0;padding-left:22px}
+.doc li{margin:4px 0}
+.doc code{font-size:.92em;background:var(--neutral);border-radius:4px;padding:1px 5px}
+.doc .formula{margin:8px 0;padding:10px 14px;background:var(--neutral);border-radius:8px;font-size:15px;color:var(--ink);overflow-x:auto;max-width:80ch}
+.doc .formula small{display:block;color:var(--ink2);font-size:13px;margin-top:4px}
+.tbl{overflow-x:auto;max-width:100%}
+table.mt{min-width:620px;margin:10px 0}
+table.mt th{font-size:13px;text-align:left;padding:8px 10px;border-bottom:2px solid var(--grid);color:var(--ink2);vertical-align:bottom}
+table.mt td{padding:9px 10px;vertical-align:top;font-size:14.5px;color:var(--ink2);border-bottom:1px solid var(--grid)}
+table.mt td:first-child{color:var(--ink);font-weight:650;white-space:nowrap}
+nav.hubjump{margin:14px 0 18px}
+.doc section.card{scroll-margin-top:14px}
+.warnbox{margin:12px 0;padding:10px 14px;border-radius:8px;background:var(--warn-bg);color:var(--warn-ink);font-size:14.5px;max-width:80ch}
+@media (max-width:640px){table.mt td:first-child{white-space:normal}}
+</style>
+</head>
+<body data-section="modszertan" data-page="modszertan.html" data-static>
+<noscript><nav class="nsnav" aria-label="Főmenü"><a href="index.html">Kezdőlap</a><a href="elemzesek.html">Elemzések</a><a href="rendszerkep.html">Rendszerkép</a><a href="historikus.html">Historikus adatok</a><a href="nemzetkozi.html">Nemzetközi összehasonlítás</a><a href="modszertan.html">Módszertan</a><a href="rolunk.html">Rólunk</a></nav></noscript>
+<main class="doc">
+  <header>
+    <h1>Módszertan</h1>
+    <p class="sub">Honnan származnak az adatok, mit jelentenek az adatminőségi címkék, hogyan készülnek az összesítések és a számított mutatók, és hol vannak a korlátok. Az oldal célja, hogy minden számot vissza lehessen vezetni a forrására és a képletére.</p>
+    <nav class="hubjump" aria-label="Ugrás a fejezetekhez">
+      <a href="#alapelvek">Alapelvek</a><a href="#forrasok">Adatforrások</a><a href="#minoseg">Adatminőség</a><a href="#idokezeles">Időkezelés és összesítés</a><a href="#kepletek">Képletek</a><a href="#publikaciok">Publikációk</a><a href="#nemzetkozi">Nemzetközi összehasonlítás</a><a href="#korlatok">Korlátok</a><a href="#frissites">Frissítés</a>
+    </nav>
+  </header>
+
+  <section class="card" id="alapelvek" aria-labelledby="h-alap">
+    <h2 id="h-alap">Alapelvek</h2>
+    <ul>
+      <li><b>Független és nem hivatalos.</b> A GridFlow Analytics nem rendszerirányító, nem hatóság és nem kereskedelmi adatszolgáltató. Az oldal tájékoztató jellegű, nem alkalmas üzemi vagy kereskedési döntés alapjául.</li>
+      <li><b>Nem valós idejű.</b> Az adatközlők késve publikálnak, ezért az „utolsó adat” nem a pillanatnyi állapot. Minden értéknél látszik az időbélyege.</li>
+      <li><b>A hiányzó adat nem nulla.</b> Ha nincs közölt érték, a mező üres, a grafikonon szakadás van, a táblázatban „nincs adat” áll. Hiányt sem becsléssel, sem nullával nem pótolunk.</li>
+      <li><b>Pontos mértékegységek.</b> A teljesítmény MW-ban, a villamos energia MWh-ban vagy GWh-ban, az ár €/MWh-ban, a frekvencia Hz-ben szerepel. Az energia és a teljesítmény nem keveredik: az energia a teljesítmény és az idő szorzata.</li>
+      <li><b>Nincs titok a böngészőben.</b> Az API-kulcsok kizárólag a GitHub Secrets tárolóban vannak, és csak az adatgyűjtő futásakor érhetők el. Az oldal a kész, statikus adatfájlokat olvassa, külső szolgáltatást nem hív.</li>
+      <li><b>Nyomon követhető.</b> A publikációkban minden szám a háttéradatból számolt, kézzel beírt érték nincs. A számítás szabályai ezen az oldalon vannak leírva.</li>
+    </ul>
+  </section>
+
+  <section class="card sec" id="forrasok" aria-labelledby="h-forras">
+    <h2 id="h-forras">Adatforrások</h2>
+    <div class="tbl"><table class="mt">
+      <thead><tr><th scope="col">Forrás</th><th scope="col">Mit használunk belőle</th><th scope="col">Megjegyzés</th></tr></thead>
+      <tbody>
+        <tr><td>ENTSO-E Transparency Platform</td><td>tényleges fogyasztás (6.1.A) és day-ahead előrejelzése (6.1.B); termelés típusonként (16.1.B&amp;C); nap- és szélerőművi előrejelzés; day-ahead árak (12.1.D); fizikai és menetrendezett határkeresztező áramlás; kiesések; beépített kapacitás; kiegyenlítés</td><td>Az elsődleges forrás. Az ENTSO-E nem jelöli az adat véglegességét; a címkékről lásd az <a href="#minoseg">Adatminőség</a> fejezetet. A felhasználási feltételek az ENTSO-E oldalán olvashatók.</td></tr>
+        <tr><td>Energy-Charts (Fraunhofer ISE)</td><td>a kontinentális európai szinkronterület hálózati frekvenciája, másodperces mérésből percre és napra összesítve</td><td>CC BY 4.0, forrás: energy-charts.info. A nyers másodperces adatot nem tároljuk.</td></tr>
+        <tr><td>Open-Meteo</td><td>óránkénti időjárás: hőmérséklet, szélsebesség, napsugárzás, felhőzet, csapadék</td><td>CC BY 4.0. Az ingyenes szolgáltatás csak nem kereskedelmi célra használható; kereskedelmi felhasználáshoz az Open-Meteo előfizetése kell.</td></tr>
+        <tr><td>GIE AGSI+ és ALSI</td><td>földgáztárolók töltöttsége, LNG-terminálok készlete és kiadása</td><td>Ingyenes személyes kulcs (GitHub Secret). Napi adat.</td></tr>
+        <tr><td>ENTSOG Transparency Platform</td><td>a magyar határpontok fizikai gázáramlása</td><td>Kulcs nélkül elérhető. Napi adat.</td></tr>
+        <tr><td>HUPX (REMIT, Inside Information Platform)</td><td>villamosenergia-kiesésekről szóló közlemények</td><td>Kulcs szükséges (GitHub Secret); ha nem érhető el, a megfelelő kártya nem jelenik meg.</td></tr>
+        <tr><td>IPCC AR5 WG3 Annex III</td><td>a CO₂-intenzitás számításához az életciklus-szemléletű medián-tényezők</td><td>gCO₂eq/kWh: atom 12, gáz 490, szén 820, nap 48, szél 11, biomassza és hulladék 230, víz 24; az „egyéb” csoport 700 (becslés).</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="card sec" id="minoseg" aria-labelledby="h-min">
+    <h2 id="h-min">Adatminőségi címkék</h2>
+    <p>Az értékek mellett jel és szöveg is mutatja a minőségüket, nem csak szín. A címke az értékre vonatkozik, nem a forrásra általában.</p>
+    <div class="tbl"><table class="mt">
+      <thead><tr><th scope="col">Címke</th><th scope="col">Jelentése</th></tr></thead>
+      <tbody>
+        <tr><td><span class="q q-final"><span aria-hidden="true">●</span> Végleges</span></td><td>Az ENTSO-E közlése, amely 90 napnál régebbi. Az ENTSO-E nem jelöli a véglegességet, ezért ez a GridFlow konvenciója: ennyi idő után az utólagos módosítás már ritka.</td></tr>
+        <tr><td><span class="q q-prelim"><span aria-hidden="true">◐</span> Előzetes</span></td><td>Az ENTSO-E közlése az utolsó 90 napból. Később még módosulhat, ezért a belőle számolt értékek is változhatnak.</td></tr>
+        <tr><td><span class="q q-calc"><span aria-hidden="true">ƒ</span> Számított</span></td><td>A GridFlow számolta a közölt adatokból, például a nettó importot, a maradék terhelést vagy az esti rámpát. A képlet az <a href="#kepletek">Képletek</a> fejezetben van.</td></tr>
+        <tr><td><span class="q q-est"><span aria-hidden="true">≈</span> Becsült</span></td><td>Becsült tényezőt vagy feltevést tartalmazó számítás, például a termelés-alapú CO₂-intenzitás.</td></tr>
+        <tr><td><span class="q q-miss"><span aria-hidden="true">○</span> Hiányzó</span></td><td>Nincs közölt adat. Az érték üres, nem nulla, és nem is becsült.</td></tr>
+      </tbody>
+    </table></div>
+    <h3>Adatállapot az oldalak tetején</h3>
+    <ul>
+      <li><b>Valós adat:</b> a legutóbbi gyűjtés a megadott időn belüli, a szükséges források elérhetők voltak.</li>
+      <li><b>Elavult adat:</b> az adatfájl a megengedettnél régebben frissült, ezért az értékek nem a legfrissebb állapotot mutatják.</li>
+      <li><b>Részben hiányos adat:</b> egyes források vagy időszakok hiányoznak; az érintett részek üresen maradnak.</li>
+      <li><b>Demo adat:</b> kitalált, szintetikus minta (<code>?demo=1</code>), amely csak az oldal működését mutatja, valós mérést nem.</li>
+    </ul>
+  </section>
+
+  <section class="card sec" id="idokezeles" aria-labelledby="h-ido">
+    <h2 id="h-ido">Időkezelés és összesítés</h2>
+    <ul>
+      <li><b>UTC rács.</b> A történeti tár idősorai mindig UTC-ben, szabályos rácson vannak (óránkénti, Magyarországon az utolsó két évre negyedórás is). A nyári és téli időszámítás váltása így nem sérti az adatot.</li>
+      <li><b>Budapesti helyi nap.</b> A napi, heti, havi és éves csoportosítás minden zónára az Europe/Budapest idő szerint történik, hogy az értékek összevethetők legyenek. A 23 és 25 órás napok a tényleges óraszámmal számolnak. Az Ukrajna, Románia és más keleti zónák helyi ideje egy órával eltér; ez a csoportosítást nem érinti.</li>
+      <li><b>Lefedettség.</b> Egy időszak összesítése csak akkor érvényes, ha az elemi értékek legalább 70 %-a megvan. Ennél kisebb lefedettségnél az összesítés üres (nem becsült, nem nulla). Minden összesítés rögzíti, hány elemi értékből készült.</li>
+    </ul>
+    <h3>Összevonási szabályok</h3>
+    <div class="tbl"><table class="mt">
+      <thead><tr><th scope="col">Mennyiség</th><th scope="col">Összevonás az időben</th><th scope="col">Megjegyzés</th></tr></thead>
+      <tbody>
+        <tr><td>Termelés, fogyasztás, áramlás, nettó import (MW)</td><td>átlag; a minimum és a maximum külön mezőben</td><td>Az energia az átlag és az időszak tényleges óráinak szorzata. A hiányzó órák nem nullák.</td></tr>
+        <tr><td>Energia (GWh)</td><td>összeg</td><td>Teljesítményből számolt energiánál az órák száma a tényleges, nem 24.</td></tr>
+        <tr><td>Day-ahead ár (€/MWh)</td><td>időátlag, egyenlő súllyal</td><td>A negatív árú órák száma külön mutató, nem az átlagból olvasható ki.</td></tr>
+        <tr><td>CO₂-intenzitás (g/kWh)</td><td>termeléssel súlyozott átlag</td><td>Nem az óránkénti intenzitások egyszerű átlaga.</td></tr>
+        <tr><td>Frekvencia (Hz)</td><td>átlag, szórás, minimum, maximum, a ±50 és ±100 mHz-es sávon kívül töltött idő aránya</td><td>Az átlagos frekvencia önmagában félrevezető, ezért a szélső értékek és a sávon kívüli idő is szerepel.</td></tr>
+        <tr><td>Beépített teljesítmény (MW)</td><td>éves állapot</td><td>Nem átlagolható.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="card sec" id="kepletek" aria-labelledby="h-kep">
+    <h2 id="h-kep">Számított mutatók képletei</h2>
+    <h3>Nettó import</h3>
+    <div class="formula">nettó import = Σ (import a határon − export a határon), a fizikai áramlások szerint<small>Pozitív érték: import. A történeti tárban az óra akkor érvényes, ha a határok legalább 70 %-ának van adata. Az élő pillanatképben az óra csak akkor „teljes”, ha minden aktív határ adata megvan; az utolsó teljes órát mutatjuk.</small></div>
+    <h3>Maradék terhelés</h3>
+    <div class="formula">maradék terhelés = fogyasztás − napenergia-termelés − szélerőművi termelés<small>Ha a napenergia vagy a szél adata egy órában hiányzik, a maradék terhelés is hiányzik (nem nulla). Ahol a zóna szélerőművi termelést egyáltalán nem közöl, csak a napenergiát vonjuk le, ezért az érték ott nem teljesen összevethető.</small></div>
+    <h3>Esti rámpa és déli minimum</h3>
+    <div class="formula">déli minimum = a maradék terhelés napi minimuma 9 és 16 óra között (budapesti idő)<br>esti rámpa = a maradék terhelés legnagyobb pozitív egyórás változása 15 és 21 óra között<small>Egy nap csak akkor számít, ha a déli ablakban legalább 6 az 8 órából, az esti ablakban legalább 4 a 7 óraváltásból érvényes. A Rendszerkép G szakaszának „déli minimum” és „esti maximum” értékei a maradék terhelés szintjei más ablakkal (10–15, illetve 17–21 óra), ezért nem azonosak a tár rámpa-mutatójával.</small></div>
+    <h3>Termelési részarány</h3>
+    <div class="formula">egy csoport részaránya = a csoport energiája / a jelentett csoportok energiájának összege<small>Az összeg a zóna által ténylegesen jelentett csoportokból áll. Az a hónap, amelyben a jelentett csoportok közül bármelyiknek hiányzik az adata, kimarad a részarányból.</small></div>
+    <h3>Termelés-alapú CO₂-intenzitás</h3>
+    <div class="formula">intenzitás = Σ (csoport termelése × csoport életciklus-tényezője) / Σ (csoport termelése)<small>Az importált villamos energia kibocsátása nincs benne, ezért ez nem a fogyasztás szén-dioxid-lábnyoma. A tényezők az IPCC AR5 medián-értékei, az „egyéb” csoport 700 g/kWh becslés.</small></div>
+    <h3>Importfüggés és nem-szinkron részarány</h3>
+    <div class="formula">importfüggés = max(nettó import; 0) / fogyasztás × 100 %<br>nem-szinkron részarány = (nap + szél) / (fogyasztás + max(−nettó import; 0)) × 100 %<small>Az utóbbi a megújuló, inverteres termelés részarányának közelítése a rendszeren belül. Pontos üzemi mutatónak nem tekinthető.</small></div>
+    <h3>Negatív árak</h3>
+    <div class="formula">negatív órák aránya = a negatív day-ahead árú órák száma / az érvényes ár-órák száma × 100 %</div>
+    <h3>Korreláció</h3>
+    <p>Ahol a szöveg korrelációt említ, az a havi értékek Pearson-féle együtthatója az adott időszakban. A korreláció összefüggést jelez, nem bizonyít okságot, és a szövegek ennek megfelelően fogalmaznak.</p>
+  </section>
+
+  <section class="card sec" id="publikaciok" aria-labelledby="h-pub">
+    <h2 id="h-pub">Hogyan készülnek az elemzések?</h2>
+    <ol>
+      <li>Az elemzések a havi történeti adatból készülnek, <b>csak lezárt hónapokból és lezárt évekből</b>. A folyamatban lévő hónap nem kerül bele az évi összesítésekbe.</li>
+      <li>Minden oldal rögzített, tízrészes szerkezetű: Kérdés, Rövid összefoglaló, Adatok, Módszer, Elemzés, Ábrák, Értelmezés, Következtetések, Korlátok, Források.</li>
+      <li>A szövegben szereplő minden szám az adatból számolt. A mondatokat a számított értékek választják ki (nőtt, csökkent, változatlan), és a szöveg az okokról nem állít többet, mint amit az adat megenged.</li>
+      <li>Ami az adatból nem számolható (hiányzó hónapok, hiányzó adatsor), azt a Korlátok rész kimondja. Ha egy téma nem készíthető el, az oldal „adatra vár” állapotot kap.</li>
+      <li>Az oldalak építése determinisztikus: ugyanabból az adatból azonos fájl jön létre, ezért csak a ténylegesen változott oldalak cserélődnek.</li>
+      <li>Az ábrák a böngészőben rajzolódnak, JavaScript nélkül ugyanaz az adat táblázatban olvasható.</li>
+    </ol>
+  </section>
+
+  <section class="card sec" id="nemzetkozi" aria-labelledby="h-nk">
+    <h2 id="h-nk">Nemzetközi összehasonlítás szabályai</h2>
+    <ul>
+      <li><b>Ajánlati zóna és ország külön azonosító.</b> A kulcs az ENTSO-E zónakódja (például <code>DE_LU</code>); az ország csak megjelenítési csoport. A közös német–luxemburgi ajánlati zóna nem azonos Németországgal.</li>
+      <li><b>Csak azonos definíciójú mutató kerül egymás mellé:</b> day-ahead átlagár, negatív árú órák aránya, nap- és szélrészarány, CO₂-intenzitás, esti rámpa a fogyasztás átlagának százalékában. A fogyasztás abszolút értékét nem rangsoroljuk, mert az ENTSO-E közlésének tartalma a rendszerirányítók között eltérhet.</li>
+      <li><b>Lefedettség.</b> Egy zóna értéke az időszakra csak akkor jelenik meg, ha az időszak hónapjainak legalább 80 %-ában van elég adat. A részleges lefedettséget † jel jelzi.</li>
+      <li><b>Ukrajna.</b> Az ENTSO-E-n az ukrán adatközlés 2022 óta hiányos; ami hiányzik, az üresen marad.</li>
+    </ul>
+  </section>
+
+  <section class="card sec" id="korlatok" aria-labelledby="h-kor">
+    <h2 id="h-kor">Ismert korlátok</h2>
+    <div class="warnbox">Az oldal tájékoztató jellegű. Az adatok késve érkeznek, utólag módosulhatnak, és a közlők hibái vagy kimaradásai átöröklődnek.</div>
+    <ul>
+      <li><b>Nem minden kategória van meg a történeti tárban.</b> A kiesések és karbantartások története, a szabályozási energia (aFRR, mFRR) története, a frekvencia története és a nem magyar zónák beépített kapacitása nincs a tárban. Ezekből csak a jelenlegi (élő) ablak látszik, és az ezekre épülő elemzések témái „részleges” állapotot kapnak.</li>
+      <li><b>Felbontás.</b> A tár óránkénti, a 15 perces felbontás csak Magyarországra és az utolsó két évre áll rendelkezésre. A day-ahead ár 2025 októbere óta 15 perces elszámolási időszakú; az óránkénti tárban ez óránkénti időátlagként szerepel.</li>
+      <li><b>Termelési jelentések lefedettsége.</b> A zónák nem egyformán jelentenek (például a kisméretű napelemes termelés egy része nem látszik), ezért a nap- és szélrészarány alulbecsülhet, a maradék terhelés pedig torzulhat.</li>
+      <li><b>Előzetes adat.</b> Az utolsó 90 nap adata előzetes. Az ENTSO-E utólag módosíthatja, ezért az ebből számolt értékek is változhatnak.</li>
+      <li><b>Termelés-alapú CO₂.</b> Az import kibocsátása nincs benne, a tényezők medián-értékek, nem erőművenkénti mérések.</li>
+      <li><b>Külső források elérhetősége.</b> Ha egy forrás nem érhető el, az érintett rész üresen marad, a többi működik tovább. A hiba az oldal tetején is látszik.</li>
+    </ul>
+  </section>
+
+  <section class="card sec" id="frissites" aria-labelledby="h-fr">
+    <h2 id="h-fr">Frissítés</h2>
+    <ul>
+      <li>Az élő ablak (határáramlások, árak, termelés, fogyasztás, frekvencia, időjárás) kb. 20 percenként frissül; a közzététel ütemezett GitHub Actions futásokból történik.</li>
+      <li>A történeti tár naponta egyszer frissül, az utolsó napokat újraszámolja; a teljes visszatöltés külön, kézzel indított futás.</li>
+      <li>A földgáz-adatok naponta kétszer frissülnek.</li>
+      <li>Az elemzések minden adatfrissítéssel újraszámolódnak, de csak a ténylegesen változott oldalak cserélődnek.</li>
+    </ul>
+    <p>Hibát találtál, vagy kérdésed van egy számmal kapcsolatban? Lásd a <a href="rolunk.html#kapcsolat">Rólunk</a> oldalt.</p>
+  </section>
+</main>
+</body>
+</html>

@@ -45,9 +45,13 @@ jobs:
         run: |
           mkdir -p dist
           python collector.py --out dist/data.json
-          cp index.html muszaki.html europa.html foldgaz.html idojaras.html europe-geo.json hu-geo.json demo-*.json dist/
-          cp -r assets dist/assets
-          for f in history.json gas.json; do [ -f "$f" ] && cp "$f" dist/; done; true
+          cp *.html europe-geo.json hu-geo.json demo-*.json dist/
+          cp -r assets demo-hist demo-elemzesek dist/
+          for f in history.json gas.json; do [ -f "$f" ] && cp "$f" dist/; done
+          # Az elemzések a havi history.json-ból épülnek. A hist/ (óránkénti tár, ~70-100 MB) szándékosan nem kerül fel FTPS-en
+          # 20 percenként; nélküle a Historikus adatok és a Nemzetközi összehasonlítás oldal a havi history.json-ra esik vissza.
+          if [ -f history.json ]; then python publish.py --history history.json --out dist/elemzesek || true; fi
+          true
 
       - name: Feltöltés a tárhelyre (FTPS)
         env:

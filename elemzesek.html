@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Elemzések – GridFlow Analytics</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="Adatvezérelt elemzések a magyar villamosenergia-rendszerről: importfüggőség, napenergia, árak, termelési mix, CO₂-intenzitás és szezonális trendek, rögzített szerkezetben, forrásokkal.">
+<link rel="stylesheet" href="assets/gf.css">
+<script src="assets/gf.js"></script>
+<script src="assets/gfpub.js" defer></script>
+</head>
+<body data-section="elemzesek" data-page="elemzesek.html">
+<noscript><nav class="nsnav" aria-label="Főmenü"><a href="index.html">Kezdőlap</a><a href="elemzesek.html">Elemzések</a><a href="rendszerkep.html">Rendszerkép</a><a href="historikus.html">Historikus adatok</a><a href="nemzetkozi.html">Nemzetközi összehasonlítás</a><a href="modszertan.html">Módszertan</a><a href="rolunk.html">Rólunk</a></nav></noscript>
+<main>
+  <div id="banners"></div>
+  <header>
+    <p class="eyebrow">Elemzések</p>
+    <h1>Adatból számolt elemzések a magyar villamosenergia-rendszerről</h1>
+    <p class="lead">Minden elemzés ugyanazt a tíz részből álló szerkezetet követi: a kérdéstől a korlátokig és a forrásokig. A szövegben szereplő számokat a rendszer a történeti adatból számolja, kézzel beírt érték nincs.</p>
+  </header>
+  <section class="sec" aria-labelledby="fh">
+    <h2 id="fh">Témák</h2>
+    <div class="chips2" id="filter" role="group" aria-label="Szűrés témára"></div>
+  </section>
+  <section class="sec" aria-live="polite">
+    <div class="grid2" id="list"></div>
+    <p class="hint" id="msg"></p>
+  </section>
+  <noscript><section class="sec"><h2>Elemzések</h2><ul><li><a href="elemzesek/importfuggoseg.html">Importfüggőség</a></li><li><a href="elemzesek/napenergia-reszarany.html">Napenergia részaránya</a></li><li><a href="elemzesek/napenergia-es-esti-rampa.html">Napenergia és esti rámpa</a></li><li><a href="elemzesek/negativ-arak.html">Negatív HUPX-árak</a></li><li><a href="elemzesek/szomszedos-zonak-arai.html">Szomszédos zónák árai</a></li><li><a href="elemzesek/termelesi-mix.html">Termelési mix átalakulása</a></li><li><a href="elemzesek/megujulok-es-szabalyozas.html">Megújulók és szabályozás</a></li><li><a href="elemzesek/kiesesek-es-importigeny.html">Kiesések és importigény</a></li><li><a href="elemzesek/co2-intenzitas.html">CO₂-intenzitás</a></li><li><a href="elemzesek/szezonalis-trendek.html">Szezonális trendek</a></li></ul></section></noscript>
+  <section class="card plain sec">
+    <h2>Hogyan készülnek az elemzések?</h2>
+    <p class="hint">Az elemzések a lezárt hónapok és évek ENTSO-E adataiból épülnek; a folyamatban lévő hónap nem kerül bele. A részleges elemzések kimondják, mi hiányzik a teljes körű vizsgálathoz. A számítások leírása és az adatminőségi címkék jelentése a <a href="modszertan.html">Módszertanban</a> olvasható; az alapadatok a <a href="historikus.html">Historikus adatok</a> oldalon böngészhetők és letölthetők.</p>
+  </section>
+</main>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var demo = new URLSearchParams(location.search).has("demo");
+  function start() {
+    if (!window.GFPub) { setTimeout(start, 20); return; }
+    var dir = GFPub.dir(demo);
+    GFPub.load(demo).then(function (idx) {
+      GF.loaded();
+      GF.banners($("banners"), { demo: !!idx.demo || demo, generatedUtc: idx.data_generated_utc, staleHours: 24 * 60, what: "a történeti adattár", demoText: "A kitalált minta csak az oldal működését mutatja." });
+      var pubs = idx.publications, cur = "";
+      var topics = [["", "Mind (" + pubs.length + ")"]].concat(pubs.map(function (p) { return [p.slug, p.topic]; }));
+      var f = $("filter");
+      topics.forEach(function (t) {
+        var b = document.createElement("button"); b.type = "button"; b.textContent = t[1]; b.setAttribute("aria-pressed", String(t[0] === cur));
+        b.addEventListener("click", function () { cur = t[0]; Array.prototype.forEach.call(f.children, function (x, i) { x.setAttribute("aria-pressed", String(topics[i][0] === cur)); }); draw(); });
+        f.appendChild(b);
+      });
+      function draw() {
+        var l = $("list"); l.textContent = "";
+        pubs.filter(function (p) { return !cur || p.slug === cur; }).forEach(function (p) { l.appendChild(GFPub.card(p, dir)); });
+      }
+      draw();
+      $("msg").textContent = "Adatok állása: " + GFPub.monthLong(idx.data_through) + " (az utolsó lezárt hónap).";
+    }, function () {
+      GF.loaded();
+      $("list").innerHTML = '<div class="card plain"><p>Az elemzések még nem készültek el. Az első teljes adatfrissítés után automatikusan megjelennek.</p></div>';
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+})();
+</script>
+</body>
+</html>

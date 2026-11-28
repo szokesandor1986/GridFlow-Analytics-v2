@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Historikus adatok – GridFlow Analytics</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="Több éves villamosenergia-rendszeradatok: termelés, fogyasztás, árak és határkeresztező áramlások országonként, különböző időszakokra és felbontásokban, összehasonlítással és letöltéssel.">
+<link rel="stylesheet" href="assets/gf.css">
+<script src="assets/gf.js"></script>
+<script src="assets/gfhist.js" defer></script>
+<script src="assets/gfchart.js" defer></script>
+<style>
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px 16px;align-items:end}
+.ctl label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:650;color:var(--ink2)}
+.ctl select,.ctl input[type=date]{font:inherit;font-size:15px;font-weight:400;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:7px 9px;min-height:40px;max-width:100%}
+.ctl select:hover,.ctl input:hover{border-color:var(--ink2)}
+.ctl [hidden]{display:none!important}
+.ctl .wide{grid-column:1/-1}
+.ctl .cust{display:none;grid-column:1/-1;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px 16px}
+.ctl .cust.on{display:grid}
+.qline{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:12px 0 0;color:var(--ink2);font-size:13px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.btn{font:inherit;font-size:14px;padding:8px 14px;border-radius:8px;border:1px solid var(--ink2);background:var(--surface);color:var(--ink);cursor:pointer;min-height:40px}
+.btn:hover{background:var(--neutral)}
+.note{margin:10px 0 0;color:var(--ink2);font-size:13.5px;max-width:90ch}
+.note.warn{color:var(--warn-ink);background:var(--warn-bg);padding:8px 12px;border-radius:8px}
+.chart{min-height:120px}
+.sub2{margin:14px 0 4px;font-size:15px}
+</style>
+</head>
+<body data-section="historikus" data-page="historikus.html">
+<noscript><nav class="nsnav" aria-label="Főmenü"><a href="index.html">Kezdőlap</a><a href="elemzesek.html">Elemzések</a><a href="rendszerkep.html">Rendszerkép</a><a href="historikus.html">Historikus adatok</a><a href="nemzetkozi.html">Nemzetközi összehasonlítás</a><a href="modszertan.html">Módszertan</a><a href="rolunk.html">Rólunk</a></nav></noscript>
+<main>
+  <div id="banners"></div>
+  <header>
+    <p class="eyebrow">Historikus adatok</p>
+    <h1>Hosszú távú adatok, egy helyen</h1>
+    <p class="sub">Termelés, fogyasztás, day-ahead árak és határkeresztező áramlások országonként. Válassz időszakot és felbontást, vess össze két időszakot, és töltsd le a látott adatot.</p>
+    <div class="status" id="status" aria-live="polite"></div>
+  </header>
+
+  <section class="card" aria-labelledby="ctlh">
+    <h2 id="ctlh">Beállítások</h2>
+    <form class="ctl" id="ctl" onsubmit="return false">
+      <label>Ország / ajánlati zóna<select id="zone"></select></label>
+      <label>Kategória<select id="cat"></select></label>
+      <label>Időszak<select id="per">
+        <option value="24h">Utolsó 24 óra</option><option value="7d">Utolsó 7 nap</option><option value="30d">Utolsó 30 nap</option>
+        <option value="12m" selected>Utolsó 12 hónap</option><option value="full">A teljes időszak</option><option value="custom">Egyéni időszak…</option></select></label>
+      <label>Felbontás<select id="res"></select></label>
+      <label>Mutató<select id="stat"></select></label>
+      <label>Összehasonlítás<select id="cmp">
+        <option value="none">Nincs</option><option value="yoy">Az előző év ugyanazon időszaka</option>
+        <option value="custom">Egyéni másik időszak</option><option value="overlay">Az évek egymás fölött (azonos naptári időszak)</option></select></label>
+      <label id="serWrap" hidden>Sorozat az összehasonlításhoz<select id="ser"></select></label>
+      <label>Ábra<select id="kind"><option value="auto">Automatikus</option><option value="line">Vonal</option><option value="bars">Oszlop</option><option value="stack">Halmozott</option></select></label>
+      <div class="cust" id="cust">
+        <label>Kezdet<input type="date" id="from"></label><label>Vég<input type="date" id="to"></label>
+      </div>
+      <div class="cust" id="cust2">
+        <label>Összehasonlító időszak kezdete<input type="date" id="from2"></label><label>Összehasonlító időszak vége<input type="date" id="to2"></label>
+      </div>
+    </form>
+    <p class="note" id="msg" role="status"></p>
+  </section>
+
+  <section class="card" id="cMain" aria-live="polite">
+    <h2 id="mainTitle">Betöltés…</h2>
+    <p class="hint" id="mainSub"></p>
+    <div class="chart" id="chart"></div>
+    <div class="qline" id="qline"></div>
+    <div class="actions"><button class="btn" id="csv" type="button" title="Pontosvesszős elválasztó, tizedesvessző: a magyar Excel közvetlenül megnyitja">Letöltés CSV-ben (Excel)</button><button class="btn" id="csv2" type="button" title="Vesszős elválasztó, tizedespont: programozott feldolgozáshoz">Letöltés CSV-ben (tizedespont)</button><button class="btn" id="link" type="button">A nézet hivatkozásának másolása</button></div>
+    <p class="note" id="srcline"></p>
+  </section>
+
+  <section class="card" id="cMore">
+    <h2>További nézetek</h2>
+    <p class="hint">Hőtérképek és az ár–termelés összefüggés ugyanarra az országra és kategóriára. Az óránkénti nézetekhez a visszatöltött óránkénti adattár kell.</p>
+    <form class="ctl" onsubmit="return false">
+      <label>Nézet<select id="mview"><option value="heatmy">Hőtérkép: hónap × év</option><option value="heathm">Hőtérkép: napszak × hónap (egy év)</option><option value="scatter">Szórás: day-ahead ár és termelés / terhelés</option></select></label>
+      <label id="msWrap" hidden>Sorozat<select id="mser"></select></label>
+      <label id="myWrap">Év<select id="myear"></select></label>
+      <label id="mxWrap" hidden>Az ár mellé<select id="mx"><option value="generation:solar">Napenergia termelése</option><option value="generation:wind">Szélenergia termelése</option><option value="residual:residual">Maradék terhelés</option><option value="load:load">Fogyasztás</option></select></label>
+    </form>
+    <div class="chart" id="more"></div>
+    <p class="note" id="morenote"></p>
+  </section>
+
+  <section class="card plain" aria-labelledby="hh">
+    <h2 id="hh">Hogyan olvasd</h2>
+    <p class="hint">A teljesítményadatok (MW) az időszak átlagai; az energia (GWh) az átlag és az időszak tényleges óraszámának szorzata, így a 23 és 25 órás napok és a szökőév is helyes. Az ár időátlag. Ha egy időszak adatainak kevesebb mint 70 %-a áll rendelkezésre, az érték üres marad (nem nulla, nem becsült). A helyi idő mindenhol Europe/Budapest. Az „Előzetes” címkéjű adat az utolsó 90 napból való, később módosulhat. A teljes leírás a <a href="modszertan.html">Módszertanban</a> olvasható.</p>
+  </section>
+</main>
+<noscript><p style="padding:16px">Az oldal JavaScriptet igényel.</p></noscript>
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const qs = new URLSearchParams(location.search), DEMO = qs.has("demo");
+  const ROOT = qs.get("hist") === "off" ? "nincs-hist/" : (DEMO ? "demo-hist/" : "hist/");
+  const FALLBACK = DEMO ? "demo-history.json" : "history.json";
+  const RES_NAME = { q: "15 perces", h: "Óránkénti", d: "Napi", w: "Heti", m: "Havi", y: "Éves" };
+  const RES_MAX_DAYS = { q: 14, h: 92, d: 3700, w: 3700, m: 36500, y: 36500 };
+  const STAT_NAME = { avg: "Átlag", min: "Legkisebb", max: "Legnagyobb", energy: "Energia (GWh)", neg: "Negatív árú órák száma" };
+  let S = { zone: "HU", cat: "generation", per: "12m", res: "m", stat: "avg", cmp: "none", ser: "", kind: "auto", from: "", to: "", from2: "", to2: "" };
+  let last = null, token = 0;
+
+  function readUrl() { for (const k of Object.keys(S)) if (qs.has(k) && k !== "demo") S[k] = qs.get(k); }
+  function writeUrl() {
+    const p = new URLSearchParams(); if (DEMO) p.set("demo", "1"); if (qs.get("hist") === "off") p.set("hist", "off");
+    Object.keys(S).forEach((k) => { if (S[k]) p.set(k, S[k]); });
+    history.replaceState(null, "", "?" + p.toString());
+  }
+  const el = (id) => $(id);
+  function fill(sel, opts, val) {
+    sel.innerHTML = opts.map((o) => `<option value="${GF.esc(o[0])}">${GF.esc(o[1])}</option>`).join("");
+    if (opts.some((o) => o[0] === val)) sel.value = val; else if (opts.length) sel.value = opts[0][0];
+    return sel.value;
+  }
+  const catLabel = (c) => GFHist.catalog().cats[c].label;
+  function monthStart(ds, back) { const a = ds.split("-").map(Number); const d = new Date(Date.UTC(a[0], a[1] - 1 - back, 1)); return d.toISOString().slice(0, 10); }
+  function daysBetween(a, b) { return Math.round((GFHist.midnight(b) - GFHist.midnight(a)) / 86400) + 1; }
+
+  function period(av) {
+    const end = GFHist.day(av.last), first = GFHist.day(av.first);
+    let from, to = end, trim = 0;
+    switch (S.per) {
+      case "24h": from = GFHist.addDays(end, -1); trim = 24; break;
+      case "7d": from = GFHist.addDays(end, -7); trim = 168; break;
+      case "30d": from = GFHist.addDays(end, -29); break;
+      case "12m": from = monthStart(end, 11); break;
+      case "full": from = first; break;
+      default: from = S.from || GFHist.addDays(end, -29); to = S.to || end;
+    }
+    if (from < first) from = first;
+    if (to > end) to = end;
+    if (from > to) from = to;
+    let cut = false;      // az évek egymás fölötti nézetében az x-tengely egyetlen (legfeljebb ~1 éves) naptári ablak lehet
+    if (S.cmp === "overlay" && daysBetween(from, to) > 366) { const y = to.slice(0, 4); from = y + "-01-01"; to = y + "-12-31"; cut = true; }   // a legutolsó naptári év (jan–dec); a korábbi évek teljes évvel jönnek
+    return { from, to, trim, end, first, cut };
+  }
+  function allowedRes(zone, cat, days, trim) {
+    const out = [];
+    if (GFHist.hasQuarter(zone, cat) && days <= RES_MAX_DAYS.q) out.push("q");
+    if (GFHist.hasHourly(zone, cat) && days <= RES_MAX_DAYS.h) out.push("h");
+    const tiers = GFHist.tiersOf(zone, cat);
+    ["d", "w", "m", "y"].forEach((t) => { if (tiers.includes(t) && !(t === "w" && days < 14) && !(t === "m" && days < 28) && !(t === "y" && days < 300)) out.push(t); });
+    return out;
+  }
+  function defaultRes(opts, per, days) {
+    const pref = per === "24h" ? ["q", "h", "d"] : per === "7d" ? ["h", "d"] : per === "30d" ? ["h", "d"] : per === "12m" ? ["m", "w", "d"] : per === "full" ? ["m", "y", "w"] : (days <= 3 ? ["h", "d"] : days <= 35 ? ["d"] : days <= 400 ? ["m", "w", "d"] : ["m", "y"]);
+    return pref.find((r) => opts.includes(r)) || opts[0];
+  }
+  function statOptions(cat, res) {
+    const meta = GFHist.catalog().cats[cat], o = [["avg", "Átlag"]];
+    if (res === "h" || res === "q") {
+      if (meta.unit === "MW") o.push(["energy", "Energia (GWh)"]);
+      if (cat === "price_da") o.push(["neg", "Negatív árú órák száma"]);
+      return o;
+    }
+    if (cat !== "ramp" || true) { o.push(["min", "Legkisebb"], ["max", "Legnagyobb"]); }
+    if (meta.unit === "MW" && cat !== "ramp") o.push(["energy", "Energia (GWh)"]);
+    if (cat === "price_da") o.push(["neg", "Negatív árú órák száma"]);
+    return o;
+  }
+
+  // ---------------------------------------------------------------- vezérlők szinkronizálása
+  function syncControls() {
+    const zones = GFHist.zones(), cat = GFHist.catalog();
+    S.zone = fill(el("zone"), zones.map((z) => [z, cat.zones[z].name + (cat.zones[z].note ? " – " + cat.zones[z].note : "")]), S.zone);
+    S.cat = fill(el("cat"), GFHist.cats(S.zone).map((c) => [c, catLabel(c)]), S.cat);
+    const av = GFHist.avail(S.zone, S.cat), p = period(av), days = daysBetween(p.from, p.to);
+    const ro = allowedRes(S.zone, S.cat, days, p.trim);
+    S.res = fill(el("res"), ro.map((r) => [r, RES_NAME[r]]), ro.includes(S.res) ? S.res : defaultRes(ro, S.per, days));
+    S.stat = fill(el("stat"), statOptions(S.cat, S.res), S.stat);
+    const ser = GFHist.seriesOf(S.zone, S.cat);
+    S.ser = fill(el("ser"), ser.map((s) => [s, GFHist.seriesLabel(S.cat, s)]), S.ser);
+    const cmp = S.cmp !== "none";
+    el("serWrap").hidden = !(cmp && ser.length > 1);
+    el("cust").classList.toggle("on", S.per === "custom");
+    el("cust2").classList.toggle("on", S.cmp === "custom");
+    const dmin = GFHist.day(av.first), dmax = GFHist.day(av.last);
+    ["from", "to", "from2", "to2"].forEach((id) => { el(id).min = dmin; el(id).max = dmax; });
+    if (S.per === "custom") { el("from").value = S.from = S.from || p.from; el("to").value = S.to = S.to || p.to; }
+    if (S.cmp === "custom") { el("from2").value = S.from2 = S.from2 || GFHist.shiftYear(p.from, -1); el("to2").value = S.to2 = S.to2 || GFHist.shiftYear(p.to, -1); }
+    el("per").value = S.per; el("cmp").value = S.cmp; el("kind").value = S.kind;
+    return { av, p, days };
+  }
+
+  // ---------------------------------------------------------------- lekérdezés és ábra
+  function trimLast(q, hours) {          // az utolsó N óra (óránkénti/negyedórás), illetve N/24 nap (napi nézet); heti és durvább felbontásnál nem vág
+    if (!hours) return q;
+    const n = q.step ? Math.round(hours * 3600 / q.step) : (q.res === "d" ? Math.round(hours / 24) : 0);
+    if (!n || q.keys.length <= n) return q;
+    const o = Object.assign({}, q, { keys: q.keys.slice(-n), series: {} });
+    Object.keys(q.series).forEach((id) => { o.series[id] = q.series[id].slice(-n); });
+    return o;
+  }
+  const MON = ["jan", "feb", "már", "ápr", "máj", "jún", "júl", "aug", "szep", "okt", "nov", "dec"];
+  function ovLabel(q, k) {      // az átfedett nézetben az x-tengely év nélküli (minden év ugyanarra a naptári időre esik)
+    if (q.res === "m") return MON[+k.slice(5, 7) - 1];
+    if (q.res === "w") return "H" + k.slice(6);
+    return GFHist.label(q.res, k);
+  }
+  function labelsFor(q) { return q.keys.map((k) => (q.overlay ? ovLabel(q, k) : GFHist.label(q.res, k))); }
+  function longFor(q) { return (i) => (q.overlay ? "azonos naptári időszak: " + ovLabel(q, q.keys[i]) : GFHist.longLabel(q.res, q.keys[i])); }
+  function tickList(q) {
+    if (q.res !== "h" && q.res !== "q") return null;
+    const n = q.keys.length, span = n * (q.step || 3600) / 86400, t = [];
+    q.keys.forEach((k, i) => {
+      const hr = GFHist.hourOfDay(k), mm = (new Date((k + 0) * 1000)).getUTCMinutes();
+      if (mm !== 0) return;
+      if (span <= 2.2 ? hr % 3 === 0 : span <= 9 ? hr === 0 || hr === 12 : span <= 40 ? hr === 0 && GFHist.day(k).slice(8) % (span <= 16 ? 1 : 3) === 0 : hr === 0 && GFHist.day(k).slice(8) === "01")
+        t.push({ i, label: span <= 2.2 ? ("0" + hr).slice(-2) + ":00" : GFHist.day(k).slice(5).replace("-", ".") + "." + (span <= 9 && hr === 12 ? " 12h" : "") });
+    });
+    return t.length ? t : null;
+  }
+  function chartKind(q, n) {
+    if (S.kind !== "auto") return S.kind;
+    const meta = GFHist.catalog().cats[S.cat];
+    if (S.cat === "generation" && S.stat !== "min" && S.stat !== "max" && S.cmp === "none") return n > 70 ? "stack" : "stackbars";
+    if ((q.res === "m" || q.res === "y") && n <= 40) return "bars";
+    return "line";
+  }
+  async function render() {
+    const my = ++token;
+    const { av, p, days } = syncControls();
+    writeUrl();
+    const catMeta = GFHist.catalog().cats[S.cat];
+    el("msg").className = "note"; el("msg").textContent = "";
+    el("mainTitle").textContent = catLabel(S.cat) + " – " + GFHist.catalog().zones[S.zone].name;
+    try {
+      let q, extra = null, seriesIds = GFHist.seriesOf(S.zone, S.cat);
+      const base = { zone: S.zone, cat: S.cat, res: S.res, stat: S.stat, from: p.from, to: p.to };
+      if (S.cmp === "none") {
+        q = trimLast(await GFHist.query(base), p.trim);
+      } else {
+        seriesIds = [S.ser || seriesIds[0]];
+        base.series = seriesIds;
+        if (S.cmp === "overlay") {
+          const y0 = +p.from.slice(0, 4), yfirst = Math.max(+GFHist.day(av.first).slice(0, 4), y0 - 7);   // legfeljebb 8 év (a színek száma)
+          const yrs = []; for (let y = yfirst; y <= y0; y++) yrs.push(y);
+          const res = await Promise.all(yrs.map((y) => GFHist.query(Object.assign({}, base, { from: GFHist.shiftYear(p.from, y - y0), to: GFHist.shiftYear(p.to, y - y0) })).catch(() => null)));
+          const has = (r) => r && r.series[seriesIds[0]] && r.series[seriesIds[0]].some((v) => v != null);
+          let bi = -1;                                  // az x-tengely a legtöbb kulcsot adó (teljes) évből áll; azonos hossznál a későbbi év
+          res.forEach((r, i) => { if (has(r) && (bi < 0 || r.keys.length >= res[bi].keys.length)) bi = i; });
+          if (bi < 0) throw new Error("nincs adat az időszakra");
+          q = trimLast(res[bi], p.trim);
+          const span = p.from.slice(0, 4) !== p.to.slice(0, 4), list = [];
+          yrs.forEach((y, i) => {
+            if (!has(res[i])) return;
+            const al = i === bi ? q.series : GFHist.alignTo(q, trimLast(res[i], p.trim));
+            list.push({ id: "y" + y, label: span ? y + "/" + String(y + 1).slice(2) : String(y), values: al[seriesIds[0]], ci: y - yfirst });
+          });
+          q.overlay = { list, base: yrs[bi] };
+        } else {
+          let f2, t2;
+          if (S.cmp === "yoy") { f2 = GFHist.shiftYear(p.from, -1); t2 = GFHist.shiftYear(p.to, -1); } else { f2 = S.from2 || GFHist.shiftYear(p.from, -1); t2 = S.to2 || GFHist.shiftYear(p.to, -1); }
+          const q2 = trimLast(await GFHist.query(Object.assign({}, base, { from: f2, to: t2 })), p.trim);
+          q = trimLast(await GFHist.query(base), p.trim);
+          if (S.cmp === "yoy") q.cmpSeries = GFHist.alignTo(q, q2)[seriesIds[0]];
+          else q.cmpSeries = q.keys.map((_, i) => q2.series[seriesIds[0]][i] == null ? null : q2.series[seriesIds[0]][i]);   // egyéni időszak: pozíció szerint párosítva
+          q.cmp = { from: f2, to: t2, label: f2 + " – " + t2 };
+        }
+      }
+      if (my !== token) return;
+      last = { q, p, seriesIds };
+      draw(q, seriesIds, catMeta, p);
+      status(q, av, catMeta, p, days);
+    } catch (e) {
+      if (my !== token) return;
+      el("chart").innerHTML = '<div class="nodata" style="padding:24px 8px">Az adat nem tölthető be: ' + GF.esc(e.message || e) + "</div>";
+    }
+    renderMore();
+  }
+  function draw(q, ids, meta, p) {
+    const labels = labelsFor(q), host = el("chart"), ticks = tickList(q);
+    const unit = q.unit, dec = unit === "€/MWh" ? 2 : (unit === "GWh" ? 1 : (S.cat === "co2" ? 0 : 0));
+    const series = ids.filter((id) => q.series[id]).map((id, i) => ({ id, label: GFHist.seriesLabel(S.cat, id), values: q.series[id] }));
+    if (q.cmpSeries) { series[0].label = (series[0].label + " – " + p.from + " – " + p.to).replace(/ – $/, ""); series.push({ id: "cmp", label: GFHist.seriesLabel(S.cat, ids[0]) + " – " + q.cmp.label, values: q.cmpSeries, dash: "6 4", color: "var(--c2)" }); }
+    if (q.overlay) {
+      series.length = 0;
+      q.overlay.list.forEach((x) => series.push({ id: x.id, label: x.label, values: x.values, color: "var(--c" + (x.ci % 8 + 1) + ")" }));
+    }
+    let kind = chartKind(q, labels.length);
+    if (q.cmpSeries || q.overlay) kind = "line";
+    const o = { labels, series, unit, dec, ticks: ticks, tickPx: (q.res === "h" || q.res === "q") ? 90 : 74, longLabel: longFor(q), title: el("mainTitle").textContent, height: 320, resetHidden: true };
+    if (q.res === "m" && !ticks) o.tickPx = 60;
+    if (kind === "stack") GFChart.stack(host, o);
+    else if (kind === "stackbars") GFChart.bars(host, Object.assign(o, { stacked: true }));
+    else if (kind === "bars") GFChart.bars(host, o);
+    else GFChart.line(host, Object.assign(o, { zero: S.cat === "generation" || S.cat === "load" || S.cat === "load_forecast" }));
+    el("mainSub").textContent = `${RES_NAME[q.res]} felbontás · ${STAT_NAME[S.stat]} · ${p.from} – ${p.to}` + (q.cmpSeries ? ` · összehasonlítva: ${q.cmp.label}` : "") + (q.overlay ? " · az évek azonos naptári időszaka" + (p.cut ? " (az utolsó naptári évre szűkítve)" : "") : "");
+  }
+  function bucketStart(res, key) {
+    if (res === "h" || res === "q") return key;
+    if (res === "d") return GFHist.midnight(key);
+    if (res === "m") return GFHist.midnight(key + "-01");
+    if (res === "y") return GFHist.midnight(key + "-01-01");
+    const [y, w] = key.split("-W").map(Number); const j = new Date(Date.UTC(y, 0, 4)), dow = j.getUTCDay() || 7;
+    j.setUTCDate(j.getUTCDate() - dow + 1 + (w - 1) * 7); return GFHist.midnight(j.toISOString().slice(0, 10));
+  }
+  function rowQuality(meta, q, i) {
+    if (meta.quality === "calculated") return "számított";
+    if (meta.quality === "estimated") return "becsült";
+    const st = bucketStart(q.res, q.keys[i]), len = q.res === "h" || q.res === "q" ? (q.step || 3600) : (q.h ? q.h[i] * 3600 : 86400);
+    return st + len > GFHist.prelimFrom() ? "előzetes" : "végleges";
+  }
+  function status(q, av, meta, p, days) {
+    const ids = Object.keys(q.series), vals = q.overlay ? q.overlay.list.map((x) => x.values) : ids.map((id) => q.series[id]);
+    const tot = vals.reduce((s, v) => s + v.length, 0), miss = vals.reduce((s, v) => s + v.filter((x) => x == null).length, 0);
+    const kinds = new Set(q.keys.map((_, i) => rowQuality(meta, q, i)));
+    const qh = [...kinds].map((k) => GF.q({ "végleges": "final", "előzetes": "prelim", "számított": "calc", "becsült": "est" }[k])).join(" ");
+    const missing = miss ? GF.q("miss") + ` ${GF.nf(miss)} / ${GF.nf(tot)} érték hiányzik (${GF.nf(100 * miss / Math.max(1, tot), 1)} %)` : "Nincs hiányzó érték az ábrán";
+    let part = "";
+    if (q.h && q.n && q.keys.length && !q.overlay) {
+      const li = q.keys.length - 1, id0 = ids.find((id) => q.n[id]);
+      if (id0 && q.n[id0][li] != null && q.h[li] > 0 && q.n[id0][li] < q.h[li] && q.n[id0][li] > 0)
+        part = `<span>Az utolsó időszak (${GF.esc(GFHist.label(q.res, q.keys[li]))}) még nem teljes: ${GF.nf(q.n[id0][li])} / ${GF.nf(q.h[li])} órából számolt.</span>`;
+    }
+    el("qline").innerHTML = `<span>Minőség: ${qh}</span><span>${missing}</span>${part}<span>Utolsó adat: ${GF.esc(GFHist.longHour(av.last))}</span>`;
+    let q15 = "";
+    if (q.res === "q" && q.keys.length) q15 = q.native15_from == null ? " A negyedórás rács az óránkénti adatot négy negyedórára ismétli, nem interpolál." : ` Natív negyedórás adat ettől: ${GFHist.longHour(q.native15_from)}; ez előtt az óránkénti érték ismétlődik a négy negyedórán, nem interpolál.`;
+    el("srcline").textContent = `Forrás: ${meta.source}. Mértékegység: ${q.unit}.${q15}`;
+    const msgs = [];
+    if (GFHist.mode() === "monthly") msgs.push("Az óránkénti történeti adattár még nem készült el, ezért csak a havi és az éves összesítések látszanak (a havi összesítésből számolva). A visszatöltés lefutása után ugyanez az oldal napi, órás és negyedórás nézetet is ad.");
+    else if (days <= RES_MAX_DAYS.h && !allowedRes(S.zone, S.cat, days, p.trim).includes("h") && !q.step)
+      msgs.push("Ehhez az országhoz, kategóriához és időszakhoz nincs óránkénti adat az adattárban, ezért napi vagy durvább felbontás látszik.");
+    if (p.cut) msgs.push("Az évek összevetéséhez az időszakot az utolsó naptári évre (január–december) szűkítettük, hogy az x-tengely egyetlen naptári ablak legyen.");
+    if (msgs.length) { el("msg").className = "note warn"; el("msg").textContent = msgs.join(" "); }
+  }
+
+  // ---------------------------------------------------------------- további nézetek
+  async function renderMore() {
+    const host = el("more"), view = el("mview").value, av = GFHist.avail(S.zone, S.cat), note = el("morenote");
+    el("myWrap").hidden = view === "heatmy"; el("mxWrap").hidden = view !== "scatter"; note.textContent = "";
+    const sers = GFHist.seriesOf(S.zone, S.cat), want = el("mser").value;
+    el("msWrap").hidden = view === "scatter" || sers.length < 2;
+    el("mser").innerHTML = sers.map((x) => `<option value="${GF.esc(x)}">${GF.esc(GFHist.seriesLabel(S.cat, x))}</option>`).join("");
+    el("mser").value = sers.includes(want) ? want : (sers.includes(S.ser) ? S.ser : (sers[0] || ""));
+    const msel = el("mser").value;
+    const years = [];
+    if (av) { const y1 = +GFHist.day(av.first).slice(0, 4), y2 = +GFHist.day(av.last).slice(0, 4); for (let y = y2; y >= y1; y--) years.push(y); }
+    const yv = el("myear").value, cur = years.includes(+yv) ? yv : String(years[0] || "");
+    el("myear").innerHTML = years.map((y) => `<option>${y}</option>`).join(""); el("myear").value = cur;
+    host.innerHTML = "";
+    try {
+      if (view === "heatmy") {
+        const id = msel;
+        const stat = S.stat === "neg" ? "neg" : (S.stat === "min" || S.stat === "max" ? S.stat : "avg");
+        const q = await GFHist.query({ zone: S.zone, cat: S.cat, res: "m", from: GFHist.day(av.first), to: GFHist.day(av.last), series: [id], stat });
+        const ys = [...new Set(q.keys.map((k) => k.slice(0, 4)))];
+        const grid = ys.map((y) => Array.from({ length: 12 }, (_, m) => { const i = q.keys.indexOf(y + "-" + ("0" + (m + 1)).slice(-2)); return i < 0 ? null : q.series[id][i]; }));
+        GFChart.heat(host, { rowLabels: ys, colLabels: ["jan", "feb", "már", "ápr", "máj", "jún", "júl", "aug", "szep", "okt", "nov", "dec"], values: grid, unit: q.unit, dec: S.cat === "price_da" ? 1 : 0, title: GFHist.seriesLabel(S.cat, id) + " – " + STAT_NAME[stat].toLowerCase(), height: 200 });
+        note.textContent = "A havi értékek évenkénti összevetése; az üres (szürke) cella hiányzó vagy 70 % alatti lefedettségű hónap.";
+      } else if (view === "heathm") {
+        if (!GFHist.hasHourly(S.zone, S.cat) || !av.years.includes(+cur)) { host.innerHTML = '<div class="nodata" style="padding:24px 8px">Ehhez az évhez nincs óránkénti adat. A visszatöltés lefutása után érhető el.</div>'; return; }
+        const id = msel, q = await GFHist.query({ zone: S.zone, cat: S.cat, res: "h", from: cur + "-01-01", to: cur + "-12-31", series: [id] });
+        const sum = Array.from({ length: 24 }, () => new Array(12).fill(0)), n = Array.from({ length: 24 }, () => new Array(12).fill(0));
+        q.keys.forEach((k, i) => { const v = q.series[id][i]; if (v == null) return; const m = +GFHist.day(k).slice(5, 7) - 1, h = GFHist.hourOfDay(k); sum[h][m] += v; n[h][m]++; });
+        const grid = sum.map((r, h) => r.map((s, m) => n[h][m] >= 20 ? Math.round(s / n[h][m] * 10) / 10 : null));
+        GFChart.heat(host, { rowLabels: Array.from({ length: 24 }, (_, h) => ("0" + h).slice(-2) + ":00"), colLabels: ["jan", "feb", "már", "ápr", "máj", "jún", "júl", "aug", "szep", "okt", "nov", "dec"], values: grid, unit: q.unit, dec: S.cat === "price_da" ? 1 : 0, title: GFHist.seriesLabel(S.cat, id) + " – átlag", diverging: S.cat === "flow_physical" || S.cat === "net_import", height: 620 });
+        note.textContent = `${cur}. év, a hónap azonos helyi órájának átlaga (legalább 20 érvényes nap kell egy cellához); a helyi idő a nyári időszámítást követi.`;
+      } else {
+        const px = el("mx").value.split(":"), pr = GFHist.avail(S.zone, "price_da"), xa = GFHist.avail(S.zone, px[0]);
+        if (!pr || !xa || !GFHist.hasHourly(S.zone, "price_da") || !GFHist.hasHourly(S.zone, px[0]) || !(pr.years || []).includes(+cur) || !(xa.years || []).includes(+cur)) { host.innerHTML = '<div class="nodata" style="padding:24px 8px">Az ár–termelés összefüggéshez óránkénti adat kell ehhez az országhoz és évhez. A visszatöltés lefutása után érhető el.</div>'; return; }
+        const [a, b] = await Promise.all([GFHist.query({ zone: S.zone, cat: "price_da", res: "h", from: cur + "-01-01", to: cur + "-12-31" }), GFHist.query({ zone: S.zone, cat: px[0], res: "h", from: cur + "-01-01", to: cur + "-12-31", series: [px[1]] })]);
+        const m = new Map(); a.keys.forEach((k, i) => m.set(k, a.series.price[i]));
+        const pts = []; b.keys.forEach((k, i) => { const y = m.get(k), x = b.series[px[1]][i]; if (y != null && x != null) pts.push({ x, y }); });
+        GFChart.scatter(host, { points: pts, xLabel: GFHist.seriesLabel(px[0], px[1]), yLabel: "Day-ahead ár", xUnit: "MW", yUnit: "€/MWh", title: "Day-ahead ár és " + GFHist.seriesLabel(px[0], px[1]).toLowerCase() });
+        note.textContent = `${cur}. év, óránkénti értékek; minden pont egy közös óra. Az összefüggés leíró, nem okozati: az árat a teljes európai piac és a rendszer együtt alakítja.`;
+      }
+    } catch (e) { host.innerHTML = '<div class="nodata" style="padding:24px 8px">Az adat nem tölthető be: ' + GF.esc(e.message || e) + "</div>"; }
+  }
+
+  // ---------------------------------------------------------------- CSV és hivatkozás
+  function csv(decimal) {
+    if (!last) return;
+    const { q, seriesIds } = last, meta = GFHist.catalog().cats[S.cat], ids = seriesIds.filter((id) => q.series[id]);
+    const head = ["kulcs", "helyi idő"].concat(ids.map((id) => GFHist.seriesLabel(S.cat, id) + " [" + q.unit + "]"));
+    if (q.cmpSeries) head.push(GFHist.seriesLabel(S.cat, ids[0]) + " – összehasonlítás " + q.cmp.label + " [" + q.unit + "]");
+    if (q.overlay) q.overlay.list.forEach((x) => head.push(x.label + " [" + q.unit + "]"));
+    head.push("minőség", "forrás");
+    const rows = q.keys.map((k, i) => {
+      const iso = q.res === "h" || q.res === "q" ? new Date(k * 1000).toISOString().replace(".000", "") : k;
+      const r = [iso, GFHist.longLabel(q.res, k)].concat(ids.map((id) => q.series[id][i]));
+      if (q.cmpSeries) r.push(q.cmpSeries[i]);
+      if (q.overlay) q.overlay.list.forEach((x) => r.push(x.values[i]));
+      r.push(rowQuality(meta, q, i), meta.source); return r;
+    });
+    GFChart.csv(`gridflow_${S.zone}_${S.cat}_${q.res}_${last.p.from}_${last.p.to}${decimal === "." ? "_pont" : ""}.csv`, head, rows, { decimal });
+  }
+
+  // ---------------------------------------------------------------- indulás
+  function bind() {
+    const map = { zone: "zone", cat: "cat", per: "per", res: "res", stat: "stat", cmp: "cmp", ser: "ser", kind: "kind", from: "from", to: "to", from2: "from2", to2: "to2" };
+    Object.keys(map).forEach((k) => el(map[k]).addEventListener("change", () => {
+      S[k] = el(map[k]).value;
+      if (k === "zone") { S.ser = ""; }
+      if (k === "cat") { S.ser = ""; S.stat = "avg"; }
+      if (k === "per") { S.res = ""; if (S.per !== "custom") { S.from = ""; S.to = ""; } }
+      if (k === "cmp" && S.cmp !== "custom") { S.from2 = ""; S.to2 = ""; }
+      render();
+    }));
+    ["mview", "myear", "mx", "mser"].forEach((id) => el(id).addEventListener("change", renderMore));
+    el("csv").addEventListener("click", () => csv(","));
+    el("csv2").addEventListener("click", () => csv("."));
+    el("link").addEventListener("click", () => { writeUrl(); (navigator.clipboard ? navigator.clipboard.writeText(location.href) : Promise.reject()).then(() => { el("msg").className = "note"; el("msg").textContent = "A hivatkozás a vágólapon van."; }, () => { el("msg").className = "note"; el("msg").textContent = "A hivatkozás a címsorban van, másold onnan."; }); });
+  }
+  function start() {
+    readUrl();
+    GFHist.init({ root: ROOT, fallbackUrl: FALLBACK }).then((info) => {
+      GF.loaded();
+      if (info.mode === "none") {
+        el("mainTitle").textContent = "A történeti adat még nem érhető el";
+        el("chart").innerHTML = '<div class="nodata" style="padding:24px 8px">Sem a <code>hist/</code> tár, sem a <code>history.json</code> nem található. Futtasd a <b>Hosszú távú adatok</b> vagy a <b>Historikus adattár visszatöltése</b> workflow-t, majd indítsd újra az <b>Adatfrissítést</b>.</div>';
+        el("ctl").querySelectorAll("select,input").forEach((x) => (x.disabled = true));
+        return;
+      }
+      const man = GFHist.manifest(), demo = DEMO || !!(man && man.demo);
+      const st = GF.state({ demo, generatedUtc: man.generated_utc, staleHours: 60, what: "a történeti adattár" });
+      GF.banners($("banners"), { demo, generatedUtc: man.generated_utc, staleHours: 60, what: "a történeti adattár", demoText: "A kitalált minta csak az oldal működését mutatja." });
+      el("status").innerHTML = GF.stateTag(st) + `<span><b>Adattár:</b> ${info.mode === "hist" ? "óránkénti és összesített" : "csak havi összesítés"}</span><span><b>Zónák:</b> ${GFHist.zones().length}</span><span><b>Frissítve:</b> ${GF.esc(GF.stamp(man.generated_utc))} (helyi idő)</span>`;
+      bind(); render();
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => { const w = () => (window.GFHist && window.GFChart ? start() : setTimeout(w, 20)); w(); });
+  else { const w = () => (window.GFHist && window.GFChart ? start() : setTimeout(w, 20)); w(); }
+})();
+</script>
+</body>
+</html>

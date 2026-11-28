@@ -1,8 +1,8 @@
 /* GridFlow Analytics – közös stílus. Minden oldal ezt tölti be, az oldalspecifikus szabályok az oldal <style> blokkjában vannak. */
-:root{color-scheme:light dark; --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#66645f; --grid:#e1e0d9; --neutral:#f0efec; --c1:#2a78d6; --c2:#eb6834; --c3:#1baf7a; --c4:#eda100; --c5:#e87ba4; --c6:#008300; --c7:#6250d6; --c8:#e34948; --warn-bg:#fff4d6; --warn-ink:#5a4200; --demo-bg:#c62828; --demo-ink:#ffffff; --focus:#1a5fb4;}
+:root{color-scheme:light dark; --page:#f3f5f7; --surface:#ffffff; --ink:#0e1b2c; --ink2:#44505f; --muted:#576271; --grid:#d9e0e7; --neutral:#e9edf1; --navy-deep:#0a2342; --navy:#134074; --link:#134074; --turq:#0e9aa7; --bgreen:#2f8f5b; --borange:#c9741f; --hdr-ink:#ffffff; --hdr-ink2:#c9d6e6; --c1:#2a78d6; --c2:#eb6834; --c3:#1baf7a; --c4:#eda100; --c5:#e87ba4; --c6:#008300; --c7:#6250d6; --c8:#e34948; --warn-bg:#fff4d6; --warn-ink:#5a4200; --demo-bg:#c62828; --demo-ink:#ffffff; --focus:#1a5fb4;}
 :root[data-theme="light"]{color-scheme:light}
-:root[data-theme="dark"]{color-scheme:dark; --page:#0d0d0d; --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --muted:#acaaa3; --grid:#2c2c2a; --neutral:#383835; --c1:#3987e5; --c2:#d95926; --c3:#199e70; --c4:#c98500; --c5:#d55181; --c6:#0ca30c; --c7:#9085e9; --c8:#e66767; --warn-bg:#3a2f0a; --warn-ink:#f3d98a; --demo-bg:#e66767; --demo-ink:#0d0d0d; --focus:#6aa5ee;}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--page:#0d0d0d; --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --muted:#acaaa3; --grid:#2c2c2a; --neutral:#383835; --c1:#3987e5; --c2:#d95926; --c3:#199e70; --c4:#c98500; --c5:#d55181; --c6:#0ca30c; --c7:#9085e9; --c8:#e66767; --warn-bg:#3a2f0a; --warn-ink:#f3d98a; --demo-bg:#e66767; --demo-ink:#0d0d0d; --focus:#6aa5ee;}}
+:root[data-theme="dark"]{color-scheme:dark; --page:#0a1422; --surface:#102033; --ink:#e8eef5; --ink2:#bac5d2; --muted:#98a5b4; --grid:#22364d; --neutral:#2b4058; --navy-deep:#06172b; --navy:#8ab4e8; --link:#8ab4e8; --turq:#38c3cf; --bgreen:#4cb27c; --borange:#e29547; --hdr-ink:#e8eef5; --hdr-ink2:#a9b9cc; --c1:#3987e5; --c2:#d95926; --c3:#199e70; --c4:#c98500; --c5:#d55181; --c6:#0ca30c; --c7:#9085e9; --c8:#e66767; --warn-bg:#3a2f0a; --warn-ink:#f3d98a; --demo-bg:#e66767; --demo-ink:#0d0d0d; --focus:#6aa5ee;}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--page:#0a1422; --surface:#102033; --ink:#e8eef5; --ink2:#bac5d2; --muted:#98a5b4; --grid:#22364d; --neutral:#2b4058; --navy-deep:#06172b; --navy:#8ab4e8; --link:#8ab4e8; --turq:#38c3cf; --bgreen:#4cb27c; --borange:#e29547; --hdr-ink:#e8eef5; --hdr-ink2:#a9b9cc; --c1:#3987e5; --c2:#d95926; --c3:#199e70; --c4:#c98500; --c5:#d55181; --c6:#0ca30c; --c7:#9085e9; --c8:#e66767; --warn-bg:#3a2f0a; --warn-ink:#f3d98a; --demo-bg:#e66767; --demo-ink:#0d0d0d; --focus:#6aa5ee;}}
 
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -71,3 +71,130 @@ nav.tabs a:hover{border-color:var(--ink2)}
 .status b{color:var(--ink2);font-weight:600}
 .status .lag{color:var(--ink2)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---- v3: oldalváz (fejléc, főmenü, lábléc), márka, minőségi címke ---- */
+a{color:var(--link)}
+header.site{background:var(--navy-deep);color:var(--hdr-ink);border-bottom:3px solid var(--turq)}
+header.site .gfbar{max-width:1280px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:8px 18px;flex-wrap:wrap}
+header.site a{color:var(--hdr-ink);text-decoration:none}
+.brand{display:inline-flex;align-items:center;gap:10px;color:var(--hdr-ink)}
+.brand .logo{color:var(--hdr-ink);flex:none}
+.brand .bt{display:flex;flex-direction:column;line-height:1.15}
+.brand .bn{font-weight:750;font-size:17px;letter-spacing:-.01em}
+.brand .bs{font-size:12px;color:var(--hdr-ink2);letter-spacing:.02em}
+header.site nav.mainnav{flex:1 1 auto;min-width:0}
+header.site nav.mainnav ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:2px 4px}
+header.site nav.mainnav a{display:block;padding:7px 10px;border-radius:8px;font-size:14.5px;color:var(--hdr-ink2)}
+header.site nav.mainnav a:hover{color:var(--hdr-ink);background:rgba(255,255,255,.1)}
+header.site nav.mainnav a[aria-current]{color:var(--hdr-ink);font-weight:650;box-shadow:inset 0 -3px 0 var(--turq)}
+header.site .gftools{margin-left:auto}
+header.site .themebtn{margin:0;background:transparent;color:var(--hdr-ink2);border-color:rgba(255,255,255,.35)}
+header.site .themebtn:hover{color:var(--hdr-ink);border-color:var(--hdr-ink)}
+header.site :where(a,button):focus-visible{outline-color:#ffffff}
+.menu-toggle{display:none;margin-left:auto;padding:7px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:transparent;color:var(--hdr-ink);font:inherit;font-size:14px;cursor:pointer}
+@media (max-width:1100px){
+  .menu-toggle{display:inline-block;margin-left:0;order:3}
+  header.site .gftools{margin-left:auto;order:2}
+  header.site nav.mainnav{flex:1 0 100%;display:none;order:5}
+  header.site nav.mainnav.open{display:block}
+  header.site nav.mainnav ul{flex-direction:column}
+  header.site nav.mainnav a[aria-current]{box-shadow:inset 3px 0 0 var(--turq)}
+}
+nav.subnav{margin:0 0 14px}
+nav.tabs a:hover{border-color:var(--ink2)}
+footer.site{margin-top:32px;background:var(--navy-deep);color:var(--hdr-ink2);font-size:13px;line-height:1.5}
+footer.site .gfin{max-width:1100px;margin:0 auto;padding:18px 16px 26px}
+footer.site p{margin:0 0 8px;max-width:95ch}
+footer.site a{color:var(--hdr-ink)}
+footer.site i{color:var(--hdr-ink)}
+.q{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:650;line-height:1.5;border:1px solid var(--grid);border-radius:999px;padding:0 9px;background:var(--surface);color:var(--ink);white-space:nowrap;text-decoration:none}
+.q:hover{border-color:var(--ink2)}
+.q-final{border-color:var(--bgreen)}.q-prelim{border-color:var(--borange)}.q-est{border-color:var(--borange);border-style:dashed}.q-calc{border-color:var(--navy)}.q-miss{color:var(--muted);border-style:dotted}
+.eyebrow{margin:0 0 6px;color:var(--ink2);font-size:13px;font-weight:650;letter-spacing:.06em;text-transform:uppercase}
+.lead{font-size:clamp(17px,2.2vw,20px);line-height:1.5;color:var(--ink2);max-width:62ch;margin:6px 0 0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.card.plain{box-shadow:none}
+.card a.more,a.more{font-weight:650;text-decoration:none;color:var(--link)}
+.card a.more:hover,a.more:hover{text-decoration:underline}
+.kpi{border-left:3px solid var(--turq);padding:2px 0 2px 12px}
+.kpi .k{color:var(--ink2);font-size:13px}
+.kpi .n{font-size:clamp(24px,3.4vw,32px);font-weight:700;line-height:1.15;letter-spacing:-.01em}
+.kpi .n small{font-size:14px;color:var(--ink2);font-weight:600;margin-left:4px}
+.kpi .s{color:var(--muted);font-size:12.5px;margin-top:2px}
+.tag-topic{display:inline-block;font-size:12px;font-weight:650;color:var(--ink2);border:1px solid var(--grid);border-radius:6px;padding:0 8px}
+.pubcard{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:var(--ink)}
+.pubcard h3{margin:0;font-size:18px;line-height:1.25;color:var(--ink)}
+.pubcard:hover h3{text-decoration:underline}
+.pubcard p{margin:0;color:var(--ink2);font-size:14.5px}
+.pubcard .meta2{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;color:var(--muted);font-size:12.5px}
+a.card.pubcard{display:flex}
+a.card.pubcard:hover{border-color:var(--ink2)}
+@media (forced-colors:active){header.site nav.mainnav a[aria-current]{outline:2px solid CanvasText}}
+/* ---- publikációk (elemzesek/*.html): olvasható szövegoszlop, szélesebb ábrák */
+.pub{max-width:1100px;margin:0 auto}
+.pub>header,.pub>section{max-width:1100px}
+.pub h1{font-size:clamp(26px,4vw,38px);line-height:1.18;letter-spacing:-.015em;margin:4px 0 10px;max-width:24em}
+.pubmeta{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;color:var(--ink2);font-size:14px;margin:0 0 6px}
+.pub section{margin:0 0 6px}
+.pub h2{font-size:22px;line-height:1.25;margin:34px 0 10px;padding-top:4px;border-top:1px solid var(--grid)}
+.pub h2 .sn{color:var(--turq);font-weight:700;margin-right:4px}
+.pub section>p,.pub section>ul{max-width:72ch;font-size:17px;line-height:1.65;margin:0 0 12px}
+.pub section>ul{padding-left:22px}.pub section>ul li{margin:0 0 6px}
+.pub .fig{margin:18px 0 28px;padding:14px 16px 10px;background:var(--surface);border:1px solid var(--grid);border-radius:12px}
+.pub .fig figcaption{font-size:14.5px;color:var(--ink2);margin:0 0 8px}
+.pub .fig figcaption b{color:var(--ink)}
+.pub .hint{font-size:14px}
+.pubnav{margin:34px 0 8px;font-size:15px}
+.pub .banner{max-width:72ch}
+.pub .q-slot{display:inline-flex;gap:6px;align-items:center}
+
+/* ---- Kezdőlap és Elemzések */
+.hero2{padding:18px 0 6px}
+.hero2 h1{font-size:clamp(30px,5vw,48px);line-height:1.12;letter-spacing:-.02em;margin:4px 0 12px;max-width:18em}
+.hero2 .slogan{display:inline-block;margin:14px 0 0;font-weight:700;color:var(--turq);letter-spacing:.02em}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 0}
+.cta a{display:inline-block;padding:10px 18px;border-radius:10px;border:1px solid var(--navy);font-weight:650;text-decoration:none;color:var(--navy)}
+.cta a.primary{background:var(--navy);color:#fff}
+:root[data-theme="dark"] .cta a.primary{color:#06172b}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .cta a.primary{color:#06172b}}
+.cta a:hover{filter:brightness(1.1);text-decoration:underline}
+.sec{margin:34px 0 0}
+.sec>h2{font-size:22px;margin:0 0 6px}
+.sec>.hint{margin:0 0 14px}
+a.pubcard.big{padding:22px 24px}
+a.pubcard.big h3{font-size:clamp(22px,3vw,28px);letter-spacing:-.01em}
+a.pubcard.big p{font-size:16px;max-width:70ch}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:18px 22px}
+.chips2{display:flex;flex-wrap:wrap;gap:8px}
+.chips2 a{display:inline-block;padding:6px 12px;border:1px solid var(--grid);border-radius:999px;background:var(--surface);color:var(--ink);text-decoration:none;font-size:14.5px}
+.chips2 a:hover,.chips2 a[aria-pressed="true"]{border-color:var(--navy);background:var(--neutral)}
+.chips2 button{font:inherit;font-size:14.5px;padding:6px 12px;border:1px solid var(--grid);border-radius:999px;background:var(--surface);color:var(--ink);cursor:pointer}
+.chips2 button[aria-pressed="true"]{border-color:var(--navy);background:var(--neutral);font-weight:650}
+.mini{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.mini .card h3{font-size:15px;margin:0 0 4px}
+.pubcard .tag-topic{align-self:flex-start}
+.grid3.pubs{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+
+/* ---- Rendszerkép központ (A–G szakaszok) ---- */
+header .meta{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;color:var(--muted);font-size:13px;align-items:center}
+.kpi .nodata{font-size:16px;font-weight:600;color:var(--muted)}
+nav.hubjump{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 0}
+nav.hubjump a{padding:5px 11px;border-radius:999px;border:1px solid var(--grid);color:var(--ink2);text-decoration:none;font-size:13px;background:var(--surface)}
+nav.hubjump a:hover{color:var(--ink);border-color:var(--ink2)}
+.hubs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,470px),1fr));gap:16px;margin-top:16px;align-items:start}
+.hub h2{display:flex;align-items:center;gap:10px;font-size:19px;margin:0 0 6px;line-height:1.25}
+.hub .letter{display:inline-flex;align-items:center;justify-content:center;flex:none;width:28px;height:28px;border-radius:8px;background:var(--navy);color:#fff;font-size:15px;font-weight:700}
+:root[data-theme="dark"] .hub .letter{color:#06172b}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .hub .letter{color:#06172b}}
+.hub .kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px 18px;margin:12px 0 14px}
+.hub .kpi .n{font-size:clamp(21px,2.4vw,26px)}
+.hub .kpi .s{line-height:1.45}
+.hublinks{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.hublinks li{font-size:14px;color:var(--ink2)}
+.hublinks a{font-weight:650}
+
+/* ---- JavaScript nélküli tartalék főmenü ---- */
+nav.nsnav{display:flex;flex-wrap:wrap;gap:6px 16px;padding:12px 16px;background:var(--navy-deep);border-bottom:3px solid var(--turq)}
+nav.nsnav a{color:var(--hdr-ink);font-weight:650;text-decoration:none;padding:4px 2px}
+nav.nsnav a:hover{text-decoration:underline}

@@ -24,6 +24,7 @@ install -m 0644 "$SRC/collector.py" "$APP/collector.py"
 install -m 0644 "$SRC"/*.html "$SRC"/demo-*.json "$SRC"/europe-geo.json "$SRC"/hu-geo.json "$WEB/"
 install -d "$WEB/assets"
 install -m 0644 "$SRC"/assets/* "$WEB/assets/"
+cp -r "$SRC/demo-hist" "$SRC/demo-elemzesek" "$WEB/"
 chown -R aramlas:aramlas "$WEB"
 
 # Token: a környezetből vagy kérdezve (nem látszik a képernyőn, nem kerül parancssorba).

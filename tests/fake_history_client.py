@@ -87,7 +87,7 @@ class FakeHistoryClient:
     def query_day_ahead_prices(self, zone, start, end, **kw):
         same_offset(start, end)
         self.calls.append(("price", start.year))
-        if zone in ("RS", "UA"):
+        if zone in ("RS", "UA", "UA_IPS"):
             raise NoMatchingDataError
         idx = self._idx(start, end, "h")
         h = lh(idx)
@@ -122,3 +122,18 @@ class FakeHistoryClient:
                          "Solar": 8500 * sc * 0.85, "Wind Onshore": 320, "Biomass": 260, "Waste": 40,
                          "Hydro Run-of-river and poundage": 60, "Other": 100})
         return pd.DataFrame(rows, index=pd.DatetimeIndex([f"{yr}-01-01" for yr in years], tz=BUD))
+
+    def query_load_forecast(self, zone, start, end, **kw):
+        self.calls.append(("load_forecast", start.year))
+        idx = self._idx(start, end, "h")
+        return pd.Series(load_model(idx) * 1.01, index=idx.tz_convert(BUD)).to_frame("Forecasted Load")
+
+    def query_scheduled_exchanges(self, a, b, start, end, dayahead=False, **kw):
+        self.calls.append(("sched", start.year))
+        nb = b if a == "HU" else a
+        if nb == "UA":
+            raise NoMatchingDataError
+        idx = self._idx(start, end, "h")
+        n = net_pattern(nb, idx) * (1 + 0.15 * (year_f(idx) - 2019) / 7) * 0.97
+        v = np.maximum(n, 0) if b == "HU" else np.maximum(-n, 0)
+        return pd.Series(v, index=idx.tz_convert(BRU))
