@@ -1,0 +1,1 @@
+{"schema":1,"zone":"DE_LU","cat":"price_da","tier":"y","unit":"€/MWh","agg":"time_mean","quality":"published","per":"h","last":1767222000,"keys":["2025","2026"],"h":[8760,8760],"series":{"price":{"avg":[89.32,null],"min":[-250.32,null],"max":[583.4,null],"n":[8760,1],"neg":[573,null]}}}

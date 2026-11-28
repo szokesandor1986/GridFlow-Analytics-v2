@@ -1,0 +1,1 @@
+{"schema":1,"zone":"SI","cat":"price_da","tier":"y","unit":"€/MWh","agg":"time_mean","quality":"published","per":"h","last":1767222000,"keys":["2025","2026"],"h":[8760,8760],"series":{"price":{"avg":[104.64,null],"min":[-126.46,null],"max":[561.75,null],"n":[8760,1],"neg":[268,null]}}}

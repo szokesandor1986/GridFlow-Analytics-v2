@@ -1,0 +1,1 @@
+{"schema":1,"zone":"RO","cat":"price_da","tier":"y","unit":"€/MWh","agg":"time_mean","quality":"published","per":"h","last":1795856400,"keys":["2026"],"h":[8760],"series":{"price":{"avg":[147.73],"min":[-97.55],"max":[954.59],"n":[7931],"neg":[184]}}}

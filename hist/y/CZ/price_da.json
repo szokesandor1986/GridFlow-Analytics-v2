@@ -1,0 +1,1 @@
+{"schema":1,"zone":"CZ","cat":"price_da","tier":"y","unit":"€/MWh","agg":"time_mean","quality":"published","per":"h","last":1795856400,"keys":["2025","2026"],"h":[8760,8760],"series":{"price":{"avg":[96.83,132.81],"min":[-224.49,-500],"max":[563.13,648.29],"n":[8760,7955],"neg":[322,271]}}}
