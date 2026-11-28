@@ -19,6 +19,17 @@ const same = (a, b, m) => assert.strictEqual(JSON.stringify(a), JSON.stringify(b
 const rd = (f) => JSON.parse(fs.readFileSync(path.join(ROOT, f), "utf8"));
 
 (async () => {
+  // A demo-hist/ elhagyható (csak a ?demo=1 módhoz kell): ha hiányzik vagy nem teljes, a teszt kihagyja magát,
+  // hogy ez ne állítsa meg az éles közzétételt.
+  const mf = path.join(ROOT, "demo-hist", "manifest.json");
+  let complete = fs.existsSync(mf);
+  if (complete) {
+    try {
+      const m = JSON.parse(fs.readFileSync(mf, "utf8"));
+      complete = Object.keys(m.files || {}).every((f) => fs.existsSync(path.join(ROOT, "demo-hist", f)));
+    } catch (e) { complete = false; }
+  }
+  if (!complete) { console.log("KIHAGYVA: a demo-hist/ hiányzik vagy nem teljes (csak a demo módhoz kell)"); return; }
   // ---- 1. hist mód
   let H = load();
   let info = await H.init({ root: "demo-hist/", fallbackUrl: "demo-history.json" });
