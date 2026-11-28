@@ -1,0 +1,509 @@
+{
+ "schema": 1,
+ "generated_utc": "2026-11-28T10:16:18Z",
+ "note": "Nyílt adatbázisokból épített, nem teljes és nem naprakész erőművi nyilvántartás: a beépített teljesítmény tájékoztató; tényleges termelést csak ENTSO-E egységszintű adatból jelenít meg a térkép.",
+ "sources": [
+  {
+   "name": "WRI Global Power Plant Database",
+   "license": "CC BY 4.0",
+   "url": "https://github.com/wri/global-power-plant-database",
+   "file": "https://raw.githubusercontent.com/wri/global-power-plant-database/master/output_database/global_power_plant_database.csv",
+   "sha256": "4b1f93e0fd93664f18684d9b05d0a52ed9658c6a8cf0d21ff2520791379ba7fc"
+  },
+  {
+   "name": "JRC Hydropower database",
+   "license": "CC BY 4.0",
+   "url": "https://github.com/energy-modelling-toolkit/hydro-power-database",
+   "file": "https://raw.githubusercontent.com/energy-modelling-toolkit/hydro-power-database/master/data/jrc-hydro-power-plant-database.csv",
+   "sha256": "62e9c5c2394b74183ff60be053c41ea28bb90035af5734a2712f0aaa76cba9e5"
+  }
+ ],
+ "fuels": {
+  "nuclear": "Atomerőmű",
+  "gas": "Gázerőmű",
+  "coal": "Szénerőmű",
+  "solar": "Naperőmű",
+  "wind": "Szélerőmű",
+  "hydro": "Vízerőmű",
+  "other": "Egyéb (olaj, biomassza stb.)"
+ },
+ "plants": [
+  {
+   "id": "WRI1020246",
+   "name": "Paksi Atomerőmű",
+   "name_src": "Paksi Atomerőmű",
+   "fuel": "nuclear",
+   "fuel_src": "Nuclear",
+   "capacity_mw": 1886.8,
+   "lat": 46.5739,
+   "lon": 18.8536,
+   "match": [
+    "paks"
+   ],
+   "commissioned": null,
+   "owner": null,
+   "src": {
+    "db": "WRI Global Power Plant Database",
+    "id": "WRI1020246",
+    "capacity_basis": "ENTSOE",
+    "geo_basis": "WRI",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "WRI1020248",
+   "name": "Mátrai Erőmű",
+   "name_src": "Matra power station",
+   "fuel": "coal",
+   "fuel_src": "Coal",
+   "capacity_mw": 884.0,
+   "lat": 47.7886,
+   "lon": 20.066,
+   "match": [
+    "matra"
+   ],
+   "commissioned": 1983,
+   "owner": "Kraftwerk Mátra gAG",
+   "src": {
+    "db": "WRI Global Power Plant Database",
+    "id": "WRI1020248",
+    "capacity_basis": "GCPT",
+    "geo_basis": "WRI",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "WRI1020247",
+   "name": "Tiszai Erőmű",
+   "name_src": "Tiszai Erőmű",
+   "fuel": "gas",
+   "fuel_src": "Gas",
+   "capacity_mw": 864.0,
+   "lat": 47.9178,
+   "lon": 21.0784,
+   "match": [
+    "tiszai",
+    "tiszaujvaros"
+   ],
+   "commissioned": null,
+   "owner": null,
+   "src": {
+    "db": "WRI Global Power Plant Database",
+    "id": "WRI1020247",
+    "capacity_basis": "ENTSOE",
+    "geo_basis": "WRI",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "WRI1020249",
+   "name": "Dunamenti Erőmű",
+   "name_src": "Dunamenti Erőmű",
+   "fuel": "gas",
+   "fuel_src": "Gas",
+   "capacity_mw": 840.7,
+   "lat": 47.3283,
+   "lon": 18.9169,
+   "match": [
+    "dunamenti",
+    "szazhalombatta"
+   ],
+   "commissioned": null,
+   "owner": null,
+   "src": {
+    "db": "WRI Global Power Plant Database",
+    "id": "WRI1020249",
+    "capacity_basis": "ENTSOE",
+    "geo_basis": "GEODB",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "WRI1020250",
+   "name": "Gönyűi Erőmű",
+   "name_src": "Gönyűi Erőmű",
+   "fuel": "gas",
+   "fuel_src": "Gas",
+   "capacity_mw": 426.6,
+   "lat": 47.7384,
+   "lon": 17.8033,
+   "match": [
+    "gonyu"
+   ],
+   "commissioned": null,
+   "owner": null,
+   "src": {
+    "db": "WRI Global Power Plant Database",
+    "id": "WRI1020250",
+    "capacity_basis": "ENTSOE",
+    "geo_basis": "GEODB",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "WRI1020251",
+   "name": "Csepel Erőmű (Alpiq)",
+   "name_src": "Alpiq Csepel Erőmű",
+   "fuel": "gas",
+   "fuel_src": "Gas",
+   "capacity_mw": 401.0,
+   "lat": 47.428,
+   "lon": 19.0525,
+   "match": [
+    "csepel"
+   ],
+   "commissioned": null,
+   "owner": null,
+   "src": {
+    "db": "WRI Global Power Plant Database",
+    "id": "WRI1020251",
+    "capacity_basis": "ENTSOE",
+    "geo_basis": "GEODB",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "WRI1020252",
+   "name": "Oroszlányi Erőmű",
+   "name_src": "Oroszlány power station",
+   "fuel": "coal",
+   "fuel_src": "Coal",
+   "capacity_mw": 250.0,
+   "lat": 47.5017,
+   "lon": 18.2701,
+   "match": [
+    "oroszlany"
+   ],
+   "commissioned": 1962,
+   "owner": "MVM Vertesi Eromu Zrt",
+   "src": {
+    "db": "WRI Global Power Plant Database",
+    "id": "WRI1020252",
+    "capacity_basis": "GCPT",
+    "geo_basis": "GEODB",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "WRI1020253",
+   "name": "Kelenföldi Erőmű",
+   "name_src": "Kelenföldi Erőmű",
+   "fuel": "gas",
+   "fuel_src": "Gas",
+   "capacity_mw": 173.0,
+   "lat": 47.4624,
+   "lon": 19.0563,
+   "match": [
+    "kelenfold"
+   ],
+   "commissioned": null,
+   "owner": null,
+   "src": {
+    "db": "WRI Global Power Plant Database",
+    "id": "WRI1020253",
+    "capacity_basis": "ENTSOE",
+    "geo_basis": "GEODB",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "WRI1020254",
+   "name": "Lőrinci Gázturbinás Erőmű",
+   "name_src": "Lőrinci Gázturbinás Erőmű",
+   "fuel": "other",
+   "fuel_src": "Oil",
+   "capacity_mw": 170.0,
+   "lat": 47.7164,
+   "lon": 19.6778,
+   "match": [
+    "lorinci"
+   ],
+   "commissioned": null,
+   "owner": null,
+   "src": {
+    "db": "WRI Global Power Plant Database",
+    "id": "WRI1020254",
+    "capacity_basis": "ENTSOE",
+    "geo_basis": "GEODB",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "WRI1020259",
+   "name": "Kispesti Erőmű",
+   "name_src": "Kispesti Erőmű",
+   "fuel": "gas",
+   "fuel_src": "Gas",
+   "capacity_mw": 109.2,
+   "lat": 47.4568,
+   "lon": 19.1673,
+   "match": [
+    "kispest"
+   ],
+   "commissioned": null,
+   "owner": null,
+   "src": {
+    "db": "WRI Global Power Plant Database",
+    "id": "WRI1020259",
+    "capacity_basis": "ENTSOE",
+    "geo_basis": "GEODB",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "WRI1020262",
+   "name": "Debreceni Kombinált Ciklusú Erőmű",
+   "name_src": "Debreceni Kombináltciklusú Erőmű",
+   "fuel": "gas",
+   "fuel_src": "Gas",
+   "capacity_mw": 95.0,
+   "lat": 47.5185,
+   "lon": 21.6329,
+   "match": [
+    "debrecen"
+   ],
+   "commissioned": null,
+   "owner": null,
+   "src": {
+    "db": "WRI Global Power Plant Database",
+    "id": "WRI1020262",
+    "capacity_basis": "ENTSOE",
+    "geo_basis": "GEODB",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "WRI1075836",
+   "name": "Bakonyi Erőmű",
+   "name_src": "Bakony power station",
+   "fuel": "coal",
+   "fuel_src": "Coal",
+   "capacity_mw": 60.0,
+   "lat": 47.0956,
+   "lon": 17.5584,
+   "match": [
+    "bakony",
+    "ajka"
+   ],
+   "commissioned": 1957,
+   "owner": "Bakony",
+   "src": {
+    "db": "WRI Global Power Plant Database",
+    "id": "WRI1075836",
+    "capacity_basis": "GCPT",
+    "geo_basis": "GCPT",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "WRI1020270",
+   "name": "GREENERGY szabályozási központ",
+   "name_src": "GREENERGY szabályozási központ",
+   "fuel": "gas",
+   "fuel_src": "Gas",
+   "capacity_mw": 45.8,
+   "lat": 46.0641,
+   "lon": 18.2646,
+   "match": [
+    "greenergy"
+   ],
+   "commissioned": null,
+   "owner": null,
+   "src": {
+    "db": "WRI Global Power Plant Database",
+    "id": "WRI1020270",
+    "capacity_basis": "ENTSOE",
+    "geo_basis": "WRI",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "JRC-H1188",
+   "name": "Kiskörei Vízerőmű",
+   "name_src": "Kiskore",
+   "fuel": "hydro",
+   "fuel_src": "Hydro (HDAM)",
+   "capacity_mw": 28.0,
+   "lat": 47.493163,
+   "lon": 20.514556,
+   "match": [
+    "kiskore"
+   ],
+   "commissioned": null,
+   "owner": null,
+   "src": {
+    "db": "JRC Hydropower database",
+    "id": "H1188",
+    "capacity_basis": "JRC",
+    "geo_basis": "JRC",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "WKS0072600",
+   "name": "Dunai naperőmű",
+   "name_src": "Dunai",
+   "fuel": "solar",
+   "fuel_src": "Solar",
+   "capacity_mw": 21.0,
+   "lat": 47.333,
+   "lon": 18.906,
+   "match": [],
+   "commissioned": null,
+   "owner": null,
+   "src": {
+    "db": "WRI Global Power Plant Database",
+    "id": "WKS0072600",
+    "capacity_basis": "Wiki-Solar",
+    "geo_basis": "Wiki-Solar",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "WKS0073291",
+   "name": "Paksi naperőmű",
+   "name_src": "Paks",
+   "fuel": "solar",
+   "fuel_src": "Solar",
+   "capacity_mw": 20.6,
+   "lat": 46.59,
+   "lon": 18.85,
+   "match": [],
+   "commissioned": null,
+   "owner": null,
+   "src": {
+    "db": "WRI Global Power Plant Database",
+    "id": "WKS0073291",
+    "capacity_basis": "Wiki-Solar",
+    "geo_basis": "Wiki-Solar",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "WKS0073281",
+   "name": "Bükkábrányi naperőmű",
+   "name_src": "Bukkabrany ",
+   "fuel": "solar",
+   "fuel_src": "Solar",
+   "capacity_mw": 20.0,
+   "lat": 47.894,
+   "lon": 20.707,
+   "match": [],
+   "commissioned": null,
+   "owner": null,
+   "src": {
+    "db": "WRI Global Power Plant Database",
+    "id": "WKS0073281",
+    "capacity_basis": "Wiki-Solar",
+    "geo_basis": "Wiki-Solar",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "WKS0066591",
+   "name": "Visontai naperőmű",
+   "name_src": "Visonta",
+   "fuel": "solar",
+   "fuel_src": "Solar",
+   "capacity_mw": 16.0,
+   "lat": 47.802,
+   "lon": 20.059,
+   "match": [],
+   "commissioned": null,
+   "owner": null,
+   "src": {
+    "db": "WRI Global Power Plant Database",
+    "id": "WKS0066591",
+    "capacity_basis": "Wiki-Solar",
+    "geo_basis": "Wiki-Solar",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "JRC-H3403",
+   "name": "Tiszalöki Vízerőmű",
+   "name_src": "HE Tiszalok",
+   "fuel": "hydro",
+   "fuel_src": "Hydro (HROR)",
+   "capacity_mw": 13.5,
+   "lat": 48.025136,
+   "lon": 21.307715,
+   "match": [
+    "tiszalok"
+   ],
+   "commissioned": null,
+   "owner": null,
+   "src": {
+    "db": "JRC Hydropower database",
+    "id": "H3403",
+    "capacity_basis": "JRC",
+    "geo_basis": "JRC",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "WKS0066370",
+   "name": "Pécsi naperőmű",
+   "name_src": "Pécs",
+   "fuel": "solar",
+   "fuel_src": "Solar",
+   "capacity_mw": 7.0,
+   "lat": 46.06,
+   "lon": 18.257,
+   "match": [],
+   "commissioned": null,
+   "owner": null,
+   "src": {
+    "db": "WRI Global Power Plant Database",
+    "id": "WKS0066370",
+    "capacity_basis": "Wiki-Solar",
+    "geo_basis": "Wiki-Solar",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "JRC-H2138",
+   "name": "Kesznyeteni Vízerőmű",
+   "name_src": "Kesznyeten hernadviz",
+   "fuel": "hydro",
+   "fuel_src": "Hydro (HROR)",
+   "capacity_mw": 4.4,
+   "lat": 47.995972,
+   "lon": 21.033037,
+   "match": [
+    "kesznyeten"
+   ],
+   "commissioned": null,
+   "owner": null,
+   "src": {
+    "db": "JRC Hydropower database",
+    "id": "H2138",
+    "capacity_basis": "JRC",
+    "geo_basis": "JRC",
+    "capacity_year": null
+   }
+  },
+  {
+   "id": "JRC-H3404",
+   "name": "Ikervári Vízerőmű",
+   "name_src": "HE Ikervar",
+   "fuel": "hydro",
+   "fuel_src": "Hydro (HROR)",
+   "capacity_mw": 1.8,
+   "lat": 47.217304,
+   "lon": 16.934066,
+   "match": [
+    "ikervar"
+   ],
+   "commissioned": null,
+   "owner": null,
+   "src": {
+    "db": "JRC Hydropower database",
+    "id": "H3404",
+    "capacity_basis": "JRC",
+    "geo_basis": "JRC",
+    "capacity_year": null
+   }
+  }
+ ]
+}

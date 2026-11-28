@@ -30,14 +30,14 @@ nav.hubjump{margin:14px 0 18px}
 @media (max-width:640px){table.mt td:first-child{white-space:normal}}
 </style>
 </head>
-<body data-section="modszertan" data-page="modszertan.html" data-static>
-<noscript><nav class="nsnav" aria-label="Főmenü"><a href="index.html">Kezdőlap</a><a href="elemzesek.html">Elemzések</a><a href="rendszerkep.html">Rendszerkép</a><a href="historikus.html">Historikus adatok</a><a href="nemzetkozi.html">Nemzetközi összehasonlítás</a><a href="modszertan.html">Módszertan</a><a href="rolunk.html">Rólunk</a></nav></noscript>
+<body data-section="adatok" data-page="modszertan.html" data-static>
+<noscript><nav class="nsnav" aria-label="Főmenü"><a href="index.html">Főoldal</a><a href="elemzesek.html">Elemzések</a><a href="rendszerkep.html">Adatok: aktuális rendszerkép</a><a href="historikus.html">Historikus adatok</a><a href="eromuvek.html">Erőművek és termelőegységek</a><a href="idojaras.html">Időjárási adatok</a><a href="foldgaz.html">Földgáz és tárolók</a><a href="nemzetkozi.html">Nemzetközi összehasonlítás</a><a href="modszertan.html">Módszertan és adatforrások</a><a href="rolunk.html">Rólunk</a></nav></noscript>
 <main class="doc">
   <header>
     <h1>Módszertan</h1>
     <p class="sub">Honnan származnak az adatok, mit jelentenek az adatminőségi címkék, hogyan készülnek az összesítések és a számított mutatók, és hol vannak a korlátok. Az oldal célja, hogy minden számot vissza lehessen vezetni a forrására és a képletére.</p>
     <nav class="hubjump" aria-label="Ugrás a fejezetekhez">
-      <a href="#alapelvek">Alapelvek</a><a href="#forrasok">Adatforrások</a><a href="#minoseg">Adatminőség</a><a href="#idokezeles">Időkezelés és összesítés</a><a href="#kepletek">Képletek</a><a href="#publikaciok">Publikációk</a><a href="#nemzetkozi">Nemzetközi összehasonlítás</a><a href="#korlatok">Korlátok</a><a href="#frissites">Frissítés</a>
+      <a href="#alapelvek">Alapelvek</a><a href="#forrasok">Adatforrások</a><a href="#minoseg">Adatminőség</a><a href="#idokezeles">Időkezelés és összesítés</a><a href="#kepletek">Képletek</a><a href="#publikaciok">Publikációk</a><a href="#nemzetkozi">Nemzetközi összehasonlítás</a><a href="#eromuvek">Erőművi térkép</a><a href="#korlatok">Korlátok</a><a href="#frissites">Frissítés</a>
     </nav>
   </header>
 
@@ -64,6 +64,8 @@ nav.hubjump{margin:14px 0 18px}
         <tr><td>GIE AGSI+ és ALSI</td><td>földgáztárolók töltöttsége, LNG-terminálok készlete és kiadása</td><td>Ingyenes személyes kulcs (GitHub Secret). Napi adat.</td></tr>
         <tr><td>ENTSOG Transparency Platform</td><td>a magyar határpontok fizikai gázáramlása</td><td>Kulcs nélkül elérhető. Napi adat.</td></tr>
         <tr><td>HUPX (REMIT, Inside Information Platform)</td><td>villamosenergia-kiesésekről szóló közlemények</td><td>Kulcs szükséges (GitHub Secret); ha nem érhető el, a megfelelő kártya nem jelenik meg.</td></tr>
+        <tr><td>ENTSO-E blokkszintű termelés (A73) és egységenkénti beépített teljesítmény (A71)</td><td>a 100 MW feletti erőművi egységek óránkénti átlagtermelése és névleges teljesítménye; erőművi kiesések</td><td>Az Erőművek és termelőegységek oldal tényleges termelése ebből jön, névegyeztetéssel. A kisebb egységek termelése nem közölt.</td></tr>
+        <tr><td>WRI Global Power Plant Database; JRC Hydropower database</td><td>erőművek neve, helye (koordináta) és beépített teljesítménye az erőművi térképhez</td><td>Mindkettő CC BY 4.0, a forrásfájl ellenőrző összege a <code>plants.json</code>-ban van. Régebbi állapotot tükröznek, Magyarországon nem teljesek, ezért a teljesítmény tájékoztató.</td></tr>
         <tr><td>IPCC AR5 WG3 Annex III</td><td>a CO₂-intenzitás számításához az életciklus-szemléletű medián-tényezők</td><td>gCO₂eq/kWh: atom 12, gáz 490, szén 820, nap 48, szél 11, biomassza és hulladék 230, víz 24; az „egyéb” csoport 700 (becslés).</td></tr>
       </tbody>
     </table></div>
@@ -154,6 +156,18 @@ nav.hubjump{margin:14px 0 18px}
     </ul>
   </section>
 
+  <section class="card sec" id="eromuvek" aria-labelledby="h-erm">
+    <h2 id="h-erm">Erőművi térkép és egységadatok</h2>
+    <ul>
+      <li><b>Mit mutat a térkép.</b> Egy jel egy erőmű. A hely és a beépített teljesítmény nyílt adatbázisból (WRI GPPD, JRC) származik; a nyilvántartás jelenleg 22 erőművet tartalmaz. Ami nem szerepel bennük (szélerőművek, a legtöbb naperőmű, a kiserőművek), az nincs a térképen, és nem pótoljuk kitalált jellel. A lefedettségi kártya erőforrásonként megmutatja, mennyi látszik az ENTSO-E országos beépített teljesítményéből.</li>
+      <li><b>Tényleges termelés.</b> Csak az ENTSO-E blokkszintű adatából (A73, 100 MW feletti egységek), óránkénti átlagteljesítményként (MW). Az ENTSO-E összesített termelési adatából blokkszintű termelést nem lehet megállapítani, ezért a térkép azt nem is állítja.</li>
+      <li><b>Párosítás.</b> Egy ENTSO-E egység akkor tartozik egy erőműhöz, ha az ékezetmentesített neve tartalmazza az erőmű szócsonkját, és az energiaforrás-csoportjuk összeférhető. Pontosan egy erőműhöz kell illeszkednie: a nem illeszkedő és a kétértelmű egységek külön táblázatban láthatók, nem találgatunk.</li>
+      <li><b>Állapotok.</b> <i>Termel</i>: az utolsó közölt órában az egységek összege pozitív. <i>0 MW</i>: az utolsó közölt érték nulla. <i>Nem friss</i>: az utolsó közölt érték hat óránál régebbi a valós időhöz képest. <i>Csak beépített teljesítmény</i>: nincs hozzá ellenőrzött egységadat; ez nem jelenti, hogy az erőmű áll. Az üzemállapotot sehol nem becsüljük.</li>
+      <li><b>Terhelés és energia.</b> A terhelés a termelés és az ENTSO-E egységkapacitás (A71) hányadosa, csak ha minden párosított egység kapacitása egyértelmű. A 24 órás energia az órás átlagteljesítmények összege (MW × 1 h = MWh), legalább 20 érvényes óra esetén; a hiányzó óra nem nulla, kimarad.</li>
+      <li><b>Idő.</b> Az adat UTC-ben tárolódik; az oldal budapesti időben mutatja.</li>
+    </ul>
+  </section>
+
   <section class="card sec" id="korlatok" aria-labelledby="h-kor">
     <h2 id="h-kor">Ismert korlátok</h2>
     <div class="warnbox">Az oldal tájékoztató jellegű. Az adatok késve érkeznek, utólag módosulhatnak, és a közlők hibái vagy kimaradásai átöröklődnek.</div>
@@ -163,6 +177,7 @@ nav.hubjump{margin:14px 0 18px}
       <li><b>Termelési jelentések lefedettsége.</b> A zónák nem egyformán jelentenek (például a kisméretű napelemes termelés egy része nem látszik), ezért a nap- és szélrészarány alulbecsülhet, a maradék terhelés pedig torzulhat.</li>
       <li><b>Előzetes adat.</b> Az utolsó 90 nap adata előzetes. Az ENTSO-E utólag módosíthatja, ezért az ebből számolt értékek is változhatnak.</li>
       <li><b>Termelés-alapú CO₂.</b> Az import kibocsátása nincs benne, a tényezők medián-értékek, nem erőművenkénti mérések.</li>
+      <li><b>Erőművi térkép.</b> A nyílt erőművi adatbázisok régiek és hiányosak; a beépített teljesítmény ezért tájékoztató. A blokkszintű termelés a 100 MW feletti egységekre áll rendelkezésre, és a névpárosítás tévedhet, ha az ENTSO-E átnevez egy egységet; ilyenkor az egység a nem párosított táblázatban jelenik meg.</li>
       <li><b>Külső források elérhetősége.</b> Ha egy forrás nem érhető el, az érintett rész üresen marad, a többi működik tovább. A hiba az oldal tetején is látszik.</li>
     </ul>
   </section>

@@ -2,17 +2,22 @@
 
 Jóváhagyott kiindulás: a v2 repó továbbfejlesztése, két ág párhuzamosan (új oldalszerkezet + visszatöltő). A meglévő, működő V1 diagramok és a V2 térkép megmaradnak; az új szerkezet köréjük épül.
 
-## 1. Szerkezet (hét menüpont)
+## 1. Szerkezet (három főmenüpont, az Adatok alatt hét modul)
 
-| Menüpont | Fájl | Tartalom |
+> **Változás (V2 átalakítás, 1. szakasz).** A korábbi hét menüpontot három főmenüpont váltotta: **Főoldal – Elemzések – Adatok**. Az Adatok alatt a modulok egy második sorban (`nav.subnav`) érhetők el; az aktuális rendszerkép négy nézete külön, harmadik sorban (`nav.subnav2`). A Rólunk oldal a láblécben van. A menüt egyetlen helyen, a `gf.js` MENU/DATA/SUB tömbjei határozzák meg; a JavaScript nélküli tartalék menü (noscript) mind a tíz hivatkozást adja.
+
+| Hely | Fájl | Tartalom |
 |---|---|---|
-| Kezdőlap | `index.html` | főcím és alcím, kiemelt elemzés, legfrissebb publikációk, a rendszer jelenlegi képe (élő számok), történeti trendek (havi adatból), kiemelt témák, módszertan és források |
+| Főoldal | `index.html` | főcím és alcím, kiemelt elemzés, legfrissebb publikációk, a rendszer jelenlegi képe (élő számok), történeti trendek (havi adatból), kiemelt témák, módszertan és források |
 | Elemzések | `elemzesek.html`, `elemzesek/<téma>.html` | a tíz téma publikációi rögzített szerkezetben; témaszűrő |
-| Rendszerkép | `rendszerkep.html` + részletes nézetek | A–G szekciók élő összefoglalóval; a részletes nézetek a meglévő oldalak: `muszaki.html`, `hatarok.html`, `europa.html`, `idojaras.html`, `foldgaz.html` |
-| Historikus adatok | `historikus.html` | ország, kategória, időszak, felbontás, összehasonlítás; letölthető adat |
-| Nemzetközi összehasonlítás | `nemzetkozi.html` | AT, SK, RO, RS, HR, SI, UA, DE (DE_LU zóna), CZ; csak összevethető definíciók |
-| Módszertan | `modszertan.html` | adatforrások, képletek, aggregálás, minőségi címkék, korlátok |
-| Rólunk | `rolunk.html` | célok, függetlenség, kapcsolat, licenc és hivatkozás |
+| Adatok → Aktuális rendszerkép | `rendszerkep.html` + nézetei | A–G szekciók élő összefoglalóval; nézetei (`subnav2`): Áttekintés, `hatarok.html`, `muszaki.html`, `europa.html` |
+| Adatok → Historikus adatok | `historikus.html` | ország, kategória, időszak, felbontás, összehasonlítás; letölthető adat |
+| Adatok → Erőművek és termelőegységek | `eromuvek.html` | magyar erőművi térkép: jel = erőmű, szűrők, nagyítás, oldalpanel; tényleges termelés csak ellenőrzött ENTSO-E egységadatból |
+| Adatok → Időjárási adatok | `idojaras.html` | óránkénti időjárás, település-összevetés |
+| Adatok → Földgáz és tárolók | `foldgaz.html` | tárolók, LNG, magyar határpontok |
+| Adatok → Nemzetközi összehasonlítás | `nemzetkozi.html` | AT, SK, RO, RS, HR, SI, UA, DE (DE_LU zóna), CZ; csak összevethető definíciók |
+| Adatok → Módszertan és adatforrások | `modszertan.html` | adatforrások, képletek, aggregálás, minőségi címkék, az erőművi térkép szabályai, korlátok |
+| (lábléc) Rólunk | `rolunk.html` | célok, függetlenség, kapcsolat, licenc és hivatkozás |
 
 A régi „Határok" oldal (`index.html`) tartalma `hatarok.html` néven él tovább (a Rendszerkép C és D szekciójának részletes nézete), így semmi nem vész el; a régi `index.html` helyére a Kezdőlap kerül.
 
@@ -39,7 +44,7 @@ A régi „Határok" oldal (`index.html`) tartalma `hatarok.html` néven él tov
 
 ## 3. Közös komponensek
 
-1. **Fejléc és navigáció** (`GF.shell`): márkanév, jelmondat, hét menüpont, téma-váltó; az aktuális menüpont `aria-current`. A Rendszerkép részletes nézetein második sor: Áttekintés · Határok és árak · Rendszerállapot · Európai piac · Időjárás · Földgáz.
+1. **Fejléc és navigáció** (`GF.shell`): márkanév, jelmondat, három főmenüpont, téma-váltó; az aktuális menüpont `aria-current`. Az Adatok részen második sor a hét modullal, az aktuális rendszerkép nézetein harmadik sor: Áttekintés · Határok és árak · Rendszerállapot · Európai piac. Mobilon a két sor vízszintesen görgethető.
 2. **Adatminőségi címke** (`GF.q`): Végleges · Előzetes · Becsült · Számított · Hiányzó. Jel + szöveg, soha nem csak szín. Meghatározása a Módszertanban; a címke a Módszertan megfelelő pontjára mutat.
 3. **Forrássor** minden kártyán (`data-src`), és a hist adatnál a minőségi címke + utolsó adat időpontja.
 4. **Adatállapot** (valós / demo / elavult / hiányos): ugyanaz, mint a v2-ben.
@@ -60,3 +65,11 @@ Billentyűzetes használat, látható fókusz, ugrólink, szöveges összefoglal
 ## 6. Ami nem része ennek a körnek
 
 Valós idejű jelzés; kereskedelmi funkciók; külső betűtípus, analitika vagy hirdetés; fizetős vagy hitelesítést kérő külső szolgáltatás (ilyet csak előzetes jóváhagyással vezetek be).
+
+
+## Térképes erőművi modul: vizuális szabályok
+
+- **Jel = erőmű.** A szín és az alak együtt kódolja az energiaforrást (atom: hatszög, gáz: kör, szén: négyzet, nap: rombusz, szél: háromszög felfelé, víz: háromszög lefelé, egyéb: ötszög), így színvakon és nyomtatásban is olvasható. A méret a beépített teljesítménnyel nő (sugár ≈ 3,4 + 0,42·√MW képpont), a jelek állandó képernyőméretűek nagyításkor.
+- **Állapot a kitöltésen és a körvonalon:** teli korong, amelynek területe a terheléssel arányos = termel; tömör, üres jel = csak beépített teljesítmény ismert („nincs adat”, nem „áll”); szaggatott körvonal és vízszintes vonás = 0 MW az utolsó közölt órában; pontozott körvonal = nem friss egységadat; narancs háromság = bejelentett kiesés. A kijelölés tömör, sötét keret (nem szaggatott, hogy ne keveredjen az „áll” jelzéssel).
+- **Színek:** a hét energiaforrás színe a `dataviz` ellenőrzőn futott (világos módban megfelelt; sötét módban a figyelmeztetés a második kódolás — az alak — miatt elfogadott).
+- **Mozgás:** húzás, + / − / alapnézet / BP gomb, Ctrl + görgő, két ujjas csípés; a sima görgetés az oldalt görgeti, mobilon az alapnézet nem fogja meg az érintést.

@@ -1,0 +1,140 @@
+name: Adatfrissítés és közzététel
+
+# Az ENTSO-E adatai óránként frissülnek, ezért 20 percenként futtatni bőven elég.
+# A GitHub az ütemezett futásokat késleltetheti; ez normális.
+# Feltöltéskor (push) is lefut, hogy az új oldalak azonnal megjelenjenek. Ha egymás után több feltöltés érkezik
+# (pl. előbb az oldalfájlok, utána a .github mappa), az újabb megszakítja a régebbit, és csak az utolsó gyűjt adatot.
+on:
+  schedule:
+    - cron: "7,27,47 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Egyszerre csak egy közzététel fusson. Az ütemezett futást nem szakítjuk meg, de egy feltöltés által indított
+# futást igen, ha közben újabb feltöltés érkezik.
+concurrency:
+  group: pages
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      # Feltöltésnél várunk: ha a következő feltöltés (pl. a .github mappa) ezalatt megérkezik, ez a futás megszakad,
+      # és még nem hívott meg semmilyen külső szolgáltatást.
+      - name: Várakozás a további feltöltésekre
+        if: github.event_name == 'push'
+        run: sleep 150
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Függőségek
+        run: pip install -r requirements.txt
+
+      - name: Gyűjtő tesztje (kitalált klienssel, hálózat nélkül)
+        run: |
+          python -I tests/test_collector.py
+          python -I tests/test_freq.py
+          python -I tests/test_hupx.py
+          python -I tests/test_jao.py
+          python -I tests/test_weather.py
+          python -I tests/test_publish.py
+          python -I tests/test_site.py
+          python -I tests/test_plants.py
+          node tests/test_gfplants.js
+          node tests/test_gfhist.js
+
+      # A gáz-, a havi és a többéves óránkénti adat a "data" ágon él (a gyűjtő workflow-k oda mentenek); ha még nincs, a main példánya marad.
+      # A hist/ mappa a historikus adattár (óránkénti és összesített); nélküle a Historikus adatok oldal a havi history.json-ra esik vissza.
+      - name: Tárolt adatok betöltése (data ág)
+        run: bash scripts/load_data.sh history.json gas.json hist
+
+      # Az oldalak másolása az adatgyűjtés ELŐTT történik, és a gyűjtés hibája nem állítja meg a közzétételt:
+      # ha az ENTSO-E átmenetileg nem ad adatot, az élő oldal előző data.json fájlja marad.
+      - name: Oldalak előkészítése
+        run: |
+          mkdir -p dist
+          # oldalak: a hét főmenüpont és a Rendszerkép részletes nézetei (hatarok, muszaki, europa, idojaras, foldgaz)
+          cp index.html elemzesek.html rendszerkep.html historikus.html nemzetkozi.html modszertan.html rolunk.html eromuvek.html dist/
+          cp hatarok.html muszaki.html europa.html foldgaz.html idojaras.html europe-geo.json hu-geo.json plants.json dist/
+          cp demo-data.json demo-engineer.json demo-europe.json demo-countries.json demo-history.json demo-gas.json demo-frequency.json demo-hupx.json demo-weather.json dist/
+          cp -r assets dist/assets
+          cp -r demo-elemzesek dist/ 2>/dev/null || true
+          cp -r demo-hist dist/ 2>/dev/null || true   # elhagyható: csak a ?demo=1 módhoz kell
+          cp history.json gas.json dist/ 2>/dev/null || true
+          cp -r hist dist/hist 2>/dev/null || true
+
+      - name: Adatgyűjtés az ENTSO-E-ről
+        continue-on-error: true
+        env:
+          ENTSOE_TOKEN: ${{ secrets.ENTSOE_TOKEN }}
+        run: |
+          curl -fsS --max-time 30 "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/data.json" -o dist/data.json || rm -f dist/data.json
+          python collector.py --out dist/data.json
+
+      # Elemzések (publikációk): a havi history.json lezárt hónapjaiból, statikus HTML-ként. Ha a history.json még nincs meg
+      # vagy a generálás hibázik, a közzététel akkor is megtörténik (a Kezdőlap és az Elemzések oldal ilyenkor üzenetet mutat).
+      - name: Elemzések építése
+        continue-on-error: true
+        run: |
+          if [ -f history.json ]; then python publish.py --history history.json --out dist/elemzesek; else echo "Nincs history.json: az elemzések még nem épülnek."; fi
+
+      # Hálózati frekvencia (Energy-Charts, kulcs nélkül). Az előző állapotot (napi összesítések) az élő oldalról
+      # töltjük le, így nem kell a repóba commitolni. Hiba esetén a közzététel akkor is megtörténik.
+      - name: Frekvencia (Energy-Charts)
+        continue-on-error: true
+        timeout-minutes: 8
+        run: |
+          mkdir -p dist
+          curl -fsS --max-time 30 "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/frequency.json" -o dist/frequency.json || rm -f dist/frequency.json
+          python freq.py --out dist/frequency.json --max-fetch 3
+
+      # Időjárás (Open-Meteo, kulcs nélkül, nem kereskedelmi használat, CC BY 4.0). Hiba esetén az előző fájl marad az élő oldalról.
+      - name: Időjárás (Open-Meteo)
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          mkdir -p dist
+          curl -fsS --max-time 30 "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/weather.json" -o dist/weather.json || rm -f dist/weather.json
+          python weather.py --out dist/weather.json
+
+      # REMIT-kiesések a HUPX Inside Information Platformról (kulcs: HUPX_KEY secret). Kulcs vagy hiba esetén a
+      # kártya egyszerűen nem jelenik meg, a közzététel megtörténik.
+      - name: HUPX kiesések (REMIT)
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          HUPX_KEY: ${{ secrets.HUPX_KEY }}
+        run: python hupx.py --out dist/hupx.json
+
+      # JAO (Core flow-based) felderítő próba: a mezőneveket a logban és a jao_probe.json-ban rögzíti. Hiba esetén nem akadályoz.
+      - name: JAO felderítő próba
+        continue-on-error: true
+        timeout-minutes: 5
+        run: python jao.py --out dist/jao_probe.json
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

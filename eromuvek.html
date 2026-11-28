@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Erőművek és termelőegységek – magyar erőművi térkép | GridFlow Analytics</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="Interaktív térkép a magyarországi erőművekről: atom-, gáz-, szén-, nap- és vízerőművek, beépített teljesítmény nyílt adatbázisból, tényleges termelés csak ellenőrzött ENTSO-E egységadatból.">
+<link rel="stylesheet" href="assets/gf.css">
+<script src="assets/gf.js"></script>
+<script src="assets/gfchart.js" defer></script>
+<script src="assets/gfplants.js" defer></script>
+<style>
+.plgrid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr);gap:16px;align-items:start}
+@media (max-width:920px){.plgrid{grid-template-columns:minmax(0,1fr)}}
+.plpanel{border:1px solid var(--grid);border-radius:14px;background:var(--surface);padding:16px;min-height:200px}
+@media (min-width:921px){.plpanel{position:sticky;top:10px;max-height:calc(100vh - 20px);overflow:auto}}
+.plpanel h3{margin:0 0 4px;font-size:20px;line-height:1.2}
+.plpanel h4{margin:16px 0 6px;font-size:14px;color:var(--ink2);text-transform:uppercase;letter-spacing:.05em}
+.plpanel .kp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px;margin:12px 0 4px}
+.plpanel table.pt{min-width:0;font-size:12.5px}
+.plpanel table.pt th,.plpanel table.pt td{padding:6px 5px}
+.plpanel table.pt th{font-size:12px}
+.plpanel .src{margin:12px 0 0;font-size:12.5px;color:var(--muted);line-height:1.45}
+.pstate{display:inline-flex;align-items:center;gap:6px;font-weight:650;font-size:14px;margin:6px 0 0}
+.pstate.producing{color:var(--ink)}
+.fchips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.fchips .chip{padding:6px 11px 6px 9px;gap:7px}
+.fchips .chip svg{flex:none}
+.fchips .chip small{color:var(--muted)}
+.fchips .chip[aria-pressed="false"]{opacity:.55}
+.fchips .chip[disabled]{opacity:.6;cursor:default}
+.legend2{display:flex;flex-wrap:wrap;gap:6px 18px;margin:10px 0 0;font-size:13px;color:var(--ink2)}
+.legend2 span{display:inline-flex;align-items:center;gap:6px}
+.tbl{overflow-x:auto;max-width:100%;position:relative}   /* position:relative: a .sr (abszolút) elemek a görgethető dobozon belül maradjanak */
+table.pt{min-width:560px;width:100%}
+table.pt th{font-size:13px;text-align:right;padding:7px 9px;border-bottom:2px solid var(--grid);color:var(--ink2);font-weight:650;vertical-align:bottom}
+table.pt th:first-child,table.pt td:first-child{text-align:left}
+table.pt td{padding:8px 9px;border-bottom:1px solid var(--grid)}
+table.pt td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.pt .nodata{font-size:12.5px;color:var(--muted)}
+.cov{display:grid;grid-template-columns:minmax(120px,1.1fr) minmax(0,3fr) minmax(90px,.9fr);gap:8px 14px;align-items:center;font-size:14px}
+.cov .bar{height:12px;border-radius:6px;background:var(--neutral);overflow:hidden}
+.cov .bar i{display:block;height:100%;background:var(--fc);min-width:2px}
+.cov .l{display:flex;align-items:center;gap:7px}
+.cov .v{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink2);font-size:13px}
+.btn2{font:inherit;font-size:13px;padding:4px 10px;border-radius:8px;border:1px solid var(--grid);background:var(--surface);color:var(--ink);cursor:pointer}
+.btn2:hover{border-color:var(--ink2)}
+.note{margin:10px 0 0;color:var(--ink2);font-size:13.5px;max-width:90ch}
+.olist{margin:0;padding:0;list-style:none;display:grid;gap:8px;font-size:14px}
+.olist li{border-left:3px solid var(--borange);padding:2px 0 2px 10px}
+</style>
+</head>
+<body data-section="adatok" data-page="eromuvek.html">
+<noscript><nav class="nsnav" aria-label="Főmenü"><a href="index.html">Főoldal</a><a href="elemzesek.html">Elemzések</a><a href="rendszerkep.html">Adatok: aktuális rendszerkép</a><a href="historikus.html">Historikus adatok</a><a href="eromuvek.html">Erőművek és termelőegységek</a><a href="idojaras.html">Időjárási adatok</a><a href="foldgaz.html">Földgáz és tárolók</a><a href="nemzetkozi.html">Nemzetközi összehasonlítás</a><a href="modszertan.html">Módszertan és adatforrások</a><a href="rolunk.html">Rólunk</a></nav></noscript>
+<main>
+  <div id="banners"></div>
+  <header>
+    <p class="eyebrow">Adatok</p>
+    <h1>Erőművek és termelőegységek</h1>
+    <p class="sub" id="sub">Magyarország erőművei térképen: hol vannak, mekkora a beépített teljesítményük, és amelyikről ellenőrzött egységszintű ENTSO-E adat van, az éppen mennyit termel.</p>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <noscript><p class="card plain">Az erőművi térkép böngészőben, JavaScripttel jelenik meg. A <a href="modszertan.html">Módszertan</a> leírja, honnan származnak az adatok.</p></noscript>
+
+  <section class="card" aria-labelledby="h-map">
+    <h2 id="h-map">Erőművi térkép</h2>
+    <div class="fchips" id="fchips" role="group" aria-label="Szűrés energiaforrásra"></div>
+    <div class="plgrid">
+      <div>
+        <div id="map" role="region" aria-label="Interaktív erőművi térkép"></div>
+        <div class="legend2" id="legend" aria-label="A jelek jelentése"></div>
+        <p class="note">Egy jel egy erőmű: a méret a beépített teljesítménnyel nő, az alak és a szín az energiaforrást mutatja. Kattints (vagy érintsd meg) egy jelet a részletekért. Nagyítás: + és − gomb, két ujjas csípés, Ctrl + görgő; mozgatás: húzás.</p>
+      </div>
+      <aside class="plpanel" id="panel" aria-live="polite" aria-label="Az erőmű adatai"></aside>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="h-cov">
+    <h2 id="h-cov">Mennyit mutat a térkép az országos kapacitásból?</h2>
+    <p class="hint" id="covHint"></p>
+    <div class="cov" id="cov"></div>
+    <p class="note" id="covNote"></p>
+  </section>
+
+  <section class="card" aria-labelledby="h-un">
+    <h2 id="h-un">Egységek, amelyeket nem tudtunk erőműhöz rendelni</h2>
+    <p class="hint" id="unHint"></p>
+    <div class="tbl" id="unTable"></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-all">
+    <h2 id="h-all">Az erőművek táblázata</h2>
+    <p class="hint">Ugyanazok az erőművek, mint a térképen, szöveges, billentyűzettel bejárható formában.</p>
+    <div class="tbl" id="allTable"></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-src">
+    <h2 id="h-src">Források és korlátok</h2>
+    <div id="srcText"></div>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var demo = new URLSearchParams(location.search).has("demo");
+  var FUEL_ORDER = ["nuclear", "gas", "hydro", "coal", "wind", "solar", "other"];
+  var NO = '<span class="nodata">nincs adat</span>';
+  var j = function (u, o) { return GF.getJson(u, o).catch(function () { return null; }); };
+  var tFmt = new Intl.DateTimeFormat("hu-HU", { timeZone: "Europe/Budapest", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  var tShort = function (d) { return tFmt.format(d instanceof Date ? d : new Date(d)); };
+  var dFmt = new Intl.DateTimeFormat("hu-HU", { timeZone: "Europe/Budapest", year: "numeric", month: "2-digit", day: "2-digit" });
+  var nf = GF.nf, esc = GF.esc;
+
+  var S = {};       // plants, fuels, E (engineer), states, map, visible, sel
+
+  function icon(f, size) {          // a jelalak kicsiben (szűrőgombok, jelmagyarázat)
+    var r = size / 2 - 2.5;
+    return '<svg width="' + size + '" height="' + size + '" viewBox="' + (-size / 2) + " " + (-size / 2) + " " + size + " " + size + '" aria-hidden="true" focusable="false"><path d="' + GFPlants.shape(f, r) + '" style="fill:color-mix(in srgb,var(--f-' + f + ') 24%,var(--surface));stroke:var(--f-' + f + ');stroke-width:2;stroke-linejoin:round"/></svg>';
+  }
+  var STATE_TXT = {
+    producing: ["●", "Termel"], idle: ["○", "0 MW az utolsó közölt órában"], stale: ["▲", "Az egységadat nem friss"], nodata: ["◌", "Csak beépített teljesítmény ismert"]
+  };
+
+  // ------------------------------------------------------------------ szűrők és jelmagyarázat
+  function chips() {
+    var box = $("fchips"); box.innerHTML = "";
+    FUEL_ORDER.forEach(function (f) {
+      var ps = S.plants.filter(function (p) { return p.fuel === f; }), mw = ps.reduce(function (a, p) { return a + p.capacity_mw; }, 0);
+      var b = document.createElement("button"); b.type = "button"; b.className = "chip";
+      b.innerHTML = icon(f, 18) + "<span>" + esc(S.fuels[f]) + "</span><small>" + (ps.length ? ps.length + " db · " + nf(mw, 0) + " MW" : "nincs adat") + "</small>";
+      if (!ps.length) { b.disabled = true; b.setAttribute("aria-pressed", "false"); b.title = "Ehhez az energiaforráshoz nincs hiteles, koordinátás nyílt forrásunk, ezért nem szerepel a térképen."; }
+      else {
+        b.setAttribute("aria-pressed", "true");
+        b.addEventListener("click", function () { var on = b.getAttribute("aria-pressed") !== "true"; b.setAttribute("aria-pressed", String(on)); S.visible[f] = on; S.map.setVisible(S.visible); });
+      }
+      S.visible[f] = ps.length > 0; box.appendChild(b);
+    });
+  }
+  function legend() {
+    $("legend").innerHTML =
+      '<span><svg width="22" height="22" viewBox="-11 -11 22 22" aria-hidden="true"><circle r="8" style="fill:color-mix(in srgb,var(--f-gas) 24%,var(--surface));stroke:var(--f-gas);stroke-width:2"/><circle r="4.5" style="fill:var(--f-gas)"/></svg>teli korong: termel (a korong a terhelés arányában nő)</span>' +
+      '<span><svg width="22" height="22" viewBox="-11 -11 22 22" aria-hidden="true"><circle r="8" style="fill:color-mix(in srgb,var(--f-gas) 9%,var(--surface));stroke:var(--f-gas);stroke-width:2"/></svg>üres jel: csak beépített teljesítmény ismert</span>' +
+      '<span><svg width="22" height="22" viewBox="-11 -11 22 22" aria-hidden="true"><circle r="8" style="fill:color-mix(in srgb,var(--f-gas) 9%,var(--surface));stroke:var(--f-gas);stroke-width:2;stroke-dasharray:3.2 2.6"/><path d="M-3.6 0H3.6" style="stroke:var(--ink2);stroke-width:2;stroke-linecap:round"/></svg>szaggatott: 0 MW az utolsó közölt órában</span>' +
+      '<span><svg width="22" height="22" viewBox="-11 -11 22 22" aria-hidden="true"><path d="M-3 4L3 4L0 -6Z" style="fill:var(--borange);stroke:var(--surface);stroke-width:1"/></svg>bejelentett kiesés</span>';
+  }
+
+  // ------------------------------------------------------------------ oldalpanel
+  function kpi(k, v, s) { return '<div class="kpi"><div class="k">' + esc(k) + '</div><div class="n">' + v + '</div><div class="s">' + (s || "") + "</div></div>"; }
+  function plantById(id) { return S.plants.filter(function (p) { return p.id === id; })[0]; }
+  function allSummary() {
+    var st = S.states, prod = S.plants.filter(function (p) { return st[p.id].state === "producing"; });
+    var mw = prod.reduce(function (a, p) { return a + st[p.id].mw; }, 0), tot = S.plants.reduce(function (a, p) { return a + p.capacity_mw; }, 0);
+    var live = S.plants.filter(function (p) { return st[p.id].units.length; }).length, outs = S.plants.filter(function (p) { return st[p.id].outageNow; }).length;
+    var h = "<h3>Magyar erőművek</h3><p class=\"hint\">Válassz egy jelet a térképen az erőmű adataiért.</p><div class=\"kp\">" +
+      kpi("Erőművek a nyilvántartásban", nf(S.plants.length, 0), "összesen " + nf(tot, 0) + " MW beépített teljesítmény (nyílt adatbázis)") +
+      kpi("Egységadattal párosított", nf(live, 0) + " db", S.E ? "az ENTSO-E blokkszintű adata alapján" : "nincs egységadat") +
+      kpi("Termel az utolsó közölt órában", S.E ? nf(prod.length, 0) + " db" : NO, S.E ? "együtt " + nf(mw, 0) + " MW (csak párosított egységek)" : "") +
+      kpi("Bejelentett kiesés most", S.E ? nf(outs, 0) + " db" : NO, S.E ? "ENTSO-E kiesési közlések, párosított erőművek" : "") + "</div>" +
+      '<p class="src">A „termel” állapot csak ENTSO-E egységszintű adatból jön, névegyeztetéssel. Aki nincs párosítva, arról a térkép nem állít semmit: ez nem jelenti, hogy az erőmű áll.</p>';
+    $("panel").innerHTML = h;
+  }
+  function panel(id) {
+    var p = plantById(id); if (!p) { allSummary(); return; }
+    var st = S.states[id], fl = S.fuels[p.fuel] || p.fuel, E = S.E;
+    var tag = STATE_TXT[st.state], line = tag[0] + " " + tag[1];
+    if (st.state === "producing") line = "● Termel: " + nf(st.mw, 0) + " MW";
+    if (st.state === "idle") line = "○ 0 MW az utolsó közölt órában";
+    var h = "<h3>" + esc(p.name) + '</h3><span class="q q-final" style="border-color:var(--f-' + p.fuel + ')">' + icon(p.fuel, 14) + esc(fl) + "</span>" +
+      '<div class="pstate ' + st.state + '">' + esc(line) + (st.t ? ' <span class="hint" style="margin:0">(' + esc(tShort(st.t)) + ")</span>" : "") + "</div>";
+    if (st.outageNow) h += '<div class="pstate"><span style="color:var(--borange)" aria-hidden="true">▲</span> Bejelentett kiesés van érvényben</div>';
+    var capTxt = st.capKnown != null ? nf(st.capKnown, 0) + " MW" : null;
+    h += '<div class="kp">' +
+      kpi("Beépített teljesítmény", nf(p.capacity_mw, 0) + "<small> MW</small>", "nyílt adatbázis szerint, tájékoztató") +
+      kpi("Tényleges termelés", st.mw != null ? nf(st.mw, 0) + "<small> MW</small>" : NO, st.t ? "ENTSO-E egységadat, " + esc(tShort(st.t)) : "nincs ellenőrzött egységadat") +
+      kpi("Termelt energia, 24 óra", st.mwh != null ? nf(st.mwh, 0) + "<small> MWh</small>" : NO, st.mwh != null ? st.mwhN + " érvényes órából" : st.units.length ? "kevesebb mint 20 érvényes óra" : "") +
+      kpi("Terhelés", st.frac != null ? nf(st.frac * 100, 0) + "<small> %</small>" : NO, st.frac != null ? "a termelés az ENTSO-E egység-kapacitás (" + capTxt + ") arányában" : st.units.length ? "az egységek kapacitása nem található egyértelműen" : "") + "</div>";
+    if (st.units.length) {
+      h += "<h4>ENTSO-E egységek</h4><div class=\"tbl\"><table class=\"pt\"><thead><tr><th scope=\"col\">Egység</th><th scope=\"col\">Típus</th><th scope=\"col\">Utolsó, MW</th><th scope=\"col\">Kapacitás, MW</th><th scope=\"col\">Terhelés</th></tr></thead><tbody>";
+      st.units.forEach(function (x) {
+        h += "<tr><td>" + esc(x.unit.name) + '</td><td>' + esc(x.unit.type || x.unit.group) + '</td><td class="num">' + (x.latest ? nf(x.latest.mw, 0) : NO) + '</td><td class="num">' + (x.cap != null ? nf(x.cap, 0) : NO) + '</td><td class="num">' + (x.frac != null ? nf(x.frac * 100, 0) + " %" : NO) + "</td></tr>";
+      });
+      h += "</tbody></table></div>";
+      h += '<h4>Termelési görbe (utolsó ~72 óra)</h4><div id="pchart" class="chart"></div>';
+    } else {
+      h += '<p class="hint" style="margin-top:12px">Az ENTSO-E blokkszintű adatában (100 MW feletti egységek) nem találtunk ehhez az erőműhöz névegyezést, ezért a térkép nem jelez termelést. Ez nem jelenti, hogy az erőmű áll vagy nem termel; csak azt, hogy nincs hozzá ellenőrzött egységadat.</p>';
+    }
+    if (st.outages.length) {
+      h += "<h4>Kiesési információk</h4><ul class=\"olist\">" + st.outages.slice(0, 6).map(function (o) {
+        return "<li><b>" + (o.planned ? "Tervezett" : "Nem tervezett") + "</b> – " + esc(o.name) + ": " + esc(tShort(o.start)) + " – " + esc(tShort(o.end)) + (o.avail_mw != null ? ", rendelkezésre álló " + nf(o.avail_mw, 0) + " MW" : "") + (o.nominal_mw ? " (névleges " + nf(o.nominal_mw, 0) + " MW)" : "") + "</li>";
+      }).join("") + "</ul>";
+    }
+    h += '<p class="src">Nyilvántartás: ' + esc(p.src.db) + " (" + esc(p.src.id) + "), forrásnév: „" + esc(p.name_src) + "”; a beépített teljesítmény alapja: " + esc(p.src.capacity_basis || "nem közölt") + (p.src.capacity_year ? ", " + p.src.capacity_year : "") +
+      ". Koordináta: " + nf(p.lat, 4) + " °É, " + nf(p.lon, 4) + " °K (" + esc(p.src.geo_basis || "nem közölt") + "). Üzemállapotot nem találunk ki: az állapot csak az ENTSO-E adatából következik." + "</p>";
+    $("panel").innerHTML = h;
+    if (st.units.length && window.GFChart) chart(p, st);
+  }
+  function chart(p, st) {
+    var E = S.E, ts = E.hourly_ts, end = Math.max.apply(null, st.units.map(function (x) { return x.latest ? x.latest.i : -1; }));
+    if (end < 0) return;
+    var a = Math.max(0, end - 71), idx = []; for (var i = a; i <= end; i++) idx.push(i);
+    var labels = idx.map(function (i) { return tShort(ts[i]); });
+    var us = st.units.map(function (x) { return x.unit; });
+    var tot = idx.map(function (i) { return us.every(function (u) { return u.mw[i] != null; }) ? us.reduce(function (s, u) { return s + u.mw[i]; }, 0) : null; });
+    var series = [{ id: "sum", label: us.length > 1 ? "Összesen" : us[0].name, values: tot, color: "var(--f-" + p.fuel + ")" }];
+    if (us.length > 1) us.forEach(function (u, k) { series.push({ id: "u" + k, label: u.name, values: idx.map(function (i) { return u.mw[i]; }), color: "var(--ink2)", dash: ["2 3", "6 3", "1 4", "8 3 2 3"][k % 4] }); });
+    GFChart.line($("pchart"), { labels: labels, series: series, unit: "MW", dec: 0, height: 190, zero: true, title: p.name + " – termelés, MW (ENTSO-E egységadat, budapesti idő)" });
+  }
+
+  // ------------------------------------------------------------------ további kártyák
+  function coverage() {
+    var cov = GFPlants.coverage(S.plants, S.E && S.E.installed_mw, S.fuels), box = $("cov"), h = "";
+    var m = cov.reduce(function (a, c) { return a + c.mapped; }, 0), nat = cov.reduce(function (a, c) { return a + (c.national || 0); }, 0);
+    $("covHint").textContent = S.E && S.E.installed_mw ? "A térkép a nyilvántartásban szereplő erőműveket mutatja (" + nf(m, 0) + " MW); az ENTSO-E országos beépített teljesítménye " + nf(nat, 0) + " MW. Ami nem szerepel a nyílt adatbázisokban, az nincs a térképen." : "Az ENTSO-E országos beépített teljesítménye most nem érhető el, ezért a lefedettség nem számolható.";
+    cov.forEach(function (c) {
+      var share = c.share;
+      h += '<div class="l"><span style="--fc:var(--f-' + c.fuel + ')">' + icon(c.fuel, 16) + "</span><span>" + esc(c.label) + "</span></div>" +
+        '<div class="bar" style="--fc:var(--f-' + c.fuel + ')" role="img" aria-label="' + esc(c.label) + ": " + (share != null ? nf(share * 100, 0) + " % térképen" : "országos adat nincs") + '"><i style="width:' + (share != null ? Math.min(100, share * 100) : 0) + '%"></i></div>' +
+        '<div class="v">' + (c.national != null ? nf(c.mapped, 0) + " / " + nf(c.national, 0) + " MW" + (share != null ? " (" + nf(share * 100, 0) + " %)" : "") : nf(c.mapped, 0) + " MW") + "</div>";
+    });
+    box.innerHTML = h;
+    var zero = cov.filter(function (c) { return !c.n && c.national; }).map(function (c) { return c.label.toLowerCase(); });
+    $("covNote").textContent = (zero.length ? "Nincs hiteles, koordinátás nyílt forrásunk a következőkhöz: " + zero.join(", ") + ". " : "") + "A naperőművek döntő többsége (háztartási és kisebb erőművek) nem egyedi erőműként szerepel, ezért a napenergia lefedettsége alacsony. A térképet új forrás hozzáadásával lehet bővíteni, kitalált erőművekkel nem.";
+  }
+  function unmatched() {
+    var P = S.pst, un = P.unmatched, amb = P.ambiguous, box = $("unTable");
+    if (!S.E) { $("unHint").textContent = "Az egységszintű ENTSO-E adat (engineer.json) nem érhető el."; box.innerHTML = ""; return; }
+    $("unHint").textContent = "Az ENTSO-E blokkszintű adata " + (S.E.units || []).length + " egységet tartalmaz (100 MW feletti egységek); ebből " + ((S.E.units || []).length - un.length - amb.length) + " párosítható a nyilvántartás erőműveihez. A többi itt látható: az ENTSO-E-ben szerepelnek, de a nyilvántartásban nincs hozzájuk erőmű és koordináta, ezért nem kerülnek a térképre.";
+    if (!un.length && !amb.length) { box.innerHTML = "<p class=\"hint\">Minden egység párosítva.</p>"; return; }
+    var ts = S.E.hourly_ts, lim = S.now + 36e5, h = '<table class="pt"><thead><tr><th scope="col">ENTSO-E egység</th><th scope="col">Típus</th><th scope="col">Utolsó, MW</th><th scope="col">Megjegyzés</th></tr></thead><tbody>';
+    un.forEach(function (u) { var l = GFPlants.latest(u, ts, lim); h += "<tr><td>" + esc(u.name) + "</td><td>" + esc(u.type || u.group) + '</td><td class="num">' + (l ? nf(l.mw, 0) : NO) + "</td><td>nincs hozzá erőmű a nyilvántartásban</td></tr>"; });
+    amb.forEach(function (a) { var l = GFPlants.latest(a.unit, ts, lim); h += "<tr><td>" + esc(a.unit.name) + "</td><td>" + esc(a.unit.type || a.unit.group) + '</td><td class="num">' + (l ? nf(l.mw, 0) : NO) + "</td><td>kétértelmű: " + esc(a.plants.join(" / ")) + "</td></tr>"; });
+    box.innerHTML = h + "</tbody></table>";
+  }
+  function allTable() {
+    var h = '<table class="pt"><thead><tr><th scope="col">Erőmű</th><th scope="col">Energiaforrás</th><th scope="col">Beépített, MW</th><th scope="col">Állapot</th><th scope="col">Forrás</th><th scope="col"><span class="sr">Térkép</span></th></tr></thead><tbody>';
+    S.plants.forEach(function (p) {
+      var st = S.states[p.id], t = STATE_TXT[st.state];
+      h += "<tr><td>" + esc(p.name) + "</td><td>" + esc(S.fuels[p.fuel]) + '</td><td class="num">' + nf(p.capacity_mw, 0) + "</td><td>" + esc(t[0] + " " + (st.state === "producing" ? "Termel: " + nf(st.mw, 0) + " MW" : t[1])) + (st.outageNow ? " · kiesés" : "") + "</td><td>" + esc(p.src.db + " " + p.src.id) + '</td><td><button type="button" class="btn2" data-show="' + esc(p.id) + '">Térképen</button></td></tr>';
+    });
+    $("allTable").innerHTML = h + "</tbody></table>";
+    Array.prototype.forEach.call($("allTable").querySelectorAll("[data-show]"), function (b) {
+      b.addEventListener("click", function () { var id = b.getAttribute("data-show"); S.map.select(id, true); S.map.focusOn([id], 60); $("map").scrollIntoView({ block: "center" }); });
+    });
+  }
+  function sources() {
+    var ps = S.srcMeta;
+    $("srcText").innerHTML =
+      "<p><b>Erőművek és koordináták.</b> " + ps.map(function (s) { return '<a href="' + esc(s.url) + '" rel="noopener">' + esc(s.name) + "</a> (" + esc(s.license) + ")"; }).join(" és ") + ". " +
+      "Mindkét adatbázis régebbi állapotot tükröz, és Magyarországon nem teljes: a térkép csak azt mutatja, ami bennük szerepel, a hiányzó erőművek helyére nem kerül kitalált jel. A beépített teljesítmény ezért tájékoztató.</p>" +
+      "<p><b>Tényleges termelés.</b> Az ENTSO-E Transparency Platform blokkszintű termelési adata (A73, 100 MW feletti egységek), óránkénti átlagként. Egy egység akkor kerül egy erőműhöz, ha az ENTSO-E egységnév pontosan egy erőmű névtöredékét tartalmazza (például „PAKS”); a páros a panelen látszik, a nem párosítható egységek a fenti listában. A terhelési százalék az ENTSO-E egységenkénti beépített teljesítményéhez (A71) viszonyít, és csak akkor jelenik meg, ha az minden egységnél egyértelműen megvan.</p>" +
+      "<p><b>Kiesések.</b> Az ENTSO-E termelőegység-kiesési közlései (REMIT), a megjelenítés a névpárosítás szerint.</p>" +
+      "<p><b>Mit nem tudunk.</b> A szél- és a legtöbb naperőműhöz nincs hiteles, koordinátás nyílt forrásunk; kisebb (100 MW alatti) egységek termelése nem közölt az ENTSO-E blokkszintű adatában; a termelés nem valós idejű, az utolsó közölt óra látszik; az üzemállapotot nem következtetjük, csak az adatból olvassuk ki. A módszer részletei a <a href=\"modszertan.html\">Módszertanban</a> olvashatók.</p>";
+  }
+
+  // ------------------------------------------------------------------ indulás
+  function start() {
+    Promise.all([j("plants.json", { static: true }), j(demo ? "demo-engineer.json" : "engineer.json"), j("hu-geo.json", { static: true })]).then(function (r) {
+      var PL = r[0], E = r[1], G = r[2];
+      GF.loaded();
+      var miss = [];
+      if (!E) miss.push("egységszintű termelési és kiesési adatok (engineer.json)");
+      var st0 = GF.banners($("banners"), { demo: demo || !!(E && E.demo), generatedUtc: E && E.generated_utc, staleHours: 3, missing: miss, what: "az egységszintű adatok", demoText: "A kitalált minta csak az oldal működését mutatja; az egységek és értékek nem valósak." });
+      $("meta").innerHTML = GF.stateTag(st0) + (E && E.generated_utc ? "<span>Egységadat generálva: " + esc(GF.stamp(E.generated_utc)) + "</span>" : "");
+      if (!PL || !G) { $("map").innerHTML = '<p class="hint" style="padding:16px">Az erőművi nyilvántartás vagy a térképgeometria nem tölthető be, ezért a térkép nem jelenik meg.</p>'; return; }
+      S.plants = PL.plants; S.fuels = PL.fuels; S.srcMeta = PL.sources; S.E = E; S.visible = {};
+      S.now = demo && E && E.generated_utc ? +new Date(E.generated_utc) : Date.now();
+      S.pst = GFPlants.plantStates(S.plants, E, { now: S.now }); S.states = S.pst.states;
+      $("sub").textContent = "A térkép " + S.plants.length + " erőművet mutat (" + nf(S.plants.reduce(function (a, p) { return a + p.capacity_mw; }, 0), 0) + " MW beépített teljesítmény a nyílt adatbázisok szerint); tényleges termelést csak az ellenőrzött ENTSO-E egységadatból jelez.";
+      chips(); legend();
+      S.map = GFPlants.map($("map"), { geo: G, plants: S.plants, states: S.states, fuels: S.fuels, onSelect: function (id, user) {
+        panel(id);
+        try { var u = new URL(location.href); if (id) u.searchParams.set("p", id); else u.searchParams.delete("p"); history.replaceState(null, "", u); } catch (e) { /* nem kritikus */ }
+        if (id && user && window.matchMedia("(max-width:920px)").matches) $("panel").scrollIntoView({ block: "nearest", behavior: "smooth" });
+      } });
+      var wrap = $("map"), ctl = document.createElement("div"); ctl.className = "pmapctl";
+      [["+", "Nagyítás", function () { S.map.zoomIn(); }], ["−", "Kicsinyítés", function () { S.map.zoomOut(); }], ["⌂", "Alapnézet", function () { S.map.reset(); }]].forEach(function (b) {
+        var e = document.createElement("button"); e.type = "button"; e.textContent = b[0]; e.setAttribute("aria-label", b[1]); e.title = b[1]; e.addEventListener("click", b[2]); ctl.appendChild(e);
+      });
+      var bp = document.createElement("button"); bp.type = "button"; bp.className = "txt"; bp.innerHTML = "BP"; bp.setAttribute("aria-label", "Nagyítás Budapest térségére"); bp.title = "Budapest térsége";
+      bp.addEventListener("click", function () {
+        var c = GFPlants.project(47.4979, 19.0402), ids = S.plants.filter(function (p) { var q = GFPlants.project(p.lat, p.lon); return Math.hypot(q[0] - c[0], q[1] - c[1]) < 22; }).map(function (p) { return p.id; });
+        S.map.focusOn(ids, 55);
+      });
+      ctl.appendChild(bp); wrap.appendChild(ctl);
+      var hint = document.createElement("div"); hint.className = "pmaphint"; hint.textContent = "Ctrl + görgő: nagyítás"; wrap.appendChild(hint);
+      allSummary(); coverage(); unmatched(); allTable(); sources();
+      var q = new URLSearchParams(location.search).get("p"); if (q && plantById(q)) S.map.select(q, false);
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+  window.addEventListener("load", function () { if (!window.GFPlants) console.error("A térkép szkriptje nem töltődött be."); });
+})();
+</script>
+</body>
+</html>

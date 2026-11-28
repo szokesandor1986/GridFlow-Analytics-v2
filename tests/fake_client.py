@@ -214,6 +214,13 @@ class FakeClient:
         idx = pd.DatetimeIndex(["2025-01-01", "2026-01-01"], tz=BUD)
         return pd.DataFrame({k: [v * 0.97, v] for k, v in cols.items()}, index=idx)
 
+    def query_installed_generation_capacity_per_unit(self, zone, start, end, **kw):
+        rows = [(f"Atomerőmű, {k}. blokk", "Nuclear", 500.0) for k in (1, 2, 3, 4)] + [
+            ("Lignit blokk", "Fossil Brown coal/Lignite", 300.0), ("Gázblokk A", "Fossil Gas", 1600.0),
+            ("Gázblokk B", "Fossil Gas", 500.0), ("Gázblokk C", "Fossil Gas", 900.0)]
+        return pd.DataFrame({"Name": [r[0] for r in rows], "Production Type": [r[1] for r in rows],
+                             "Installed Capacity [MW]": [r[2] for r in rows]}, index=[f"FAKE-EIC-{i}" for i in range(len(rows))])
+
     def query_generation_per_plant(self, zone, start, end, **kw):
         idx = pd.date_range(start, min(end, self._pub_end("15min")), freq="15min", tz="UTC")
         g = self._gen(idx)

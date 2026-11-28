@@ -836,8 +836,9 @@ def paras(items):
 QUALITY_TXT = {"végleges": ("final", "Végleges"), "előzetes": ("prelim", "Előzetes"), "hiányzik": ("miss", "Hiányzik")}
 
 
-MENU = [("index.html", "Kezdőlap"), ("elemzesek.html", "Elemzések"), ("rendszerkep.html", "Rendszerkép"), ("historikus.html", "Historikus adatok"),
-        ("nemzetkozi.html", "Nemzetközi összehasonlítás"), ("modszertan.html", "Módszertan"), ("rolunk.html", "Rólunk")]
+MENU = [("index.html", "Főoldal"), ("elemzesek.html", "Elemzések"), ("rendszerkep.html", "Adatok: aktuális rendszerkép"), ("historikus.html", "Historikus adatok"),
+        ("eromuvek.html", "Erőművek és termelőegységek"), ("idojaras.html", "Időjárási adatok"), ("foldgaz.html", "Földgáz és tárolók"),
+        ("nemzetkozi.html", "Nemzetközi összehasonlítás"), ("modszertan.html", "Módszertan és adatforrások"), ("rolunk.html", "Rólunk")]
 
 
 def ns_nav(root):

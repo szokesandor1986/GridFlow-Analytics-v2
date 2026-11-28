@@ -4,7 +4,7 @@ Mit ellenőriz:
   - egyik oldalon sincs JavaScript-hiba vagy konzolhiba (asztali és mobil nézetben, világos és sötét módban),
   - nincs vízszintes túlcsordulás (a lap nem szélesebb a képernyőnél),
   - a fő tartalom megjelent (cím, kártyák, ábrák),
-  - a hétpontos főmenü és a Rendszerkép hatpontos almenüje megvan, a jelenlegi oldal jelölt, minden pont létező oldalra mutat,
+  - a hárompontos főmenü (Főoldal, Elemzések, Adatok), az Adatok hétmodulos sora és a rendszerkép négynézetes sora megvan, a jelenlegi oldal jelölt, minden pont létező oldalra mutat,
   - Rendszerkép: az A–G szakaszok mutatói a demo adatból újraszámolt értékkel egyeznek; hiányzó adatnál „nincs adat”, nem nulla,
   - Nemzetközi összehasonlítás: a táblázat értékei a demo adattárból újraszámolt értékkel egyeznek, a hiányzó zóna „nincs adat”,
   - Módszertan és Rólunk: a horgonyok megvannak, nincs betöltésjelző; JavaScript nélkül a tartalék menü látszik,
@@ -37,12 +37,15 @@ except ImportError:
     sys.exit(0)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PAGES = ["index", "elemzesek", "rendszerkep", "historikus", "nemzetkozi", "modszertan", "rolunk", "hatarok", "muszaki", "europa", "idojaras", "foldgaz"]
-SECTION_OF = {"index": "kezdolap", "elemzesek": "elemzesek", "rendszerkep": "rendszerkep", "hatarok": "rendszerkep", "muszaki": "rendszerkep",
-              "europa": "rendszerkep", "idojaras": "rendszerkep", "foldgaz": "rendszerkep", "historikus": "historikus",
-              "nemzetkozi": "nemzetkozi", "modszertan": "modszertan", "rolunk": "rolunk"}
-MENU = ["index.html", "elemzesek.html", "rendszerkep.html", "historikus.html", "nemzetkozi.html", "modszertan.html", "rolunk.html"]
-SUBMENU = ["rendszerkep.html", "hatarok.html", "muszaki.html", "europa.html", "idojaras.html", "foldgaz.html"]
+PAGES = ["index", "elemzesek", "rendszerkep", "historikus", "nemzetkozi", "modszertan", "rolunk", "hatarok", "muszaki", "europa", "idojaras", "foldgaz", "eromuvek"]
+SECTION_OF = {"index": "kezdolap", "elemzesek": "elemzesek", "rolunk": "rolunk"}
+for _n in ("rendszerkep", "hatarok", "muszaki", "europa", "idojaras", "foldgaz", "historikus", "eromuvek", "nemzetkozi", "modszertan"):
+    SECTION_OF[_n] = "adatok"
+MENU = ["index.html", "elemzesek.html", "rendszerkep.html"]                       # három főmenüpont: Főoldal, Elemzések, Adatok
+DATAMENU = ["rendszerkep.html", "historikus.html", "eromuvek.html", "idojaras.html", "foldgaz.html", "nemzetkozi.html", "modszertan.html"]
+SUBMENU = ["rendszerkep.html", "hatarok.html", "muszaki.html", "europa.html"]      # az aktuális rendszerkép nézetei
+NSMENU = ["Főoldal", "Elemzések", "Adatok: aktuális rendszerkép", "Historikus adatok", "Erőművek és termelőegységek", "Időjárási adatok",
+          "Földgáz és tárolók", "Nemzetközi összehasonlítás", "Módszertan és adatforrások", "Rólunk"]
 VIEW = [("asztali", {"width": 1280, "height": 900}), ("mobil", {"width": 390, "height": 800})]
 FAIL = []
 
@@ -133,16 +136,23 @@ def test_all_pages(browser, base):
                 if scheme == "light" and label == "asztali":
                     menu = pg.evaluate("[...document.querySelectorAll('header.site nav.mainnav a')].map(a=>a.getAttribute('href'))")
                     cur = pg.evaluate("[...document.querySelectorAll('header.site nav.mainnav a[aria-current]')].map(a=>a.getAttribute('href'))")
-                    sec_href = {"kezdolap": "index.html", "elemzesek": "elemzesek.html", "rendszerkep": "rendszerkep.html", "historikus": "historikus.html",
-                                "nemzetkozi": "nemzetkozi.html", "modszertan": "modszertan.html", "rolunk": "rolunk.html"}[SECTION_OF[name]]
-                    check(menu == MENU and all(os.path.exists(os.path.join(ROOT, h)) for h in menu), "%s: hétpontos főmenü, mind létező oldalra mutat" % name)
-                    check(cur == [sec_href], "%s: a főmenüben a jelenlegi rész jelölt (%s)" % (name, cur))
+                    sec_href = {"kezdolap": "index.html", "elemzesek": "elemzesek.html", "adatok": "rendszerkep.html", "rolunk": None}[SECTION_OF[name]]
+                    check(menu == MENU and all(os.path.exists(os.path.join(ROOT, h)) for h in menu), "%s: hárompontos főmenü (Főoldal, Elemzések, Adatok), mind létező oldalra mutat" % name)
+                    check(cur == ([sec_href] if sec_href else []), "%s: a főmenüben a jelenlegi rész jelölt (%s)" % (name, cur))
                     sub = pg.evaluate("[...document.querySelectorAll('nav.subnav a')].map(a=>a.getAttribute('href'))")
-                    subcur = pg.evaluate("[...document.querySelectorAll('nav.subnav a[aria-current=page]')].map(a=>a.getAttribute('href'))")
-                    if SECTION_OF[name] == "rendszerkep":
-                        check(sub == SUBMENU and subcur == [name + ".html"], "%s: a Rendszerkép almenüje hat nézet, a jelenlegi jelölt %s" % (name, subcur))
+                    subcur = pg.evaluate("[...document.querySelectorAll('nav.subnav a[aria-current]')].map(a=>a.getAttribute('href'))")
+                    sub2 = pg.evaluate("[...document.querySelectorAll('nav.subnav2 a')].map(a=>a.getAttribute('href'))")
+                    sub2cur = pg.evaluate("[...document.querySelectorAll('nav.subnav2 a[aria-current=page]')].map(a=>a.getAttribute('href'))")
+                    if SECTION_OF[name] == "adatok":
+                        own = name + ".html"
+                        want = "rendszerkep.html" if own in SUBMENU else own          # a rendszerkép-család nézetei az „Aktuális rendszerkép” modult jelölik
+                        check(sub == DATAMENU and subcur == [want], "%s: az Adatok modulsora hét modul, a jelenlegi jelölt %s" % (name, subcur))
+                        if own in SUBMENU:
+                            check(sub2 == SUBMENU and sub2cur == [own], "%s: a rendszerkép nézetsora négy nézet, a jelenlegi jelölt %s" % (name, sub2cur))
+                        else:
+                            check(not sub2, "%s: nézetsor csak a rendszerkép-családban van" % name)
                     else:
-                        check(not sub, "%s: almenü csak a Rendszerkép részen van" % name)
+                        check(not sub and not sub2, "%s: modulsor csak az Adatok részen van" % name)
                 if scheme == "light" and label == "mobil":
                     tg = pg.query_selector("header.site .menu-toggle")
                     check(tg is not None and tg.is_visible(), "%s: mobilon van menügomb" % name)
@@ -265,8 +275,8 @@ def test_keyboard(browser, base):
     for _ in range(11):
         pg.keyboard.press("Tab")
         seen.append(pg.evaluate("document.activeElement.textContent.trim().slice(0,28)"))
-    need = {"Kezdőlap", "Elemzések", "Rendszerkép", "Historikus adatok", "Nemzetközi összehasonlítás", "Módszertan", "Rólunk"}
-    check(need <= set(seen), "Billentyűzet: a hét főmenüpont Tab-bal bejárható %s" % seen)
+    need = {"Főoldal", "Elemzések", "Adatok"}
+    check(need <= set(seen), "Billentyűzet: a három főmenüpont Tab-bal bejárható %s" % seen)
     ow = pg.evaluate("(()=>{const a=document.querySelector('header.site nav.mainnav a'); a.focus(); return getComputedStyle(a).outlineStyle + ' ' + getComputedStyle(a).outlineWidth})()")
     check("solid" in ow and not ow.endswith(" 0px"), "Billentyűzet: látható fókuszkeret (%s)" % ow)
     check(not errs, "Billentyűzet: nincs JS-hiba %s" % errs[:2])
@@ -450,7 +460,7 @@ def test_publication_pages(browser, base):
             check(overflow(pg) <= 0, "%s: nincs vízszintes túlcsordulás" % tag)
             slot = pg.evaluate("[...document.querySelectorAll('.q-slot')].every(e=>e.querySelector('.q'))")
             check(slot, "%s: a minőségi címke kirajzolódott" % tag)
-            check(pg.evaluate("document.querySelector('header.site') !== null && document.querySelectorAll('header.site nav.mainnav a').length") == 7, "%s: a főmenü a gyökérre mutató relatív hivatkozásokkal megvan" % tag)
+            check(pg.evaluate("document.querySelector('header.site') !== null && document.querySelectorAll('header.site nav.mainnav a').length") == 3, "%s: a főmenü a gyökérre mutató relatív hivatkozásokkal megvan" % tag)
             check(not errs, "%s: nincs JS-hiba %s" % (tag, errs[:2]))
             pg.close()
 
@@ -728,7 +738,7 @@ def test_nemzetkozi(browser, base):
 
 
 def test_static_pages(browser, base):
-    for name, anchors in (("modszertan", ["alapelvek", "forrasok", "minoseg", "idokezeles", "kepletek", "publikaciok", "nemzetkozi", "korlatok", "frissites"]),
+    for name, anchors in (("modszertan", ["alapelvek", "forrasok", "minoseg", "idokezeles", "kepletek", "publikaciok", "nemzetkozi", "eromuvek", "korlatok", "frissites"]),
                           ("rolunk", ["celok", "kinalat", "fuggetlenseg", "adatvedelem", "kapcsolat", "hivatkozas"])):
         for label, vp in VIEW:
             errs = []
@@ -745,7 +755,7 @@ def test_static_pages(browser, base):
             if name == "modszertan":
                 check(pg.evaluate("document.querySelectorAll('#minoseg .q').length") == 5, "%s: az öt adatminőségi címke megvan" % tag)
                 dest = pg.evaluate("[...document.querySelectorAll('nav.hubjump a')].map(a=>a.getAttribute('href').slice(1))")
-                check(all(pg.query_selector("#" + d) is not None for d in dest) and len(dest) == 9, "%s: az ugrólinkek mind létező fejezetre mutatnak" % tag)
+                check(all(pg.query_selector("#" + d) is not None for d in dest) and len(dest) == 10, "%s: az ugrólinkek mind létező fejezetre mutatnak" % tag)
             pg.close()
     # a minőségi címkék hivatkozása a Módszertan #minoseg horgonyára mutat
     errs = []
@@ -765,7 +775,7 @@ def test_noscript(browser, base):
         pg.wait_for_timeout(300)
         links = pg.evaluate("[...document.querySelectorAll('nav.nsnav a')].map(a=>a.textContent)")
         vis = pg.evaluate("(()=>{const n=document.querySelector('nav.nsnav'); return !!n && n.getBoundingClientRect().height>0})()")
-        check(links == ["Kezdőlap", "Elemzések", "Rendszerkép", "Historikus adatok", "Nemzetközi összehasonlítás", "Módszertan", "Rólunk"] and vis,
+        check(links == NSMENU and vis,
               "JavaScript nélkül / %s: a tartalék főmenü látszik" % name)
         if name.startswith("demo-elemzesek/"):
             tbl = pg.evaluate("document.querySelectorAll('figure.fig table').length")
@@ -779,13 +789,199 @@ def test_noscript(browser, base):
     ctx.close()
 
 
+def _eromu_expect():
+    """A demo egységadatból, a böngészőtől függetlenül számolt várt értékek (Paks: utolsó közölt órák összege)."""
+    E = jl("demo-engineer.json")
+    gen = _dt.datetime.strptime(E["generated_utc"], "%Y-%m-%dT%H:%M:%SZ")
+    lim = gen + _dt.timedelta(hours=1)
+    ts = [_dt.datetime.strptime(t, "%Y-%m-%dT%H:%M:%SZ") for t in E["hourly_ts"]]
+    def last(u):
+        for i in range(len(u["mw"]) - 1, -1, -1):
+            if u["mw"][i] is not None and ts[i] <= lim:
+                return u["mw"][i]
+        return None
+    paks = [u for u in E["units"] if u["name"].startswith("PAKS")]
+    return {"paks_units": len(paks), "paks_mw": sum(last(u) for u in paks), "wind_nat": E["installed_mw"]["wind"]}
+
+
+def test_eromuvek(browser, base):
+    reg = jl("plants.json")
+    plants = reg["plants"]
+    exp = _eromu_expect()
+    paks = [p for p in plants if p["name"].startswith("Paksi Atom")][0]
+    IGNORE = ("Failed to load resource",)
+    for label, vp in VIEW:
+        errs = []
+        pg = browser.new_page(viewport=vp)
+        pg.on("pageerror", lambda e: errs.append("JS: " + str(e)[:160]))
+        pg.on("console", lambda m: errs.append("konzol: " + m.text[:160]) if m.type == "error" else None)
+        pg.goto("%s/eromuvek.html?demo=1" % base)
+        pg.wait_for_timeout(2500)
+        tag = "Erőművek / %s" % label
+        check(pg.evaluate("document.querySelectorAll('#map svg.pmap g.pm-pl').length") == len(plants), "%s: minden nyilvántartott erőműnek van jele a térképen (%d)" % (tag, len(plants)))
+        check(overflow(pg) <= 0, "%s: nincs vízszintes túlcsordulás (%s px)" % (tag, overflow(pg)))
+        chips = pg.evaluate("[...document.querySelectorAll('#fchips .chip')].map(b=>({t:b.textContent,d:b.disabled,p:b.getAttribute('aria-pressed')}))")
+        check(len(chips) == 7 and sum(1 for c in chips if c["d"]) == 1 and any(c["d"] and "nincs adat" in c["t"] for c in chips),
+              "%s: hét szűrőgomb, ebből egy (szél) kikapcsolt „nincs adat” jelzéssel" % tag)
+        check(all(c["p"] == "true" for c in chips if not c["d"]), "%s: alapból minden elérhető energiaforrás látszik" % tag)
+        # jelmagyarázat és a térkép összefoglalója
+        check(pg.evaluate("document.querySelectorAll('#legend span').length") == 4, "%s: a jelmagyarázat négy jelentést magyaráz" % tag)
+        check("Magyar erőművek" in pg.inner_text("#panel"), "%s: alapállapotban az összefoglaló panel látszik" % tag)
+        # állapotosztályok a demo egységadatból: 5 párosított erőmű, a többi nincs adat
+        st = pg.evaluate("[...document.querySelectorAll('#map g.pm-pl')].reduce((a,g)=>{const c=[...g.classList].find(x=>x.startsWith('s-'));a[c]=(a[c]||0)+1;return a},{})")
+        check(st.get("s-producing") == 4 and st.get("s-idle") == 1 and st.get("s-nodata") == len(plants) - 5 and "s-stale" not in st,
+              "%s: állapotok: 4 termel, 1 áll, a többi nincs adat %s" % (tag, st))
+        check(pg.evaluate("document.querySelectorAll('#map g.pm-pl.outage').length") == 2, "%s: két erőműnél bejelentett kiesés van jelölve" % tag)
+        # szűrő: az atomerőmű eltűnik, majd visszajön
+        nuc = pg.query_selector("#fchips .chip:has-text('Atomerőmű')")
+        nuc.click()
+        pg.wait_for_timeout(150)
+        hidden = pg.evaluate("getComputedStyle(document.querySelector('#map g.pm-pl[data-id=\"%s\"]')).display" % paks["id"])
+        check(hidden == "none" and nuc.get_attribute("aria-pressed") == "false", "%s: az energiaforrás-szűrő elrejti a jelet" % tag)
+        nuc.click()
+        pg.wait_for_timeout(150)
+        check(pg.evaluate("getComputedStyle(document.querySelector('#map g.pm-pl[data-id=\"%s\"]')).display" % paks["id"]) != "none", "%s: a szűrő visszakapcsolva újra mutatja" % tag)
+        # kijelölés valódi kattintással a hatszög szélén (a Paksi naperőmű jele a közepét fedi)
+        mk = pg.query_selector("#map g.pm-pl[data-id=\"%s\"]" % paks["id"])
+        mk.scroll_into_view_if_needed()
+        bb = mk.query_selector(".pm-body").bounding_box()
+        pg.mouse.click(bb["x"] + bb["width"] * 0.18, bb["y"] + bb["height"] / 2)
+        pg.wait_for_timeout(500)
+        check("Paksi Atomerőmű" in pg.inner_text("#panel h3") and "p=%s" % paks["id"] in pg.url, "%s: a jelre kattintva megnyílik a panel és a cím mélyhivatkozást kap" % tag)
+        kp = pg.evaluate("[...document.querySelectorAll('#panel .kpi')].reduce((a,k)=>{a[k.querySelector('.k').textContent]=k.querySelector('.n').textContent.replace(/\\s|\\u00a0/g,'');return a},{})")
+        check(kp.get("Beépített teljesítmény", "").startswith("1887"), "%s: a beépített teljesítmény 1887 MW (%s)" % (tag, kp.get("Beépített teljesítmény")))
+        check(re.sub(r"\D", "", kp.get("Tényleges termelés", "")) == str(int(round(exp["paks_mw"]))), "%s: a tényleges termelés a négy blokk utolsó óráinak összege (%d MW) (%s)" % (tag, round(exp["paks_mw"]), kp.get("Tényleges termelés")))
+        check(re.sub(r"\D", "", kp.get("Terhelés", "")) not in ("", "0"), "%s: a terhelés %% ki van számolva az egység-kapacitásból (%s)" % (tag, kp.get("Terhelés")))
+        check(pg.evaluate("document.querySelectorAll('#panel table.pt tbody tr').length") == exp["paks_units"], "%s: a panel táblázata a %d Paks-egységet sorolja fel" % (tag, exp["paks_units"]))
+        check(pg.evaluate("document.querySelectorAll('#pchart svg').length") >= 1, "%s: a termelési görbe kirajzolódik" % tag)
+        check("Üzemállapotot nem találunk ki" in pg.inner_text("#panel"), "%s: a panel forrásmegjegyzése kimondja, hogy az állapot nem kitalált" % tag)
+        check(overflow(pg) <= 0, "%s: kijelölés után sincs vízszintes túlcsordulás (%s px)" % (tag, overflow(pg)))
+        # nagyítás: gombok, Ctrl + görgő, BP, alapnézet
+        vb = lambda: pg.evaluate("document.querySelector('#map svg.pmap').getAttribute('viewBox').split(' ').map(Number)[2]")
+        w0 = vb()
+        pg.click("#map .pmapctl button[aria-label='Nagyítás']")
+        w1 = vb()
+        check(w1 < w0 * 0.75, "%s: a + gomb nagyít (%.0f → %.0f)" % (tag, w0, w1))
+        pg.click("#map .pmapctl button[aria-label='Alapnézet']")
+        check(abs(vb() - w0) < 0.5, "%s: az alapnézet gomb visszaállítja a nézetet" % tag)
+        pg.click("#map .pmapctl button[aria-label='Kicsinyítés']")
+        check(w0 < vb() <= w0 * 1.26, "%s: a − gomb kicsinyít, de legfeljebb az alapnézet 125 %%-áig (%.0f)" % (tag, vb()))
+        pg.click("#map .pmapctl button[aria-label='Alapnézet']")
+        pg.click("#map .pmapctl button[aria-label^='Nagyítás Budapest']")
+        wbp = vb()
+        check(wbp < w0 * 0.5, "%s: a BP gomb Budapest térségére nagyít (%.0f → %.0f)" % (tag, w0, wbp))
+        pg.click("#map .pmapctl button[aria-label='Alapnézet']")
+        if label == "asztali":
+            r = pg.query_selector("#map svg.pmap").bounding_box()
+            pg.mouse.move(r["x"] + r["width"] / 2, r["y"] + r["height"] / 2)
+            pg.keyboard.down("Control")
+            pg.mouse.wheel(0, -240)
+            pg.keyboard.up("Control")
+            pg.wait_for_timeout(150)
+            check(vb() < w0 * 0.9, "%s: a Ctrl + görgő nagyít (%.0f → %.0f)" % (tag, w0, vb()))
+            y0 = pg.evaluate("window.scrollY")
+            pg.mouse.wheel(0, 300)
+            pg.wait_for_timeout(250)
+            check(abs(vb() - w0 * 1.0) > 0 and pg.evaluate("window.scrollY") > y0, "%s: a sima görgetés az oldalt görgeti, a térkép nem fogja meg" % tag)
+        # szűrőgomb és a táblázat: „Térképen” gomb kijelöl és a térképre ugrik
+        # a térképet a Tab-bal is be lehet járni: a jelek fókuszálhatók, Enter kijelöl
+        did = [p for p in plants if p["name"].startswith("Dunamenti")][0]["id"]
+        pg.focus("#map g.pm-pl[data-id=\"%s\"]" % did)
+        pg.keyboard.press("Enter")
+        pg.wait_for_timeout(300)
+        check("Dunamenti" in pg.inner_text("#panel h3") and pg.evaluate("document.querySelector('#map g.pm-pl.on').getAttribute('data-id')") == did, "%s: billentyűzettel (Enter) is kijelölhető egy erőmű" % tag)
+        lab = pg.get_attribute("#map g.pm-pl[data-id=\"%s\"]" % did, "aria-label")
+        check("MW beépített teljesítmény" in lab and "termel" in lab.lower(), "%s: a jel képernyőolvasós felirata tartalmazza a teljesítményt és az állapotot (%s)" % (tag, lab[:80]))
+        # lefedettség és táblázat
+        cov = pg.inner_text("#cov")
+        wind_n = exp["wind_nat"]
+        check(re.search(r"0\s*/\s*%d\s*MW" % wind_n, cov) is not None, "%s: a szél a lefedettségi kártyán „0 / %d MW” (nincs hiteles forrás), nem eltitkolt" % (tag, wind_n))
+        check(pg.evaluate("document.querySelectorAll('#cov .bar').length") == 7, "%s: hét energiaforrás lefedettségi sávja" % tag)
+        check(pg.evaluate("document.querySelectorAll('#allTable tbody tr').length") == len(plants), "%s: az erőművek táblázata minden erőművet tartalmaz" % tag)
+        check("Minden egység párosítva" in pg.inner_text("#unTable"), "%s: a demo egységei mind párosítva vannak" % tag)
+        pg.click("#allTable button[data-show=\"%s\"]" % paks["id"])
+        pg.wait_for_timeout(400)
+        check("Paksi Atomerőmű" in pg.inner_text("#panel h3"), "%s: a táblázat „Térképen” gombja kijelöli az erőművet" % tag)
+        check(not [e for e in errs if not any(i in e for i in IGNORE)], "%s: nincs JS-hiba %s" % (tag, errs[:2]))
+        pg.close()
+
+    # mélyhivatkozás és ismeretlen azonosító
+    errs = []
+    pg = browser.new_page(viewport={"width": 1280, "height": 900})
+    pg.on("pageerror", lambda e: errs.append(str(e)[:160]))
+    pg.goto("%s/eromuvek.html?demo=1&p=%s" % (base, paks["id"]))
+    pg.wait_for_timeout(2200)
+    check("Paksi Atomerőmű" in pg.inner_text("#panel h3") and pg.query_selector("#map g.pm-pl.on") is not None, "Erőművek: a ?p= mélyhivatkozás kijelöli az erőművet betöltéskor")
+    pg.close()
+    pg = browser.new_page(viewport={"width": 1280, "height": 900})
+    pg.on("pageerror", lambda e: errs.append(str(e)[:160]))
+    pg.goto("%s/eromuvek.html?demo=1&p=nincs-ilyen" % base)
+    pg.wait_for_timeout(2200)
+    check("Magyar erőművek" in pg.inner_text("#panel") and pg.query_selector("#map g.pm-pl.on") is None and not errs, "Erőművek: ismeretlen ?p= azonosítóra az összefoglaló látszik, hiba nélkül %s" % errs[:1])
+    pg.close()
+
+    # éles mód engineer.json nélkül: nincs egységadat → minden jel „csak beépített teljesítmény”, a hiány nem nulla
+    errs = []
+    pg = browser.new_page(viewport={"width": 1280, "height": 900})
+    pg.on("pageerror", lambda e: errs.append(str(e)[:160]))
+    pg.on("console", lambda m: errs.append(m.text[:160]) if m.type == "error" and "Failed to load resource" not in m.text else None)
+    pg.route("**/engineer.json*", lambda r: r.fulfill(status=404, body="nincs"))
+    pg.goto("%s/eromuvek.html" % base)
+    pg.wait_for_timeout(2500)
+    st = pg.evaluate("[...document.querySelectorAll('#map g.pm-pl')].every(g=>g.classList.contains('s-nodata'))")
+    txt = pg.inner_text("main")
+    check(st and pg.evaluate("document.querySelectorAll('#map g.pm-pl').length") == len(plants), "Erőművek / engineer.json nélkül: minden jel „nincs egységadat” állapotú, a térkép megvan")
+    check("nincs adat" in txt and "termel az utolsó" in txt.lower() and not re.search(r"\b(NaN|undefined|null)\b", txt), "Erőművek / engineer.json nélkül: a hiány „nincs adat”-ként látszik, nincs NaN/undefined")
+    check(not errs, "Erőművek / engineer.json nélkül: nincs JS-hiba %s" % errs[:2])
+    pg.close()
+
+    # elavult egységadat: a demo egységadat „éles” módban (valós idő szerint ~napokkal régebbi) → nem termel, hanem „nem friss”
+    errs = []
+    pg = browser.new_page(viewport={"width": 1280, "height": 900})
+    pg.on("pageerror", lambda e: errs.append(str(e)[:160]))
+    body = open(os.path.join(ROOT, "demo-engineer.json"), encoding="utf-8").read()
+    pg.route("**/engineer.json*", lambda r: r.fulfill(status=200, content_type="application/json", body=body))
+    pg.goto("%s/eromuvek.html" % base)
+    pg.wait_for_timeout(2500)
+    st = pg.evaluate("[...document.querySelectorAll('#map g.pm-pl')].reduce((a,g)=>{const c=[...g.classList].find(x=>x.startsWith('s-'));a[c]=(a[c]||0)+1;return a},{})")
+    check(st.get("s-producing", 0) == 0 and st.get("s-stale", 0) == 5, "Erőművek / régi egységadat: a párosított erőművek „nem friss” állapotúak, egyik sem „termel” %s" % st)
+    check(not errs, "Erőművek / régi egységadat: nincs JS-hiba %s" % errs[:2])
+    pg.close()
+
+    # ismeretlen ENTSO-E egység: a nem párosított listában jelenik meg, a térkép nem találgat
+    errs = []
+    pg = browser.new_page(viewport={"width": 1280, "height": 900})
+    pg.on("pageerror", lambda e: errs.append(str(e)[:160]))
+    E = jl("demo-engineer.json")
+    E["units"].append({"name": "TELJESEN ISMERETLEN BLOKK", "type": "Fossil Gas", "group": "gas", "mw": [123.0] * len(E["hourly_ts"])})
+    pg.route("**/demo-engineer.json*", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(E)))
+    pg.goto("%s/eromuvek.html?demo=1" % base)
+    pg.wait_for_timeout(2500)
+    ut = pg.inner_text("#unTable")
+    check("TELJESEN ISMERETLEN BLOKK" in ut and "nincs hozzá erőmű" in ut, "Erőművek / ismeretlen egység: a nem párosított egységek táblázatában látszik")
+    st = pg.evaluate("[...document.querySelectorAll('#map g.pm-pl')].reduce((a,g)=>{const c=[...g.classList].find(x=>x.startsWith('s-'));a[c]=(a[c]||0)+1;return a},{})")
+    check(st.get("s-producing") == 4, "Erőművek / ismeretlen egység: az ismeretlen egység nem módosít egyetlen erőmű állapotát sem %s" % st)
+    check(not errs, "Erőművek / ismeretlen egység: nincs JS-hiba %s" % errs[:2])
+    pg.close()
+
+    # a nyilvántartás hiánya: érthető üzenet, hiba nélkül
+    errs = []
+    pg = browser.new_page(viewport={"width": 1280, "height": 900})
+    pg.on("pageerror", lambda e: errs.append(str(e)[:160]))
+    pg.route("**/plants.json*", lambda r: r.fulfill(status=404, body="nincs"))
+    pg.goto("%s/eromuvek.html?demo=1" % base)
+    pg.wait_for_timeout(2200)
+    check("nem tölthető be" in pg.inner_text("#map") and pg.query_selector("#map svg.pmap") is None and not errs, "Erőművek / plants.json nélkül: érthető üzenet jelenik meg, nincs JS-hiba %s" % errs[:1])
+    pg.close()
+
+
 def main():
     with serve() as base, sync_playwright() as pw:
         browser = launch(pw)
         try:
             for fn in (test_all_pages, test_index_page, test_elemzesek_page, test_publication_pages, test_rendszerkep, test_nemzetkozi,
                        test_static_pages, test_noscript, test_europa_slider, test_muszaki_country_bar, test_idojaras, test_missing_data,
-                       test_theme, test_keyboard, test_table_views, test_foldgaz_map, test_data_states):
+                       test_theme, test_keyboard, test_table_views, test_foldgaz_map, test_data_states, test_eromuvek):
                 print(fn.__name__)
                 fn(browser, base)
             print("test_subpath")

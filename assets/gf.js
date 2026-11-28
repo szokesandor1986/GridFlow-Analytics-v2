@@ -26,18 +26,24 @@
 
   // ---------------------------------------------------------------- oldalváz: fejléc, főmenü, almenü, lábléc
   // A <body data-section="..." data-page="..." data-root="../"> attribútumaiból épül; az útvonalak relatívak (alkönyvtárban is működnek).
+  // Három főmenüpont; az Adatok alatt a modulok egy második sorban (nav.subnav) érhetők el, a Rendszerkép nézeteinek külön sora van (subnav2).
   var MENU = [
-    { id: "kezdolap", href: "index.html", t: "Kezdőlap" },
+    { id: "kezdolap", href: "index.html", t: "Főoldal" },
     { id: "elemzesek", href: "elemzesek.html", t: "Elemzések" },
-    { id: "rendszerkep", href: "rendszerkep.html", t: "Rendszerkép" },
-    { id: "historikus", href: "historikus.html", t: "Historikus adatok" },
-    { id: "nemzetkozi", href: "nemzetkozi.html", t: "Nemzetközi összehasonlítás" },
-    { id: "modszertan", href: "modszertan.html", t: "Módszertan" },
-    { id: "rolunk", href: "rolunk.html", t: "Rólunk" }
+    { id: "adatok", href: "rendszerkep.html", t: "Adatok" }
+  ];
+  var DATA = [
+    { href: "rendszerkep.html", t: "Aktuális rendszerkép", also: ["hatarok.html", "muszaki.html", "europa.html"] },
+    { href: "historikus.html", t: "Historikus adatok" },
+    { href: "eromuvek.html", t: "Erőművek és termelőegységek" },
+    { href: "idojaras.html", t: "Időjárási adatok" },
+    { href: "foldgaz.html", t: "Földgáz és tárolók" },
+    { href: "nemzetkozi.html", t: "Nemzetközi összehasonlítás" },
+    { href: "modszertan.html", t: "Módszertan és adatforrások" }
   ];
   var SUB = [
     { href: "rendszerkep.html", t: "Áttekintés" }, { href: "hatarok.html", t: "Határok és árak" }, { href: "muszaki.html", t: "Rendszerállapot" },
-    { href: "europa.html", t: "Európai piac" }, { href: "idojaras.html", t: "Időjárás" }, { href: "foldgaz.html", t: "Földgáz" }
+    { href: "europa.html", t: "Európai piac" }
   ];
   GF.SLOGAN = "Safety first. Power always.";
   GF.menu = MENU;
@@ -59,15 +65,25 @@
     tg.addEventListener("click", function () { var o = tg.getAttribute("aria-expanded") === "true"; tg.setAttribute("aria-expanded", String(!o)); menu.classList.toggle("open", !o); });
     menu.addEventListener("keydown", function (e) { if (e.key === "Escape") { tg.setAttribute("aria-expanded", "false"); menu.classList.remove("open"); tg.focus(); } });
     themeButton(h.querySelector(".gftools"));
-    if (sec === "rendszerkep") {
-      var sub = document.createElement("nav"); sub.className = "tabs subnav"; sub.setAttribute("aria-label", "Rendszerkép nézetei");
-      sub.innerHTML = SUB.map(function (m) { return '<a href="' + root + m.href + '"' + (m.href === page ? ' aria-current="page"' : "") + ">" + GF.esc(m.t) + "</a>"; }).join("");
-      main.insertBefore(sub, main.firstChild);
+    if (sec === "adatok") {
+      var ds = document.createElement("nav"); ds.className = "tabs subnav"; ds.setAttribute("aria-label", "Adatok");
+      ds.innerHTML = DATA.map(function (m) {
+        var exact = m.href === page, inside = !exact && m.also && m.also.indexOf(page) >= 0;
+        return '<a href="' + root + m.href + '"' + (exact ? ' aria-current="page"' : inside ? ' aria-current="true"' : "") + ">" + GF.esc(m.t) + "</a>";
+      }).join("");
+      main.insertBefore(ds, main.firstChild);
+      var cur = ds.querySelector("[aria-current]"); if (cur && ds.scrollWidth > ds.clientWidth) ds.scrollLeft = Math.max(0, cur.offsetLeft - 16);
+      if (SUB.some(function (m) { return m.href === page; })) {
+        var sub = document.createElement("nav"); sub.className = "tabs subnav2"; sub.setAttribute("aria-label", "Az aktuális rendszerkép nézetei");
+        sub.innerHTML = SUB.map(function (m) { return '<a href="' + root + m.href + '"' + (m.href === page ? ' aria-current="page"' : "") + ">" + GF.esc(m.t) + "</a>"; }).join("");
+        main.insertBefore(sub, ds.nextSibling);
+      }
     }
     if (!body.querySelector("footer.site")) {
       var f = document.createElement("footer"); f.className = "site";
       f.innerHTML = '<div class="gfin"><p><b>GridFlow Analytics</b> – független, nem hivatalos, nem kereskedelmi elemzések a magyar villamosenergia-rendszerről. <i>' + GF.SLOGAN + "</i></p>" +
-        '<p>Adatforrások: ENTSO-E Transparency Platform, Energy-Charts (Fraunhofer ISE, CC BY 4.0), Open-Meteo (CC BY 4.0), GIE AGSI+ és ALSI, ENTSOG, HUPX. Az adatok tájékoztató jellegűek, nem valós idejűek; a minőségi címkék és a számítások leírása a <a href="' + root + 'modszertan.html">Módszertanban</a> található.</p></div>';
+        '<p><a href="' + root + 'rolunk.html">Rólunk</a> · <a href="' + root + 'modszertan.html">Módszertan és adatforrások</a></p>' +
+        '<p>Adatforrások: ENTSO-E Transparency Platform, Energy-Charts (Fraunhofer ISE, CC BY 4.0), Open-Meteo (CC BY 4.0), GIE AGSI+ és ALSI, ENTSOG, HUPX, Global Power Plant Database (WRI, CC BY 4.0), JRC Hydropower database (CC BY 4.0). Az adatok tájékoztató jellegűek, nem valós idejűek; a minőségi címkék és a számítások leírása a <a href="' + root + 'modszertan.html">Módszertanban</a> található.</p></div>';
       body.appendChild(f);
     }
   }
@@ -82,7 +98,7 @@
     shell();
     if (!document.body.hasAttribute("data-static") && (pending > 0 || !seen)) {      // data-static: az oldal nem tölt adatot (Módszertan, Rólunk), nincs betöltésjelző
       loadingEl = document.createElement("div"); loadingEl.className = "loading"; loadingEl.setAttribute("role", "status"); loadingEl.textContent = "Adatok betöltése…";
-      var nav = main.querySelector("nav.subnav"); if (nav && nav.nextSibling) main.insertBefore(loadingEl, nav.nextSibling); else main.insertBefore(loadingEl, main.firstChild);
+      var nav = main.querySelector("nav.subnav2") || main.querySelector("nav.subnav"); if (nav && nav.nextSibling) main.insertBefore(loadingEl, nav.nextSibling); else main.insertBefore(loadingEl, main.firstChild);
       setTimeout(function () { if (pending === 0) GF.loaded(); }, 6000);   // biztonsági lezárás, ha semmi sem kért adatot
     }
   }

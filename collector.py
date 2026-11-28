@@ -615,6 +615,36 @@ def updown(df):
     return up, dn
 
 
+def parse_unit_capacity(df):
+    """ENTSO-E 14.1.B (beépített teljesítmény termelőegységenként) -> [{name, type, group, mw, eic}].
+    Az oszlopneveket tartalom alapján ismeri fel (a könyvtár verziói eltérő fejléceket adnak); ismeretlen szerkezetnél üres lista."""
+    if df is None or not hasattr(df, "columns") or len(df) == 0:
+        return []
+    cols = {str(c).lower(): c for c in df.columns}
+    pick = lambda *keys: next((cols[k] for k in cols if any(x in k for x in keys)), None)  # noqa: E731
+    cn, ct, cc = pick("name"), pick("type"), pick("capacity", "installed", "mw")
+    if cn is None or cc is None:
+        return []
+    out, seen = [], set()
+    for idx, r in df.iterrows():
+        name = str(r[cn]).strip()
+        try:
+            mw = float(r[cc])
+        except (TypeError, ValueError):
+            continue
+        if not name or name.lower() == "nan" or pd.isna(mw) or mw <= 0:
+            continue
+        typ = str(r[ct]).strip() if ct is not None else ""
+        key = (name, typ)
+        if key in seen:
+            continue
+        seen.add(key)
+        eic = idx if isinstance(idx, str) else ""
+        out.append({"name": name, "type": typ, "group": TYPE_TO_GROUP.get(typ, "other"), "mw": round(mw, 1), "eic": eic})
+    out.sort(key=lambda u: -u["mw"])
+    return out[:120]
+
+
 def collect_engineer(client, now=None, hours=48, main=None, budget_s=240, workers=8, plant_hours=72):
     now = now or pd.Timestamp.now(tz="UTC")
     start = (now - pd.Timedelta(hours=hours)).floor("h")
@@ -655,6 +685,7 @@ def collect_engineer(client, now=None, hours=48, main=None, budget_s=240, worker
         B.add(f"NTC HU→{code}", lambda code=code: client.query_net_transfer_capacity_dayahead(HOME, code, start=start, end=end))
     plant_start = max(start, (now - pd.Timedelta(hours=plant_hours)).floor("h"))   # a leglassabb lekérdezés: rövidebb ablak
     B.add("blokkszintű termelés", lambda: client.query_generation_per_plant(HOME, start=plant_start, end=end))
+    B.add("egységek beépített teljesítménye", lambda: client.query_installed_generation_capacity_per_unit(HOME, start=cap_start, end=now))
     B.add("termelő-kiesések", lambda: client.query_unavailability_of_generation_units(HOME, start=ow_start, end=ow_end))
     for code in NEIGHBOURS:
         for a_, b_ in ((code, HOME), (HOME, code)):
@@ -730,6 +761,9 @@ def collect_engineer(client, now=None, hours=48, main=None, budget_s=240, worker
         units.sort(key=lambda u: -max(v for v in u["mw"] if v is not None))
         units = units[:40]
 
+    # ---- egységek beépített teljesítménye (az erőművi térkép terhelési százalékához és egységlistájához)
+    unit_capacity = parse_unit_capacity(A("egységek beépített teljesítménye"))
+
     # ---- kiesések
     ow_start, ow_end = now.floor("D") - pd.Timedelta(days=7), now.floor("D") + pd.Timedelta(days=45)
     outages_gen = outage_rows(A("termelő-kiesések", lambda: client.query_unavailability_of_generation_units(HOME, start=ow_start, end=ow_end)), now, "gen")
@@ -785,6 +819,7 @@ def collect_engineer(client, now=None, hours=48, main=None, budget_s=240, worker
         "generation": bool(generation),
         "solar_wind_forecast": have(sw),
         "units": bool(units),
+        "unit_capacity": bool(unit_capacity),
         "outages_gen": bool(outages_gen),
         "outages_tx": bool(outages_tx),
         "imbalance": have(imbalance),
@@ -803,6 +838,7 @@ def collect_engineer(client, now=None, hours=48, main=None, budget_s=240, worker
         "installed_mw": installed,
         "co2": {"factors": CO2_FACTORS, "source": CO2_SOURCE},
         "units": units,
+        "unit_capacity": unit_capacity,
         "outages_gen": outages_gen,
         "outages_tx": outages_tx,
         "imbalance": imbalance,

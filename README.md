@@ -6,15 +6,27 @@ Ez a repó (javasolt név: `GridFlow-Analytics-v2`) a korábbi két oldalcsalád
 
 ## Oldaltérkép
 
-| Főmenü | Fájl | Mit ad |
+Három főmenüpont van: **Főoldal – Elemzések – Adatok**. Az Adatok alatt egy második sorban a hét adatmodul érhető el; az Aktuális rendszerkép négy nézete külön, harmadik sorban.
+
+| Hely a menüben | Fájl | Mit ad |
 |---|---|---|
-| Kezdőlap | `index.html` | kiemelt elemzés, legutóbbi publikációk, a rendszer jelenlegi képe, 36 hónapos trendek, kiemelt témák |
+| Főoldal | `index.html` | kiemelt elemzés, legutóbbi publikációk, a rendszer jelenlegi képe, 36 hónapos trendek, kiemelt témák |
 | Elemzések | `elemzesek.html` | tíz téma, rögzített tízrészes szerkezet, szűrés témára |
-| Rendszerkép | `rendszerkep.html` | A–G szakasz élő mutatókkal; részletes nézetei: `hatarok.html`, `muszaki.html`, `europa.html`, `idojaras.html`, `foldgaz.html` |
-| Historikus adatok | `historikus.html` | több év, tetszőleges időszak és felbontás, évek összevetése, CSV (tizedesvessző és tizedespont) |
-| Nemzetközi összehasonlítás | `nemzetkozi.html` | 10 ajánlati zóna, csak azonos definíciójú mutatók: táblázat, rangsor, mix, havi hőtérkép |
-| Módszertan | `modszertan.html` | források, adatminőségi címkék (`#minoseg`), képletek, összevonási szabályok, korlátok |
-| Rólunk | `rolunk.html` | célok, függetlenség, adatvédelem, kapcsolat, hivatkozás |
+| Adatok → Aktuális rendszerkép | `rendszerkep.html` | A–G szakasz élő mutatókkal; nézetei: `hatarok.html` (Határok és árak), `muszaki.html` (Rendszerállapot), `europa.html` (Európai piac) |
+| Adatok → Historikus adatok | `historikus.html` | több év, tetszőleges időszak és felbontás, évek összevetése, CSV (tizedesvessző és tizedespont) |
+| Adatok → **Erőművek és termelőegységek** | `eromuvek.html` | **magyar erőművi térkép**: jel = erőmű (alak és szín az energiaforrás, méret a beépített teljesítmény), oldalpanel, szűrők, nagyítás; tényleges termelés csak ellenőrzött ENTSO-E egységadatból |
+| Adatok → Időjárási adatok | `idojaras.html` | óránkénti időjárás és hatása a termelésre |
+| Adatok → Földgáz és tárolók | `foldgaz.html` | tárolók töltöttsége, LNG, magyar határpontok |
+| Adatok → Nemzetközi összehasonlítás | `nemzetkozi.html` | 10 ajánlati zóna, csak azonos definíciójú mutatók: táblázat, rangsor, mix, havi hőtérkép |
+| Adatok → Módszertan és adatforrások | `modszertan.html` | források, adatminőségi címkék (`#minoseg`), képletek, összevonási szabályok, az erőművi térkép szabályai (`#eromuvek`), korlátok |
+| (lábléc) Rólunk | `rolunk.html` | célok, függetlenség, adatvédelem, kapcsolat, hivatkozás |
+
+### Erőművi térkép (`eromuvek.html`)
+
+- **Nyilvántartás:** `plants.json`, a `build_plants.py` építi két nyílt adatbázisból (WRI Global Power Plant Database és JRC Hydropower database, mindkettő CC BY 4.0; a forrásfájl sha256 ellenőrző összege a fájlban van). 22 erőmű, 6338 MW. Szélerőmű és a legtöbb naperőmű nincs benne, mert nincs hozzájuk hiteles, koordinátás nyílt forrás; a hiányt az oldal kimondja (lefedettségi kártya), nem pótoljuk kitalált jellel. A beépített teljesítmény régebbi adat, ezért „tájékoztató”.
+- **Tényleges termelés:** az ENTSO-E blokkszintű termeléséből (A73, 100 MW feletti egységek, óránkénti átlag), névegyeztetéssel (a szabály a Módszertanban). Az ENTSO-E összesített termeléséből blokkszintű adat nem állapítható meg, ezért nem is állítjuk. A gyűjtő (`collector.py`) az egységenkénti beépített teljesítményt (A71) is lekéri a terhelés %-hoz.
+- **Állapotok:** termel · 0 MW az utolsó közölt órában · nem friss (6 óránál régebbi) · csak beépített teljesítmény ismert („nincs adat”, nem „áll”). Üzemállapotot nem találunk ki.
+- **Térkép:** SVG, külső térképszolgáltatás és kulcs nélkül; húzás, + / − / alapnézet / BP gomb, Ctrl + görgő, csípés, billentyűzettel bejárható jelek, `?p=<azonosító>` mélyhivatkozás. A jelek alakja (hatszög, kör, négyzet, rombusz, háromszög…) a színnel együtt kódol, ezért színvakon is olvasható.
 
 A Rendszerkép szakaszai: A termelés és fogyasztás, B termelési mix és megújulók, C határkeresztező áramlások, D árak, E stabilitás és frekvencia, F erőművi rendelkezésre állás, G terhelési folyamatok és esti rámpa. Minden szakasz a legutóbbi közölt értékeket mutatja minőségi címkével; a hiányzó adat „nincs adat”, nem nulla.
 
@@ -49,9 +61,11 @@ Amíg a `hist/` nincs meg, a Historikus adatok és a Nemzetközi összehasonlít
 python -I tests/test_site.py        # oldalszerkezet, hivatkozások, menü, noscript tartalék, szóhasználat (böngésző nélkül)
 python -I tests/test_publish.py     # az elemzés-generátor: szerkezet, számok újraszámolása, hiányzó adat, determinizmus
 node tests/test_gfhist.js           # a historikus adatréteg (hist és havi tartalék, DST-napok, súlyozás)
+node tests/test_gfplants.js         # az erőművi modul logikája: vetítés, névpárosítás, állapotok, 24 órás energia, lefedettség
+python -I tests/test_plants.py      # a plants.json integritása és a build_plants.py szűrése (szintetikus CSV-kkel)
 python -I tests/test_hist.py        # visszatöltés, összesítés, tár (kitalált klienssel, hálózat nélkül; lassabb)
 python -I tests/test_historikus.py  # a Historikus adatok oldal böngészős próbája (Playwright)
-python -I tests/test_pages.py       # mind a 12 oldal böngészős próbája (Playwright): mobil, sötét, alútvonal, JavaScript nélkül, adatállapotok
+python -I tests/test_pages.py       # mind a 13 oldal böngészős próbája (Playwright): mobil, sötét, alútvonal, JavaScript nélkül, adatállapotok, erőművi térkép
 ```
 
 A gyűjtők tesztjei (`test_collector.py`, `test_freq.py`, `test_hupx.py`, `test_jao.py`, `test_weather.py`, `test_gas.py`, `test_history.py`) változatlanok. A böngészős tesztekhez: `pip install playwright` és `playwright install chromium` (vagy `CHROME_PATH=/usr/bin/google-chrome`); Playwright nélkül kihagyják magukat. Az `update.yml` a böngésző nélküli teszteket futtatja a közzététel előtt.
@@ -61,6 +75,7 @@ A gyűjtők tesztjei (`test_collector.py`, `test_freq.py`, `test_hupx.py`, `test
 - **A valódi adat még nem ellenőrzött.** A sandbox nem éri el az ENTSO-E-t, a HUPX-ot, a JAO-t és az Open-Meteót, ezért a visszatöltés és az élő gyűjtés kitalált klienssel és demo adattal tesztelt. Az első éles futás mutatja meg az esetleges oszlopnév- vagy felbontási eltéréseket; a visszatöltés után érdemes átnézni a Historikus adatok oldal állapotsorát és a Nemzetközi összehasonlítás hiányzó cellákat.
 - **Nem minden kategória van a történeti tárban:** a kiesések története, a szabályozási energia (aFRR, mFRR) története, a frekvencia története és a nem magyar zónák beépített kapacitása hiányzik; ezért az elemzések 7. és 8. témája „részleges”. Ezekből az élő ablak a Rendszerállapot oldalon látszik.
 - **Nem minden zóna ugyanazt közli.** Ukrajna ENTSO-E-közlése 2022 óta hiányos; Szerbia day-ahead ára gyakran hiányzik. A hiány üres marad, nem nulla.
+- **Erőművi térkép:** a nyilvántartás 22 erőművet tartalmaz (szél és a legtöbb nap- és kiserőmű nélkül); a blokkszintű termelés csak a 100 MW feletti egységekre van, az ENTSO-E egységneveinek valódi alakja az első éles futáson derül ki (a párosítás tévedés helyett „nem párosított” listára teszi, ami nem illeszkedik egyértelműen).
 - **A JAO CNEC fül** még nincs meg: a `jao.py` felderítő lépése a mezőneveket a workflow logjába írja (`JAO <adatkészlet>: mezők = …`); ezek ismeretében készül el.
 - **Licenc:** a saját szövegekre és számításokra nincs licenc megadva (a Rólunk oldal ezt kimondja); a külső adatok forrásainak feltételei érvényesek. Az Open-Meteo ingyenes API-ja csak nem kereskedelmi célra használható.
 - A régi (Határok, Rendszerállapot, Európai piac, Időjárás, Földgáz) oldalak működése változatlan; az alábbi szakaszok a korábbi dokumentációjuk.

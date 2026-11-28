@@ -198,3 +198,54 @@ nav.hubjump a:hover{color:var(--ink);border-color:var(--ink2)}
 nav.nsnav{display:flex;flex-wrap:wrap;gap:6px 16px;padding:12px 16px;background:var(--navy-deep);border-bottom:3px solid var(--turq)}
 nav.nsnav a{color:var(--hdr-ink);font-weight:650;text-decoration:none;padding:4px 2px}
 nav.nsnav a:hover{text-decoration:underline}
+
+/* ---- három főmenü: az Adatok alatti modulsor (subnav) és a rendszerkép-nézetek sora (subnav2) */
+nav.tabs.subnav a{font-weight:600}
+nav.tabs.subnav a[aria-current="true"]{color:var(--ink);border-color:var(--ink2)}
+nav.tabs.subnav2{margin:-6px 0 14px;padding-left:2px}
+nav.tabs.subnav2 a{padding:4px 11px;font-size:13px;border-style:dashed}
+nav.tabs.subnav2 a[aria-current="page"]{border-style:solid}
+@media (max-width:700px){
+  nav.tabs.subnav,nav.tabs.subnav2{flex-wrap:nowrap;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:6px;scrollbar-width:thin}
+  nav.tabs.subnav a,nav.tabs.subnav2 a{flex:none;white-space:nowrap;scroll-snap-align:start}
+}
+header.site nav.mainnav a{font-weight:600}
+@media (min-width:1101px){header.site nav.mainnav a{padding:8px 16px;font-size:15.5px}}
+
+/* ---- energiaforrás-színek (azonosító színek): színvakság-ellenőrzött sorrend (atom, gáz, víz, szén, szél, nap, egyéb);
+   a színt mindig jelalak és szöveg is kíséri, a térkép jelei ezért nem csak színnel különböznek. */
+:root{--f-nuclear:#6250d6;--f-gas:#eb6834;--f-hydro:#2a78d6;--f-coal:#9c5a1c;--f-wind:#1baf7a;--f-solar:#d99a00;--f-other:#d0507f}
+:root[data-theme="dark"]{--f-nuclear:#9085e9;--f-gas:#d95926;--f-hydro:#3987e5;--f-coal:#a8702f;--f-wind:#199e70;--f-solar:#c98500;--f-other:#d55181}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--f-nuclear:#9085e9;--f-gas:#d95926;--f-hydro:#3987e5;--f-coal:#a8702f;--f-wind:#199e70;--f-solar:#c98500;--f-other:#d55181}}
+
+/* ---- interaktív SVG-térkép (erőművek; később a földgáztárolók is) */
+.pmapwrap{position:relative;border:1px solid var(--grid);border-radius:14px;overflow:hidden;background:linear-gradient(180deg,color-mix(in srgb,var(--turq) 7%,var(--page)),color-mix(in srgb,var(--navy) 6%,var(--page)))}
+svg.pmap{display:block;width:100%;cursor:grab;user-select:none;-webkit-user-select:none}
+svg.pmap.grab{cursor:grabbing}
+.pm-ctx{fill:var(--neutral);opacity:.55;stroke:none}
+.pm-zone{fill:var(--neutral);stroke:var(--surface);stroke-width:1}
+.pm-hu{fill:var(--surface);stroke:var(--ink);stroke-width:1.7;stroke-linejoin:round;filter:drop-shadow(0 2px 6px rgba(0,0,0,.18))}
+.pm-zname{fill:var(--muted);font-weight:700;letter-spacing:.16em}
+.pm-city{fill:var(--ink2)}
+.pm-cname{fill:var(--ink2);paint-order:stroke;stroke:var(--surface);stroke-width:.3em;stroke-linejoin:round}
+.pm-pl{cursor:pointer;outline:none}
+.pm-body{fill:color-mix(in srgb,var(--fc) 24%,var(--surface));stroke:var(--fc);stroke-width:2.2;stroke-linejoin:round}
+.pm-in{fill:var(--fc);stroke:var(--surface);stroke-width:1}
+.pm-pl.s-nodata .pm-body{fill:color-mix(in srgb,var(--fc) 9%,var(--surface))}
+.pm-pl.s-idle .pm-body{stroke-dasharray:3.2 2.6;fill:color-mix(in srgb,var(--fc) 9%,var(--surface))}
+.pm-pl.s-stale .pm-body{stroke-dasharray:1.4 2.6;fill:color-mix(in srgb,var(--fc) 9%,var(--surface))}
+.pm-zero{stroke:var(--ink2);stroke-width:2.2;stroke-linecap:round;fill:none}
+.pm-out{fill:var(--borange);stroke:var(--surface);stroke-width:1.2;stroke-linejoin:round}
+.pm-sel{stroke:var(--ink);stroke-width:2.4;opacity:0}   /* tömör keret: a szaggatott körvonal az „áll” állapot jele, ezért a kijelölés nem lehet szaggatott */
+.pm-pl.on .pm-sel{opacity:1}
+.pm-pl:focus-visible .pm-sel{opacity:1;stroke:var(--focus);stroke-dasharray:none;stroke-width:2.6}
+.pm-pl:hover .pm-body{stroke-width:3.2}
+.pm-pname{font-size:11.5px;font-weight:650;fill:var(--ink);paint-order:stroke;stroke:var(--surface);stroke-width:3.6px;stroke-linejoin:round;pointer-events:none}
+.pmapctl{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px;z-index:2}
+.pmapctl button{width:40px;height:40px;border-radius:10px;border:1px solid var(--grid);background:var(--surface);color:var(--ink);font:inherit;font-size:20px;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.14)}
+.pmapctl button.txt{font-size:12px;font-weight:650;line-height:1.1;padding:2px}
+.pmapctl button:hover{border-color:var(--ink2)}
+.pmaphint{position:absolute;left:10px;bottom:8px;font-size:12px;color:var(--muted);background:color-mix(in srgb,var(--surface) 85%,transparent);padding:1px 8px;border-radius:999px;pointer-events:none}
+@media (forced-colors:active){.pm-body{stroke:CanvasText}.pm-in{fill:CanvasText}}
+@media (prefers-reduced-motion:no-preference){.pm-body,.pm-in{transition:stroke-width .12s}}
+nav.tabs.subnav a{padding:6px 11px;font-size:13.5px}

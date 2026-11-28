@@ -30,6 +30,14 @@ col.write_json(str(ROOT / "demo-data.json"), main)
 eng = col.collect_engineer(client, now=NOW, hours=168, main=main)
 eng["demo"] = True
 eng["source"] = "DEMO – szintetikus adat, nem valós mérés"
+# A demo erőművi térképhez az egységek a nyilvántartás erőműveire hasonlító, egyértelműen DEMO-jelölt nevet kapnak
+# (az éles egységneveket az ENTSO-E adja; a demo értékei kitaláltak).
+DEMO_UNIT_NAMES = {"Atomerőmű, 1. blokk": "PAKS 1 (DEMO)", "Atomerőmű, 2. blokk": "PAKS 2 (DEMO)", "Atomerőmű, 3. blokk": "PAKS 3 (DEMO)",
+                   "Atomerőmű, 4. blokk": "PAKS 4 (DEMO)", "Lignit blokk": "MÁTRA 3 (DEMO)", "Gázblokk A": "DUNAMENTI G (DEMO)",
+                   "Gázblokk B": "GÖNYŰ (DEMO)", "Gázblokk C": "CSEPEL (DEMO)"}
+for key in ("units", "unit_capacity", "outages_gen"):
+    for u in eng.get(key, []):
+        u["name"] = DEMO_UNIT_NAMES.get(u["name"], u["name"])
 col.write_json(str(ROOT / "demo-engineer.json"), eng)
 
 eu = col.collect_europe(client, now=NOW)

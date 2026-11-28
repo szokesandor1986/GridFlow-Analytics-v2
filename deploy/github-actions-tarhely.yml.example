@@ -45,7 +45,7 @@ jobs:
         run: |
           mkdir -p dist
           python collector.py --out dist/data.json
-          cp *.html europe-geo.json hu-geo.json demo-*.json dist/
+          cp *.html europe-geo.json hu-geo.json plants.json demo-*.json dist/
           cp -r assets demo-hist demo-elemzesek dist/
           for f in history.json gas.json; do [ -f "$f" ] && cp "$f" dist/; done
           # Az elemzések a havi history.json-ból épülnek. A hist/ (óránkénti tár, ~70-100 MB) szándékosan nem kerül fel FTPS-en

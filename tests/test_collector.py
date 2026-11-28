@@ -131,6 +131,7 @@ def test_survives_broken_client():
     assert e["load"]["actual"] is None and e["load"]["forecast"] is not None and not e["modules"]["generation"]
     assert any("RuntimeError" in x for x in e["errors"])
     assert e["modules"]["units"]
+    assert e["modules"]["unit_capacity"] and len(e["unit_capacity"]) == 8 and all(u["mw"] > 0 and u["group"] for u in e["unit_capacity"])
     print("3. hibatűrés rendben")
 
 

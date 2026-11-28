@@ -20,11 +20,15 @@ from html.parser import HTMLParser
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FAIL = []
-SECTIONS = {"kezdolap", "elemzesek", "rendszerkep", "historikus", "nemzetkozi", "modszertan", "rolunk"}
-MENU = ["index.html", "elemzesek.html", "rendszerkep.html", "historikus.html", "nemzetkozi.html", "modszertan.html", "rolunk.html"]
-SECTION_OF = {"index": "kezdolap", "elemzesek": "elemzesek", "rendszerkep": "rendszerkep", "hatarok": "rendszerkep", "muszaki": "rendszerkep",
-              "europa": "rendszerkep", "idojaras": "rendszerkep", "foldgaz": "rendszerkep", "historikus": "historikus",
-              "nemzetkozi": "nemzetkozi", "modszertan": "modszertan", "rolunk": "rolunk"}
+SECTIONS = {"kezdolap", "elemzesek", "adatok", "rolunk"}
+MENU = ["index.html", "elemzesek.html", "rendszerkep.html"]                      # a három főmenüpont (Főoldal, Elemzések, Adatok)
+DATA = ["rendszerkep.html", "historikus.html", "eromuvek.html", "idojaras.html", "foldgaz.html", "nemzetkozi.html", "modszertan.html"]   # az Adatok modulsora
+SUB = ["rendszerkep.html", "hatarok.html", "muszaki.html", "europa.html"]       # az aktuális rendszerkép nézetei
+NSMENU = ["index.html", "elemzesek.html", "rendszerkep.html", "historikus.html", "eromuvek.html", "idojaras.html", "foldgaz.html", "nemzetkozi.html",
+          "modszertan.html", "rolunk.html"]                                      # a JavaScript nélküli tartalék menü
+SECTION_OF = {"index": "kezdolap", "elemzesek": "elemzesek", "rolunk": "rolunk"}
+for _n in ("rendszerkep", "hatarok", "muszaki", "europa", "idojaras", "foldgaz", "historikus", "eromuvek", "nemzetkozi", "modszertan"):
+    SECTION_OF[_n] = "adatok"
 BAD_WORDS = ("áramrendszer", "áramtermel", "áramot termel", "áramár", "áramfogyaszt", "áramimport", "áramexport")
 VOID = {"meta", "link", "br", "hr", "img", "input", "source", "area", "base", "col", "embed", "param", "track", "wbr"}
 TRACK = {"div", "section", "ul", "ol", "li", "table", "thead", "tbody", "tr", "td", "th", "nav", "main", "header", "footer", "article", "details", "summary",
@@ -141,7 +145,7 @@ def main():
         check(not P.errors and not P.stack, "%s: a címkék kiegyensúlyozottak %s" % (name, (P.errors + P.stack)[:3]))
         ns = [l for l in P.ns_links]
         rootp = "" if root_page else "../"
-        check(ns[:7] == [rootp + m for m in MENU], "%s: a JavaScript nélküli főmenü a hét pontot tartalmazza" % name)
+        check(ns[:len(NSMENU)] == [rootp + m for m in NSMENU], "%s: a JavaScript nélküli tartalék menü a tíz pontot tartalmazza" % name)
         gf = [s for s in P.scripts if s.endswith("gf.js")]
         check(len(gf) == 1 and P.scripts[0] == gf[0], "%s: a gf.js az első szkript" % name)
         bad_ext = [s for s in P.scripts + P.styles if re.match(r"(https?:)?//", s)]
@@ -183,12 +187,13 @@ def main():
     jumps = [l for l in P.links if l.startswith("#sz")]
     check(sorted(jumps) == sorted("#sz" + c for c in letters), "hét ugrólink, mind az A–G szekcióra mutat %s" % jumps)
 
-    print("[Menü: minden fő oldal ugyanazt a hét pontot kapja a gf.js-től]")
+    print("[Menü: három főmenüpont, az Adatok alatt modulsor]")
     js = open(os.path.join(ROOT, "assets", "gf.js"), encoding="utf-8").read()
-    hrefs = re.findall(r'href: "([a-z]+\.html)", t: "([^"]+)"', js)
-    check([h for h, _ in hrefs][:7] == MENU, "a gf.js főmenüje a hét várt oldalt tartalmazza %s" % [h for h, _ in hrefs][:7])
-    sub = [h for h, _ in hrefs][7:]
-    check(sub == ["rendszerkep.html", "hatarok.html", "muszaki.html", "europa.html", "idojaras.html", "foldgaz.html"], "a Rendszerkép almenüje hat nézetet tartalmaz %s" % sub)
+    hrefs = [h for h, _ in re.findall(r'href: "([a-z]+\.html)", t: "([^"]+)"', js)]
+    check(hrefs[:3] == MENU, "a gf.js főmenüje a három várt pontot tartalmazza %s" % hrefs[:3])
+    check(hrefs[3:10] == DATA, "az Adatok modulsora hét modult tartalmaz %s" % hrefs[3:10])
+    check(hrefs[10:] == SUB, "az aktuális rendszerkép nézetei négy oldal %s" % hrefs[10:])
+    check(all(os.path.exists(os.path.join(ROOT, h)) for h in hrefs), "a menü minden pontja létező oldalra mutat")
 
     print("\n%s" % ("MINDEN OK" if not FAIL else "%d HIBA:\n  - " % len(FAIL) + "\n  - ".join(FAIL)))
     sys.exit(1 if FAIL else 0)
