@@ -59,12 +59,11 @@ jobs:
       - name: Tárolt adatok betöltése (data ág)
         run: bash scripts/load_data.sh history.json gas.json hist
 
-      - name: Adatgyűjtés az ENTSO-E-ről
-        env:
-          ENTSOE_TOKEN: ${{ secrets.ENTSOE_TOKEN }}
+      # Az oldalak másolása az adatgyűjtés ELŐTT történik, és a gyűjtés hibája nem állítja meg a közzétételt:
+      # ha az ENTSO-E átmenetileg nem ad adatot, az élő oldal előző data.json fájlja marad.
+      - name: Oldalak előkészítése
         run: |
           mkdir -p dist
-          python collector.py --out dist/data.json
           # oldalak: a hét főmenüpont és a Rendszerkép részletes nézetei (hatarok, muszaki, europa, idojaras, foldgaz)
           cp index.html elemzesek.html rendszerkep.html historikus.html nemzetkozi.html modszertan.html rolunk.html dist/
           cp hatarok.html muszaki.html europa.html foldgaz.html idojaras.html europe-geo.json hu-geo.json dist/
@@ -74,6 +73,14 @@ jobs:
           cp -r demo-hist dist/ 2>/dev/null || true   # elhagyható: csak a ?demo=1 módhoz kell
           cp history.json gas.json dist/ 2>/dev/null || true
           cp -r hist dist/hist 2>/dev/null || true
+
+      - name: Adatgyűjtés az ENTSO-E-ről
+        continue-on-error: true
+        env:
+          ENTSOE_TOKEN: ${{ secrets.ENTSOE_TOKEN }}
+        run: |
+          curl -fsS --max-time 30 "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/data.json" -o dist/data.json || rm -f dist/data.json
+          python collector.py --out dist/data.json
 
       # Elemzések (publikációk): a havi history.json lezárt hónapjaiból, statikus HTML-ként. Ha a history.json még nincs meg
       # vagy a generálás hibázik, a közzététel akkor is megtörténik (a Kezdőlap és az Elemzések oldal ilyenkor üzenetet mutat).
