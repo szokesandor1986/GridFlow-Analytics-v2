@@ -70,7 +70,8 @@ jobs:
           cp hatarok.html muszaki.html europa.html foldgaz.html idojaras.html europe-geo.json hu-geo.json dist/
           cp demo-data.json demo-engineer.json demo-europe.json demo-countries.json demo-history.json demo-gas.json demo-frequency.json demo-hupx.json demo-weather.json dist/
           cp -r assets dist/assets
-          cp -r demo-hist demo-elemzesek dist/
+          cp -r demo-elemzesek dist/ 2>/dev/null || true
+          cp -r demo-hist dist/ 2>/dev/null || true   # elhagyható: csak a ?demo=1 módhoz kell
           cp history.json gas.json dist/ 2>/dev/null || true
           cp -r hist dist/hist 2>/dev/null || true
 
